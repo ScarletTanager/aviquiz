@@ -1,0 +1,11 @@
+# Colombia Field Quiz
+
+Static, browser-local quiz built from checklist_dec2026.xlsx and the October 7, 2026 eBird export. Source data and history stay in the parent workspace; the hosted data includes the trip checklist, site flags, lifer booleans, and public Macaulay photo metadata only.
+
+Counts: 849 trip species, 283 potential worldwide lifers, 519 potential Colombia lifers (including worldwide lifers). Thirteen named site columns are supported; the empty OS column has no targets or site legend and is not offered as a site. The all-trip choice includes species with no site X. Thirteen checklist scientific-name errors were reconciled against Cornell taxonomy by unambiguous common names. Original source files are unchanged.
+
+Photo metadata: four ranked Macaulay Library photo records per species, 3,396 total. Asset IDs, species labels, and contributor credits were read from Macaulay catalog pages. All 849 species have records, with no species-label mismatches. Images are loaded from Cornell's observed image endpoint; no photos are bundled or substituted from another provider.
+
+Verification: node test.mjs covers all 39 site/filter combinations, the worldwide/Colombia lifer relationship, punctuation and typo matching, exact other-species rejection, distinct-species question sets, and photo provenance. Browser checks cover setup, site/filter selection, question count, image failure handling, unscored continuation, and results. During verification, Cornell's image CDN returned HTTP 403, including within its own catalog. Actual image display and the image-backed answer flow therefore remain externally blocked. The UI retries alternate records and allows an unavailable question to continue without scoring.
+
+For development, serve dist/ using a static HTTP server. Data preparation uses the bundled Python runtime with openpyxl for read-only spreadsheet extraction. prepare_data.py rebuilds checklist data and resets photos; finalize_photos.py attaches saved catalog metadata again. The default quiz is 20 questions and uses distinct species. Name matching accepts common, accepted common, and scientific names; removes punctuation and spacing; accepts at most one or two edit errors depending on length; and requires a unique closest match.
