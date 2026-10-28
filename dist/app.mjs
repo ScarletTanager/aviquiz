@@ -78,7 +78,8 @@ $('exit').addEventListener('click',()=>{sessionToken++;showView('setup');});$('n
 try{
   const response=await fetch('data.json');if(!response.ok)throw new Error('Checklist unavailable');data=await response.json();
   for(const site of data.sites){const option=document.createElement('option');option.value=site.code;option.textContent=`${site.code} · ${site.name}`;$('site').append(option);}
-  for(const family of [...new Set(data.birds.map(b=>familyName(b.family)))].sort()){const option=document.createElement('option');option.value=family;option.textContent=family;$('family').append(option);}
+  // Bird records follow the checklist's taxonomic order; preserve each family's first occurrence.
+  for(const family of new Set(data.birds.map(b=>familyName(b.family)))){const option=document.createElement('option');option.value=family;option.textContent=family;$('family').append(option);}
   $('total').textContent=data.summary.species;$('world-total').textContent=data.summary.worldLifers;$('co-total').textContent=data.summary.colombiaLifers;
   const covered=data.birds.filter(b=>b.photos.length).length;$('coverage').textContent=`Macaulay photo records: ${covered} of ${data.birds.length} species. Image availability depends on Macaulay Library’s image server.${covered<data.birds.length?' Species without a photo record are excluded from question selection and remain in the checklist totals.':''}`;
   const hero=data.birds.find(b=>b.name==='Multicolored Tanager'&&b.photos.length)||data.birds.find(b=>b.photos.length);
