@@ -25,8 +25,18 @@ export function gradeAnswer(value, bird, allBirds) {
   const nearestOther=Math.min(...allBirds.filter(b=>b.id!==bird.id).flatMap(b=>aliases(b).map(n=>distance(input,n))));
   return {correct:best<=limit && best<nearestOther,fuzzy:best<=limit && best<nearestOther};
 }
-export function eligibleBirds(birds, site='all', filter='none') {
-  return birds.filter(b=>(site==='all'||b.sites.includes(site))&&(filter==='none'||(filter==='world'?b.worldLifer:b.colombiaLifer)));
+export const familyName = value => value.replace(/\s*\(\d+\)\s*$/, '').trim();
+export function eligibleBirds(birds, site='all', filter='none', family='all') {
+  return birds.filter(b=>(site==='all'||b.sites.includes(site))&&(filter==='none'||(filter==='world'?b.worldLifer:b.colombiaLifer))&&(family==='all'||familyName(b.family)===family));
+}
+export function questionPool(birds, repeatSpecies=false) {
+  const ready=birds.filter(b=>b.photos.length);
+  if(!repeatSpecies)return ready;
+  const used=new Set();
+  return ready.flatMap(b=>b.photos.filter(p=>{if(used.has(p.id))return false;used.add(p.id);return true;}).map(p=>({...b,photos:[p]})));
+}
+export function buildQuestions(birds, count, repeatSpecies=false, random=Math.random) {
+  return shuffle(questionPool(birds,repeatSpecies),random).slice(0,count);
 }
 export function shuffle(items, random=Math.random) {
   const a=[...items];

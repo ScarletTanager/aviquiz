@@ -1,13 +1,16 @@
-import {eligibleBirds,gradeAnswer,shuffle} from './quiz.mjs';
+import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './quiz.mjs';
 const $=id=>document.getElementById(id);
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
 const escapeHTML=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function selectedFilter(){return document.querySelector('input[name="filter"]:checked').value;}
-function pool(){return eligibleBirds(data.birds,$('site').value,selectedFilter());}
+function pool(){return eligibleBirds(data.birds,$('site').value,selectedFilter(),$('family').value);}
 function updatePool(){
-  const birds=pool(),ready=birds.filter(b=>b.photos.length),requested=Number($('count').value);
-  $('pool').textContent=`${birds.length} eligible species · ${ready.length} with photo records${requested>ready.length?`. Quiz will use ${ready.length} questions.`:''}`;
-  $('count').max=Math.max(data.birds.length,1);
+  const familyMode=$('family').value!=='all',birds=pool(),ready=questionPool(birds,familyMode),requested=Number($('count').value);
+  const base=eligibleBirds(data.birds,$('site').value,selectedFilter());
+  for(const option of $('family').options){if(option.value==='all')continue;const n=base.filter(b=>familyName(b.family)===option.value).length;option.textContent=`${option.value} · ${n} species`;}
+  $('pool').textContent=!ready.length?'No species match these filters. Try another family, site, or lifer filter.':`${birds.length} eligible species · ${ready.length} ${familyMode?'different photographs. Species may repeat.':'with photo records'}${requested>ready.length?` Quiz will use ${ready.length} questions.`:''}`;
+  // Keep the requested number editable; selection is capped to the available pool.
+  $('count').removeAttribute('max');
   $('start').disabled=!ready.length;
 }
 function showView(id){for(const v of ['setup','session','results'])$(v).hidden=v!==id;window.scrollTo({top:0,behavior:'instant'});}
@@ -15,9 +18,10 @@ function begin(){
   const count=Number($('count').value);
   if(!Number.isInteger(count)||count<1){$('settings-error').textContent='Choose a whole number of questions, at least 1.';return;}
   $('settings-error').textContent='';
-  queue=shuffle(pool().filter(b=>b.photos.length)).slice(0,count);if(!queue.length)return;
+  const familyMode=$('family').value!=='all';
+  queue=buildQuestions(pool(),count,familyMode);if(!queue.length)return;
   index=0;answers=[];showView('session');
-  $('session-label').textContent=$('site').selectedOptions[0].textContent+' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[selectedFilter()]);
+  $('session-label').textContent=$('site').selectedOptions[0].textContent+(familyMode?' · '+$('family').value:'')+' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[selectedFilter()]);
   nextQuestion();
 }
 function credit(photo,revealName=false){
@@ -37,6 +41,7 @@ function loadPhoto(){
 }
 function nextQuestion(){
   sessionToken++;answered=false;photoTry=0;photoOrder=shuffle(queue[index].photos);
+  $('retry-photo').textContent=photoOrder.length>1?'Try another photo':'Retry photo';
   $('question-number').textContent=`QUESTION ${index+1} / ${queue.length}`;
   $('progress').style.width=`${index/queue.length*100}%`;
   $('score').textContent=`${answers.filter(a=>a.correct).length} correct`;
@@ -64,7 +69,7 @@ function finish(){
   $('review').innerHTML=answers.map(a=>`<article class="review-row"><img src="${escapeHTML(a.photo.url)}" alt="${escapeHTML(a.bird.name)}" loading="lazy"><div><h3>${escapeHTML(a.bird.name)}</h3><p>${escapeHTML(a.bird.scientificName)}</p><p>${a.unavailable?'Photo unavailable':a.revealed?'Answer revealed':`Your answer: ${escapeHTML(a.guess)}`}</p><a href="${escapeHTML(a.photo.source)}" target="_blank" rel="noopener noreferrer">© ${escapeHTML(a.photo.photographer)} · Macaulay Library ML${escapeHTML(a.photo.id)} ↗</a></div><span class="review-status">${a.unavailable?'Not scored':a.correct?'✓ Correct':'↻ Review'}</span></article>`).join('');
 }
 $('settings').addEventListener('submit',e=>{e.preventDefault();begin();});
-$('site').addEventListener('change',updatePool);document.querySelectorAll('input[name="filter"]').forEach(el=>el.addEventListener('change',updatePool));$('count').addEventListener('input',()=>{if(data)updatePool();});
+$('site').addEventListener('change',updatePool);$('family').addEventListener('change',updatePool);document.querySelectorAll('input[name="filter"]').forEach(el=>el.addEventListener('change',updatePool));$('count').addEventListener('input',()=>{if(data)updatePool();});
 $('answer-form').addEventListener('submit',e=>{e.preventDefault();finishAnswer();});$('reveal').addEventListener('click',()=>finishAnswer(true));
 $('next').addEventListener('click',advance);
 $('retry-photo').addEventListener('click',()=>{photoTry=(photoTry+1)%queue[index].photos.length;loadPhoto();});
@@ -73,6 +78,7 @@ $('exit').addEventListener('click',()=>{sessionToken++;showView('setup');});$('n
 try{
   const response=await fetch('data.json');if(!response.ok)throw new Error('Checklist unavailable');data=await response.json();
   for(const site of data.sites){const option=document.createElement('option');option.value=site.code;option.textContent=`${site.code} · ${site.name}`;$('site').append(option);}
+  for(const family of [...new Set(data.birds.map(b=>familyName(b.family)))].sort()){const option=document.createElement('option');option.value=family;option.textContent=family;$('family').append(option);}
   $('total').textContent=data.summary.species;$('world-total').textContent=data.summary.worldLifers;$('co-total').textContent=data.summary.colombiaLifers;
   const covered=data.birds.filter(b=>b.photos.length).length;$('coverage').textContent=`Macaulay photo records: ${covered} of ${data.birds.length} species. Image availability depends on Macaulay Library’s image server.${covered<data.birds.length?' Species without a photo record are excluded from question selection and remain in the checklist totals.':''}`;
   const hero=data.birds.find(b=>b.name==='Multicolored Tanager'&&b.photos.length)||data.birds.find(b=>b.photos.length);
