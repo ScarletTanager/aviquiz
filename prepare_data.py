@@ -41,6 +41,7 @@ for row in s.iter_rows(min_row=21,max_row=941):
     t=by_sci.get(original_sci) or by_name.get(norm(common))
     if not t: unresolved.append(text)
     sci=t['SCIENTIFIC_NAME'] if t else original_sci
+    if sci=='Pachyramphus cinnamomeus': common='Cinnamon Becard'
     if sci!=original_sci: corrections.append({'checklist':text,'scientificName':sci})
     birds.append({'id':t['SPECIES_CODE'] if t else norm(common),'name':common,'acceptedName':t['COMMON_NAME'] if t else common,'scientificName':sci,'originalScientificName':original_sci,'family':family,'sites':[x['code'] for x in sites if str(row[x['column']-1].value).strip().upper()=='X'],'worldLifer':sci not in world_seen,'colombiaLifer':sci not in co_seen,'row':row[0].row,'photos':[]})
 summary={'species':len(birds),'worldLifers':sum(b['worldLifer'] for b in birds),'colombiaLifers':sum(b['colombiaLifer'] for b in birds),'sites':len(sites),'corrections':corrections,'unresolved':unresolved}
