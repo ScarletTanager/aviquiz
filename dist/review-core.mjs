@@ -5,7 +5,9 @@ export function reviewCoverage(birds,rows){
   for(const doc of approved)counts.set(doc.speciesId,(counts.get(doc.speciesId)||0)+1);
   const skipped=new Set(rows.filter(r=>r.status==='skipped'&&!r.approved).map(r=>r.photoId));
   const available=birds.filter(b=>b.photos.some(p=>!skipped.has(String(p.id))&&!approved.some(d=>d.photoId===String(p.id))));
-  return {total:birds.length,covered:[...counts.values()].filter(n=>n>0).length,approved:approved.length,drafts:rows.filter(r=>r.status==='draft').length,blocked:birds.filter(b=>!counts.get(b.id)&&!available.includes(b)).map(b=>b.id),round:available.length?Math.min(...available.map(b=>counts.get(b.id)))+1:null,counts:Object.fromEntries(counts)};
+  const uncovered=[...counts.values()].some(n=>n===0);
+  const round=birds.length&&(uncovered||available.length)?Math.min(...counts.values())+1:null;
+  return {total:birds.length,covered:[...counts.values()].filter(n=>n>0).length,approved:approved.length,drafts:rows.filter(r=>r.status==='draft').length,blocked:birds.filter(b=>round!==null&&counts.get(b.id)<round&&!available.includes(b)).map(b=>b.id),round,counts:Object.fromEntries(counts)};
 }
 export function reviewQueue(birds,rows,{family='all',site='all',limit=20}={}){
   const coverage=reviewCoverage(birds,rows),byPhoto=new Map(rows.map(r=>[r.photoId,r]));

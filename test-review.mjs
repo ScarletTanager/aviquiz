@@ -52,6 +52,7 @@ const racing=await Promise.all(raceBird.photos.slice(0,2).map(p=>call('/api/revi
 assert.deepEqual(racing.map(r=>r.status).sort(),[200,409]);
 const skipped=bird.photos.map(p=>({photoId:String(p.id),speciesId:bird.id,status:'skipped',approved:null}));
 assert.ok(reviewCoverage(catalog.birds,skipped).blocked.includes(bird.id));
+assert.equal(reviewCoverage([bird],skipped).round,1);
 assert.ok(!reviewQueue(catalog.birds,skipped).some(q=>q.speciesId===bird.id));
 applySharedTips([doc]);
 assert.equal(tipsFor(bird,photo,{enabled:true,answered:true,correct:false}).kind,'annotated');
