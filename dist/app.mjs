@@ -175,7 +175,8 @@ window.addEventListener('hashchange',navigateSpeciesHash);
 window.addEventListener('storage',e=>{if(e.key===PROGRESS_KEY||e.key===null){readProgress();if(data){updatePool();renderStatistics();renderSpeciesList();}}});
 try{
   const response=await fetch('data.json',{cache:'no-store'});if(!response.ok)throw new Error('Checklist unavailable');data=await response.json();
-  for(const site of data.sites){const option=document.createElement('option');option.value=site.code;option.textContent=`${site.code} · ${site.name}`;$('site').append(option);}
+  $('site').options[0].textContent=`Entire trip checklist (${data.birds.length})`;
+  for(const site of data.sites){const count=eligibleBirds(data.birds,site.code).length;const option=document.createElement('option');option.value=site.code;option.textContent=`${site.code} · ${site.name} (${count})`;$('site').append(option);}
   // Bird records follow the checklist's taxonomic order; preserve each family's first occurrence.
   for(const family of new Set(data.birds.map(b=>familyName(b.family)))){const option=document.createElement('option');option.value=family;option.textContent=family;$('family').append(option);}
   $('total').textContent=data.summary.species;$('world-total').textContent=data.summary.worldLifers;$('co-total').textContent=data.summary.colombiaLifers;
