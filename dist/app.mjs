@@ -1,9 +1,22 @@
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './quiz.mjs';
 import {PROGRESS_KEY,emptyProgress,parseProgress,recordAttempt,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
+import {accuracyStatistics,sortAccuracy} from './statistics.mjs';
 const $=id=>document.getElementById(id);
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
 let progress=emptyProgress(),activeSettings=null,storageUsable=true;
+let familiesExpanded=false;
 const escapeHTML=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function renderStatistics(){
+  if(!data)return;
+  const stats=accuracyStatistics(data.birds,data.sites,progress);
+  const rowsHTML=rows=>rows.map(row=>`<li class="accuracy-row"><span class="accuracy-name">${escapeHTML(row.name)}</span><span class="accuracy-value"><strong>${row.rate===null?'—':new Intl.NumberFormat('en',{style:'percent',maximumFractionDigits:1}).format(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></span></li>`).join('');
+  $('site-accuracy-list').innerHTML=rowsHTML(sortAccuracy(stats.sites,$('site-stat-sort').value,$('site-stat-direction').value));
+  const families=sortAccuracy(stats.families,$('family-stat-sort').value,$('family-stat-direction').value);
+  $('family-accuracy-list').innerHTML=rowsHTML(familiesExpanded?families:families.slice(0,10));
+  $('family-expand').hidden=families.length<=10;
+  $('family-expand').setAttribute('aria-expanded',String(familiesExpanded));
+  $('family-expand').textContent=familiesExpanded?'▾ Show first 10 families':`▸ Show all ${families.length} families`;
+}
 function selectedFilter(){return document.querySelector('input[name="filter"]:checked').value;}
 function formSettings(){return {mode:document.querySelector('input[name="mode"]:checked').value,site:$('site').value,family:$('family').value,count:Number($('count').value),filter:selectedFilter()};}
 function pool(settings=formSettings()){
@@ -16,6 +29,7 @@ function readProgress(){
 }
 function rememberAnswer(bird,correct){
   readProgress();progress=recordAttempt(progress,bird.id,correct);
+  renderStatistics();
   if(!storageUsable)return;
   try{localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));$('storage-status').textContent='Progress saved in this browser. Other browsers and devices have separate histories.';}
   catch{storageUsable=false;$('storage-status').textContent='Browser storage is unavailable. Progress is tracked for this visit but cannot be saved for next time.';}
@@ -32,7 +46,7 @@ function updatePool(){
   $('count').removeAttribute('max');
   $('start').disabled=!ready.length;
 }
-function showView(id){for(const v of ['setup','session','results'])$(v).hidden=v!==id;window.scrollTo({top:0,behavior:'instant'});}
+function showView(id){for(const v of ['setup','session','results'])$(v).hidden=v!==id;if(id==='setup')renderStatistics();window.scrollTo({top:0,behavior:'instant'});}
 function begin(settings=formSettings()){
   const count=settings.count;
   if(!Number.isInteger(count)||count<1){$('settings-error').textContent='Choose a whole number of questions, at least 1.';return;}
@@ -112,7 +126,9 @@ $('review-quiz').addEventListener('click',()=>{
   document.querySelector('input[name="mode"][value="review"]').checked=true;
   updatePool();begin(settings);
 });
-window.addEventListener('storage',e=>{if(e.key===PROGRESS_KEY||e.key===null){readProgress();if(data)updatePool();}});
+for(const id of ['site-stat-sort','site-stat-direction','family-stat-sort','family-stat-direction'])$(id).addEventListener('change',renderStatistics);
+$('family-expand').addEventListener('click',()=>{familiesExpanded=!familiesExpanded;renderStatistics();});
+window.addEventListener('storage',e=>{if(e.key===PROGRESS_KEY||e.key===null){readProgress();if(data){updatePool();renderStatistics();}}});
 try{
   const response=await fetch('data.json');if(!response.ok)throw new Error('Checklist unavailable');data=await response.json();
   for(const site of data.sites){const option=document.createElement('option');option.value=site.code;option.textContent=`${site.code} · ${site.name}`;$('site').append(option);}
@@ -122,5 +138,5 @@ try{
   const covered=data.birds.filter(b=>b.photos.length).length;$('coverage').textContent=`Macaulay photo records: ${covered} of ${data.birds.length} species. Image availability depends on Macaulay Library’s image server.${covered<data.birds.length?' Species without a photo record are excluded from question selection and remain in the checklist totals.':''}`;
   const hero=data.birds.find(b=>b.name==='Multicolored Tanager'&&b.photos.length)||data.birds.find(b=>b.photos.length);
   if(hero){$('hero-photo').onerror=()=>{$('hero-photo').hidden=true;$('hero-label').textContent='Macaulay photograph unavailable';$('hero-credit').textContent='The image server could not deliver this photo. Please try again later.';};$('hero-photo').src=hero.photos[0].url;$('hero-photo').alt=hero.name;$('hero-label').textContent=hero.name;$('hero-credit').textContent=`© ${hero.photos[0].photographer} · Macaulay Library ML${hero.photos[0].id}`;}
-  readProgress();updatePool();
+  readProgress();updatePool();renderStatistics();
 }catch(error){$('pool').textContent='Could not load the checklist. Please reload the page.';$('settings-error').textContent=error.message;}

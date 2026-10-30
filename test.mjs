@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './dist/quiz.mjs';
 import {emptyProgress,parseProgress,recordAttempt,mistakeRate,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './dist/progress.mjs';
+import {accuracyStatistics,sortAccuracy} from './dist/statistics.mjs';
 const data=JSON.parse(fs.readFileSync(new URL('./dist/data.json',import.meta.url)));
 assert.equal(data.birds.length,849);
 assert.equal(new Set(data.birds.map(b=>b.id)).size,849);
@@ -88,3 +89,30 @@ const refreshed=withFreshPhotos([target],[target.photos[0].id]);assert.equal(ref
 assert.equal(withFreshPhotos([target],target.photos.map(p=>p.id))[0].photos.length,4,'All used photos fall back to species photo pool');
 assert.equal(target.photos.length,4,'Fresh photo selection preserves original photos');
 console.log('Passed: persistent species history round-trip; strict >25% boundary; rolling 20 attempts; recovery through correct answers; all review site/family intersections; immediate quiz-only mistakes below threshold; deduplication; unavailable exclusion; fresh-photo selection.');
+const statsBirds=[
+  {id:'a',family:'Firstidae (2)',sites:['A','B','B']},
+  {id:'b',family:'Firstidae (2)',sites:['A']},
+  {id:'c',family:'Secondidae',sites:['B']},
+  {id:'d',family:'Thirdidae',sites:[]}
+];
+const statsSites=[{code:'A',name:'Zulu'},{code:'B',name:'Alpha'},{code:'C',name:'No history'}];
+const statsHistory={version:1,species:{a:{attempts:[true,false]},b:{attempts:[true]},d:{attempts:[false]}}};
+const accuracy=accuracyStatistics(statsBirds,statsSites,statsHistory);
+assert.deepEqual(accuracy.sites.map(r=>[r.correct,r.total,r.rate]),[[2,3,2/3],[1,2,0.5],[0,0,null]]);
+assert.deepEqual(accuracy.families.map(r=>[r.name,r.correct,r.total,r.rate]),[['Firstidae',2,3,2/3],['Secondidae',0,0,null],['Thirdidae',0,1,0]]);
+assert.equal(accuracy.sites[0].rate,2/3,'Weight answers rather than averaging species rates');
+assert.equal(accuracy.sites[1].total,2,'An overlapping site receives history once, without duplicate site flags');
+for(const rows of [accuracy.sites,accuracy.families]){
+  const original=JSON.stringify(rows);
+  assert.deepEqual(sortAccuracy(rows,'taxonomy','asc').map(r=>r.id),rows.map(r=>r.id));
+  assert.deepEqual(sortAccuracy(rows,'taxonomy','desc').map(r=>r.id),rows.map(r=>r.id).reverse());
+  assert.deepEqual(sortAccuracy(rows,'name','desc').map(r=>r.id),sortAccuracy(rows,'name','asc').map(r=>r.id).reverse());
+  for(const direction of ['asc','desc'])assert.equal(sortAccuracy(rows,'rate',direction).at(-1).rate,null,'Missing history stays last for accuracy sorting');
+  assert.equal(JSON.stringify(rows),original,'Sort does not mutate data or taxonomic order');
+}
+assert.deepEqual(sortAccuracy(accuracy.families,'rate','asc').map(r=>r.id),['Thirdidae','Firstidae','Secondidae']);
+assert.deepEqual(sortAccuracy(accuracy.families,'rate','desc').map(r=>r.id),['Firstidae','Thirdidae','Secondidae']);
+assert.deepEqual(sortAccuracy(accuracy.sites,'name','asc').map(r=>r.id),['B','C','A']);
+assert.ok(accuracyStatistics(data.birds,data.sites,emptyProgress()).families.every(r=>r.rate===null));
+const beforeStats=JSON.stringify(statsHistory);accuracyStatistics(statsBirds,statsSites,statsHistory);assert.equal(JSON.stringify(statsHistory),beforeStats);
+console.log('Passed: weighted site/family accuracy; shared-site membership; no-history vs zero scores; species without site flags; taxonomy/alphabetic/rate sorts both ways; missing history placement; unchanged progress.');
