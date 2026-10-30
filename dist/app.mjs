@@ -1,11 +1,13 @@
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './quiz.mjs';
 import {PROGRESS_KEY,emptyProgress,parseProgress,recordAttempt,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './statistics.mjs';
+import {ID_TIPS,annotationFor,annotatedBirds,annotationSvg} from './id-tips.mjs';
 const $=id=>document.getElementById(id);
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
 let progress=emptyProgress(),activeSettings=null,storageUsable=true;
 let familiesExpanded=false,sitesExpanded=false;
 let speciesScope=null;
+let activeAnnotation=null;
 const formatRate=rate=>rate===null?'—':new Intl.NumberFormat('en',{style:'percent',maximumFractionDigits:1}).format(rate);
 const escapeHTML=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function renderStatistics(){
@@ -50,9 +52,10 @@ function navigateSpeciesHash(){
   }else{speciesScope=null;showView('setup');}
 }
 function selectedFilter(){return document.querySelector('input[name="filter"]:checked').value;}
-function formSettings(){return {mode:document.querySelector('input[name="mode"]:checked').value,site:$('site').value,family:$('family').value,count:Number($('count').value),filter:selectedFilter()};}
+function formSettings(){return {mode:document.querySelector('input[name="mode"]:checked').value,site:$('site').value,family:$('family').value,count:Number($('count').value),filter:selectedFilter(),experimentalTips:$('experimental-tips').checked};}
 function pool(settings=formSettings()){
-  return settings.mode==='review'?reviewBirds(data.birds,progress,settings.site,settings.family,settings.mistakeIds):eligibleBirds(data.birds,settings.site,settings.filter,settings.family);
+  const birds=settings.mode==='review'?reviewBirds(data.birds,progress,settings.site,settings.family,settings.mistakeIds):eligibleBirds(data.birds,settings.site,settings.filter,settings.family);
+  return settings.pilotTips?annotatedBirds(birds):birds;
 }
 function readProgress(){
   if(!storageUsable)return;
@@ -67,6 +70,7 @@ function rememberAnswer(bird,correct){
   catch{storageUsable=false;$('storage-status').textContent='Browser storage is unavailable. Progress is tracked for this visit but cannot be saved for next time.';}
 }
 function updatePool(){
+  $('try-id-pilot').hidden=!$('experimental-tips').checked;
   const settings=formSettings(),review=settings.mode==='review',familyMode=!review&&settings.family!=='all',birds=pool(settings),ready=questionPool(birds,familyMode),requested=settings.count;
   $('lifer-filters').hidden=review;$('lifer-filters').disabled=review;
   $('review-help').hidden=!review;
@@ -92,6 +96,7 @@ function begin(settings=formSettings()){
   index=0;answers=[];showView('session');
   const siteLabel=settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
   $('session-label').textContent=(review?(settings.mistakeIds?'Review this quiz’s mistakes':'Review recent mistakes'):'Regular quiz')+' · '+siteLabel+(settings.family!=='all'?' · '+settings.family:'')+(review?'':' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[settings.filter]));
+  if(settings.pilotTips)$('session-label').textContent+=' · Experimental 6-photo pilot';
   nextQuestion();
 }
 function credit(photo,revealName=false){
@@ -110,6 +115,7 @@ function loadPhoto(){
   $('photo-credit').innerHTML=credit(currentPhoto);
 }
 function nextQuestion(){
+  activeAnnotation=null;$('show-id-features').hidden=true;$('show-id-features').setAttribute('aria-expanded','false');$('show-id-features').textContent='Show ID features · experimental';$('id-features').hidden=true;$('id-tip-diagram').innerHTML='';$('id-tip-credit').textContent='';$('id-tip-source').innerHTML='';
   sessionToken++;answered=false;photoTry=0;photoOrder=shuffle(queue[index].photos);
   $('retry-photo').textContent=photoOrder.length>1?'Try another photo':'Retry photo';
   $('question-number').textContent=`QUESTION ${index+1} / ${queue.length}`;
@@ -127,6 +133,8 @@ function finishAnswer(revealed=false){
   rememberAnswer(bird,grade.correct);
   $('answer').disabled=true;$('check').disabled=true;$('reveal').hidden=true;$('next').hidden=false;$('question-status').textContent=grade.correct?'IDENTIFIED':'KEEP LEARNING';
   $('photo-credit').innerHTML=credit(currentPhoto,true);$('question-image').alt=bird.name;
+  activeAnnotation=annotationFor(bird,currentPhoto,{enabled:Boolean(activeSettings.experimentalTips),answered:true,correct:grade.correct});
+  $('show-id-features').hidden=!activeAnnotation;
   const badges=[bird.worldLifer?'Potential worldwide lifer':'',bird.colombiaLifer?'Potential Colombia lifer':''].filter(Boolean).join(' · ');
   $('feedback').innerHTML=`<strong class="${grade.correct?'correct':'incorrect'}">${grade.correct?(grade.fuzzy?'Correct — small typo accepted.':'Correct!'):(revealed?'Answer revealed':'Not quite.')}</strong><h3>${escapeHTML(bird.name)}</h3><em>${escapeHTML(bird.scientificName)}</em>${badges?`<p>${badges}</p>`:''}<p><a href="https://ebird.org/species/${encodeURIComponent(bird.id)}" target="_blank" rel="noopener noreferrer">Study this species ↗</a></p>`;
   $('score').textContent=`${answers.filter(a=>a.correct).length} correct`;$('next').textContent=index===queue.length-1?'See results →':'Next bird →';$('next').focus();
@@ -144,6 +152,26 @@ function finish(){
 }
 $('settings').addEventListener('submit',e=>{e.preventDefault();begin();});
 $('settings').addEventListener('change',e=>{if(e.target.name==='mode'&&data){$('settings-error').textContent='';readProgress();updatePool();}});
+$('experimental-tips').addEventListener('change',updatePool);
+$('try-id-pilot').addEventListener('click',()=>{
+  if(!$('experimental-tips').checked)return;
+  $('site').value='all';$('family').value='Furnariidae';$('count').value=String(Object.keys(ID_TIPS).length);
+  document.querySelector('input[name="mode"][value="regular"]').checked=true;
+  document.querySelector('input[name="filter"][value="none"]').checked=true;
+  updatePool();begin({...formSettings(),pilotTips:true});
+});
+$('show-id-features').addEventListener('click',()=>{
+  if(!activeAnnotation||!answered||!activeSettings.experimentalTips)return;
+  const reveal=$('id-features').hidden;
+  $('id-features').hidden=!reveal;$('show-id-features').setAttribute('aria-expanded',String(reveal));
+  $('show-id-features').textContent=reveal?'Hide ID features · experimental':'Show ID features · experimental';
+  if(reveal){
+    $('id-tip-diagram').innerHTML=annotationSvg(activeAnnotation,currentPhoto,queue[index].name);
+    $('id-tip-credit').innerHTML=credit(currentPhoto,true);
+    $('id-tip-source').innerHTML=`ID guidance paraphrased from <a href="${escapeHTML(activeAnnotation.source)}" target="_blank" rel="noopener noreferrer">eBird / Merlin: ${escapeHTML(queue[index].name)} ↗</a>. Photo-specific arrow placements are experimental.`;
+    $('id-features').scrollIntoView({behavior:'smooth',block:'start'});$('id-features').focus({preventScroll:true});
+  }
+});
 $('site').addEventListener('change',updatePool);$('family').addEventListener('change',updatePool);document.querySelectorAll('input[name="filter"]').forEach(el=>el.addEventListener('change',updatePool));$('count').addEventListener('input',()=>{if(data)updatePool();});
 $('answer-form').addEventListener('submit',e=>{e.preventDefault();finishAnswer();});$('reveal').addEventListener('click',()=>finishAnswer(true));
 $('next').addEventListener('click',advance);
@@ -166,6 +194,7 @@ for(const id of ['species-sort','species-direction'])$(id).addEventListener('cha
 $('species-quiz').addEventListener('submit',e=>{
   e.preventDefault();if(!speciesScope)return;
   const settings=listQuizSettings(speciesScope.kind,speciesScope.id,Number($('species-count').value));
+  settings.experimentalTips=$('experimental-tips').checked;
   $('site').value=settings.site;$('family').value=settings.family;$('count').value=String(settings.count);
   document.querySelector('input[name="mode"][value="regular"]').checked=true;
   document.querySelector('input[name="filter"][value="none"]').checked=true;
