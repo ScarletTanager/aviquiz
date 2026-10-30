@@ -1,5 +1,24 @@
 // A deliberately small, photo-specific experiment. Source wording is paraphrased.
 // Coordinates are normalized to the full, uncropped Macaulay image.
+// Species summaries paraphrase the same eBird/Merlin accounts used by the pilot.
+export const SPECIES_TIPS={
+  strxen1:{source:'https://ebird.org/species/strxen1',tips:[
+    'Small, mostly brown bird with warm rufous tones.',
+    'Look for a pale eyebrow and a whitish stripe below and behind the eye.',
+    'Strong streaking on the crown and underparts helps distinguish it from Plain Xenops.'
+  ]},
+  monwoo1:{source:'https://ebird.org/species/monwoo1',tips:[
+    'Warm brown woodcreeper with reddish wings and tail.',
+    'The slender, noticeably curved bill is a useful identification feature.',
+    'Look for pale streaking underneath, a whitish throat, and a pale eyebrow.'
+  ]},
+  spobar1:{source:'https://ebird.org/species/spobar1',tips:[
+    'Dark brown bird with a warm buff throat.',
+    'Pale spots contrast with the darker chest.',
+    'Use the combination of throat color and chest spotting when comparing similar birds.'
+  ]}
+};
+
 export const ID_TIPS={
   '103726981':{speciesId:'strxen1',width:1200,height:797,source:'https://ebird.org/species/strxen1',features:[
     {title:'Pale face stripe',lines:['Find the light stripe','below and behind the eye.'],point:[0.484,0.368]},
@@ -31,6 +50,14 @@ export function annotationFor(bird,photo,{enabled=false,answered=false,correct=t
   if(!enabled||!answered||correct||bird.family.replace(/\s*\(\d+\)\s*$/,'')!=='Furnariidae')return null;
   const entry=ID_TIPS[photo.id];
   return entry?.speciesId===bird.id?entry:null;
+}
+
+export function tipsFor(bird,photo,{enabled=false,answered=false,correct=true}={}){
+  if(!enabled||!answered||correct||bird.family.replace(/\s*\(\d+\)\s*$/,'')!=='Furnariidae')return null;
+  const general=SPECIES_TIPS[bird.id];
+  if(!general)return null;
+  const annotation=annotationFor(bird,photo,{enabled,answered,correct});
+  return {kind:annotation?'annotated':'general',source:general.source,annotation,tips:general.tips};
 }
 
 export function annotatedBirds(birds){

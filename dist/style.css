@@ -27,3 +27,5 @@
 .id-features a{color:var(--ink)}
 #id-tip-source,.id-tip-mobile-help{font-size:11px;color:var(--muted);line-height:1.7}
 .id-tip-mobile-help{display:none}@media(max-width:1000px){.id-tip-mobile-help{display:block}}
+
+#id-tip-general{max-width:760px;font-size:14px;line-height:1.8}#id-tip-general>p{color:var(--muted);font-size:12px}#id-tip-general li{margin:8px 0}#id-tip-source{max-width:850px}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {ID_TIPS,annotationFor,annotatedBirds,annotationGeometry,annotationSvg} from './dist/id-tips.mjs';
+import {ID_TIPS,SPECIES_TIPS,tipsFor,annotationFor,annotatedBirds,annotationGeometry,annotationSvg} from './dist/id-tips.mjs';
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './dist/quiz.mjs';
 import {emptyProgress,parseProgress,recordAttempt,mistakeRate,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './dist/progress.mjs';
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './dist/statistics.mjs';
@@ -34,6 +34,27 @@ for(const bird of pilot)for(const photo of bird.photos){
 }
 assert.equal(JSON.stringify(data),snapshot);
 console.log('Passed: six-photo pilot coverage, unique photo questions, opt-in/miss-only gating, exact species/photo matching, uncropped geometry and accessible SVG escaping.');
+let generalPhotos=0,annotatedPhotos=0;
+for(const bird of data.birds)for(const photo of bird.photos){
+  const enabled={enabled:true,answered:true,correct:false};
+  const result=tipsFor(bird,photo,enabled);
+  assert.equal(tipsFor(bird,photo),null);
+  assert.equal(tipsFor(bird,photo,{...enabled,enabled:false}),null);
+  assert.equal(tipsFor(bird,photo,{...enabled,answered:false}),null);
+  assert.equal(tipsFor(bird,photo,{...enabled,correct:true}),null);
+  if(!SPECIES_TIPS[bird.id]){assert.equal(result,null);continue;}
+  assert.equal(result.source,`https://ebird.org/species/${bird.id}`);
+  assert.ok(result.tips.length>0);
+  if(ID_TIPS[photo.id]){
+    annotatedPhotos++;assert.equal(result.kind,'annotated');assert.equal(result.annotation,ID_TIPS[photo.id]);
+  }else{
+    generalPhotos++;assert.equal(result.kind,'general');assert.equal(result.annotation,null);
+  }
+}
+assert.equal(annotatedPhotos,6);assert.ok(generalPhotos>0);
+assert.equal(tipsFor({...pilot[0],family:'Other'},pilot[0].photos[0],{enabled:true,answered:true,correct:false}),null);
+assert.equal(JSON.stringify(data),snapshot);
+console.log(`Passed: general fallback on ${generalPhotos} unreviewed photos; six annotations retained; source links; all-photo opt-in/miss-only gating; unsupported species excluded; checklist unchanged.`);
 assert.equal(data.birds.length,849);
 assert.equal(new Set(data.birds.map(b=>b.id)).size,849);
 assert.equal(data.birds.filter(b=>b.worldLifer).length,283);

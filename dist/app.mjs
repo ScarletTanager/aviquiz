@@ -1,13 +1,13 @@
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './quiz.mjs';
 import {PROGRESS_KEY,emptyProgress,parseProgress,recordAttempt,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './statistics.mjs';
-import {ID_TIPS,annotationFor,annotatedBirds,annotationSvg} from './id-tips.mjs';
+import {ID_TIPS,tipsFor,annotatedBirds,annotationSvg} from './id-tips.mjs';
 const $=id=>document.getElementById(id);
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
 let progress=emptyProgress(),activeSettings=null,storageUsable=true;
 let familiesExpanded=false,sitesExpanded=false;
 let speciesScope=null;
-let activeAnnotation=null;
+let activeTips=null;
 const formatRate=rate=>rate===null?'—':new Intl.NumberFormat('en',{style:'percent',maximumFractionDigits:1}).format(rate);
 const escapeHTML=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function renderStatistics(){
@@ -115,7 +115,7 @@ function loadPhoto(){
   $('photo-credit').innerHTML=credit(currentPhoto);
 }
 function nextQuestion(){
-  activeAnnotation=null;$('show-id-features').hidden=true;$('show-id-features').setAttribute('aria-expanded','false');$('show-id-features').textContent='Show ID features · experimental';$('id-features').hidden=true;$('id-tip-diagram').innerHTML='';$('id-tip-credit').textContent='';$('id-tip-source').innerHTML='';
+  activeTips=null;$('show-id-features').hidden=true;$('show-id-features').setAttribute('aria-expanded','false');$('id-features').hidden=true;$('id-tip-diagram').innerHTML='';$('id-tip-general').innerHTML='';$('id-tip-credit').textContent='';$('id-tip-source').innerHTML='';
   sessionToken++;answered=false;photoTry=0;photoOrder=shuffle(queue[index].photos);
   $('retry-photo').textContent=photoOrder.length>1?'Try another photo':'Retry photo';
   $('question-number').textContent=`QUESTION ${index+1} / ${queue.length}`;
@@ -133,8 +133,9 @@ function finishAnswer(revealed=false){
   rememberAnswer(bird,grade.correct);
   $('answer').disabled=true;$('check').disabled=true;$('reveal').hidden=true;$('next').hidden=false;$('question-status').textContent=grade.correct?'IDENTIFIED':'KEEP LEARNING';
   $('photo-credit').innerHTML=credit(currentPhoto,true);$('question-image').alt=bird.name;
-  activeAnnotation=annotationFor(bird,currentPhoto,{enabled:Boolean(activeSettings.experimentalTips),answered:true,correct:grade.correct});
-  $('show-id-features').hidden=!activeAnnotation;
+  activeTips=tipsFor(bird,currentPhoto,{enabled:Boolean(activeSettings.experimentalTips),answered:true,correct:grade.correct});
+  $('show-id-features').hidden=!activeTips;
+  $('show-id-features').textContent=activeTips?.kind==='general'?'Show general ID tips · experimental':'Show ID features · experimental';
   const badges=[bird.worldLifer?'Potential worldwide lifer':'',bird.colombiaLifer?'Potential Colombia lifer':''].filter(Boolean).join(' · ');
   $('feedback').innerHTML=`<strong class="${grade.correct?'correct':'incorrect'}">${grade.correct?(grade.fuzzy?'Correct — small typo accepted.':'Correct!'):(revealed?'Answer revealed':'Not quite.')}</strong><h3>${escapeHTML(bird.name)}</h3><em>${escapeHTML(bird.scientificName)}</em>${badges?`<p>${badges}</p>`:''}<p><a href="https://ebird.org/species/${encodeURIComponent(bird.id)}" target="_blank" rel="noopener noreferrer">Study this species ↗</a></p>`;
   $('score').textContent=`${answers.filter(a=>a.correct).length} correct`;$('next').textContent=index===queue.length-1?'See results →':'Next bird →';$('next').focus();
@@ -161,14 +162,18 @@ $('try-id-pilot').addEventListener('click',()=>{
   updatePool();begin({...formSettings(),pilotTips:true});
 });
 $('show-id-features').addEventListener('click',()=>{
-  if(!activeAnnotation||!answered||!activeSettings.experimentalTips)return;
+  if(!activeTips||!answered||!activeSettings.experimentalTips)return;
   const reveal=$('id-features').hidden;
   $('id-features').hidden=!reveal;$('show-id-features').setAttribute('aria-expanded',String(reveal));
-  $('show-id-features').textContent=reveal?'Hide ID features · experimental':'Show ID features · experimental';
+  const general=activeTips.kind==='general',label=general?'general ID tips':'ID features';
+  $('show-id-features').textContent=`${reveal?'Hide':'Show'} ${label} · experimental`;
   if(reveal){
-    $('id-tip-diagram').innerHTML=annotationSvg(activeAnnotation,currentPhoto,queue[index].name);
-    $('id-tip-credit').innerHTML=credit(currentPhoto,true);
-    $('id-tip-source').innerHTML=`ID guidance paraphrased from <a href="${escapeHTML(activeAnnotation.source)}" target="_blank" rel="noopener noreferrer">eBird / Merlin: ${escapeHTML(queue[index].name)} ↗</a>. Photo-specific arrow placements are experimental.`;
+    $('id-features-title').textContent=general?'General species ID tips':'Photo ID features';
+    $('id-tip-general').hidden=!general;$('id-tip-figure').hidden=general;$('id-tip-mobile-help').hidden=general;
+    $('id-tip-general').innerHTML=general?`<p>These species-level features have not been checked against this photograph and may be hidden or difficult to see. No arrows are provided for this photo.</p><ul>${activeTips.tips.map(tip=>`<li>${escapeHTML(tip)}</li>`).join('')}</ul>`:'';
+    $('id-tip-diagram').innerHTML=general?'':annotationSvg(activeTips.annotation,currentPhoto,queue[index].name);
+    $('id-tip-credit').innerHTML=general?'':credit(currentPhoto,true);
+    $('id-tip-source').innerHTML=`Source: <a href="${escapeHTML(activeTips.source)}" target="_blank" rel="noopener noreferrer">eBird / Merlin: ${escapeHTML(queue[index].name)} ↗</a> — Cornell Lab of Ornithology. ID guidance is paraphrased from this account, not original research by this quiz. Consult the source for full context. Summaries and arrow placements are this quiz’s experimental adaptations; they have not been reviewed or endorsed by Cornell.`;
     $('id-features').scrollIntoView({behavior:'smooth',block:'start'});$('id-features').focus({preventScroll:true});
   }
 });
