@@ -1,13 +1,21 @@
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './quiz.mjs';
 import {PROGRESS_KEY,emptyProgress,parseProgress,recordAttempt,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './statistics.mjs';
-import {ID_TIPS,tipsFor,annotatedBirds,annotationSvg} from './id-tips.mjs';
+import {ID_TIPS,tipsFor,annotatedBirds,annotationSvg,applySharedTips} from './id-tips.mjs';
 const $=id=>document.getElementById(id);
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
 let progress=emptyProgress(),activeSettings=null,storageUsable=true;
 let familiesExpanded=false,sitesExpanded=false;
 let speciesScope=null;
 let activeTips=null;
+let starting=false,hasSharedTips=false;
+async function loadSharedTips(){
+  try{
+    const response=await fetch('/api/annotations',{cache:'no-store',signal:AbortSignal.timeout(6000)});if(!response.ok)throw Error();
+    const result=await response.json();applySharedTips(result.annotations);hasSharedTips=true;
+    $('shared-tip-status').textContent=`Shared reviews: ${result.coverage.covered} species · ${result.coverage.approved} approved photos. General text is available for species with published tips; other species are not yet covered.`;
+  }catch{$('shared-tip-status').textContent=hasSharedTips?'Shared reviews could not refresh. Using the last loaded tips for this visit.':'Shared reviews are unavailable. The built-in six-photo pilot and three species summaries remain available.';}
+}
 const formatRate=rate=>rate===null?'—':new Intl.NumberFormat('en',{style:'percent',maximumFractionDigits:1}).format(rate);
 const escapeHTML=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function renderStatistics(){
@@ -71,6 +79,7 @@ function rememberAnswer(bird,correct){
 }
 function updatePool(){
   $('try-id-pilot').hidden=!$('experimental-tips').checked;
+  $('try-id-pilot').disabled=!Object.keys(ID_TIPS).length;
   const settings=formSettings(),review=settings.mode==='review',familyMode=!review&&settings.family!=='all',birds=pool(settings),ready=questionPool(birds,familyMode),requested=settings.count;
   $('lifer-filters').hidden=review;$('lifer-filters').disabled=review;
   $('review-help').hidden=!review;
@@ -83,11 +92,13 @@ function updatePool(){
   $('start').disabled=!ready.length;
 }
 function showView(id){for(const v of ['setup','session','results','species-page'])$(v).hidden=v!==id;if(id==='setup')renderStatistics();window.scrollTo({top:0,behavior:'instant'});}
-function begin(settings=formSettings()){
+async function begin(settings=formSettings()){
+  if(starting)return;
   const count=settings.count;
   if(!Number.isInteger(count)||count<1){$('settings-error').textContent='Choose a whole number of questions, at least 1.';return;}
+  starting=true;await loadSharedTips();starting=false;
   $('settings-error').textContent='';
-  const review=settings.mode==='review',familyMode=!review&&settings.family!=='all';
+  const review=settings.mode==='review',familyMode=!review&&(settings.pilotTips||settings.family!=='all');
   const birds=review?withFreshPhotos(pool(settings),settings.avoidPhotoIds):pool(settings);
   queue=buildQuestions(birds,count,familyMode);
   if(!queue.length){showView('setup');updatePool();$('settings-error').textContent=review?'No species currently need review with these settings. Choose a regular quiz or change your filters.':'No species match these settings.';return;}
@@ -96,7 +107,7 @@ function begin(settings=formSettings()){
   index=0;answers=[];showView('session');
   const siteLabel=settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
   $('session-label').textContent=(review?(settings.mistakeIds?'Review this quiz’s mistakes':'Review recent mistakes'):'Regular quiz')+' · '+siteLabel+(settings.family!=='all'?' · '+settings.family:'')+(review?'':' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[settings.filter]));
-  if(settings.pilotTips)$('session-label').textContent+=' · Experimental 6-photo pilot';
+  if(settings.pilotTips)$('session-label').textContent+=' · Reviewed photo sampler';
   nextQuestion();
 }
 function credit(photo,revealName=false){
@@ -156,7 +167,7 @@ $('settings').addEventListener('change',e=>{if(e.target.name==='mode'&&data){$('
 $('experimental-tips').addEventListener('change',updatePool);
 $('try-id-pilot').addEventListener('click',()=>{
   if(!$('experimental-tips').checked)return;
-  $('site').value='all';$('family').value='Furnariidae';$('count').value=String(Object.keys(ID_TIPS).length);
+  $('site').value='all';$('family').value='all';$('count').value=String(Math.min(20,Object.keys(ID_TIPS).length));
   document.querySelector('input[name="mode"][value="regular"]').checked=true;
   document.querySelector('input[name="filter"][value="none"]').checked=true;
   updatePool();begin({...formSettings(),pilotTips:true});
@@ -217,6 +228,7 @@ try{
   const covered=data.birds.filter(b=>b.photos.length).length;$('coverage').textContent=`Macaulay photo records: ${covered} of ${data.birds.length} species. Image availability depends on Macaulay Library’s image server.${covered<data.birds.length?' Species without a photo record are excluded from question selection and remain in the checklist totals.':''}`;
   const hero=data.birds.find(b=>b.name==='Multicolored Tanager'&&b.photos.length)||data.birds.find(b=>b.photos.length);
   if(hero){$('hero-photo').onerror=()=>{$('hero-photo').hidden=true;$('hero-label').textContent='Macaulay photograph unavailable';$('hero-credit').textContent='The image server could not deliver this photo. Please try again later.';};$('hero-photo').src=hero.photos[0].url;$('hero-photo').alt=hero.name;$('hero-label').textContent=hero.name;$('hero-credit').textContent=`© ${hero.photos[0].photographer} · Macaulay Library ML${hero.photos[0].id}`;}
+  await loadSharedTips();
   readProgress();updatePool();renderStatistics();
   if(location.hash)navigateSpeciesHash();
 }catch(error){$('pool').textContent='Could not load the checklist. Please reload the page.';$('settings-error').textContent=error.message;}

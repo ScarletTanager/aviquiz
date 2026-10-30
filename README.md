@@ -1,6 +1,6 @@
 # Colombia Field Quiz
 
-Static, browser-local quiz built from checklist_dec2026.xlsx and the October 7, 2026 eBird export. The original eBird observation history stays in the parent workspace; hosted data includes the trip checklist, site flags, lifer booleans, and public Macaulay photo metadata only. Quiz learning history stays in each visitor's browser.
+Quiz built from checklist_dec2026.xlsx and the October 7, 2026 eBird export. The original observation export stays in the parent workspace. A small Worker now serves the quiz and shared D1 photo reviews; learning history remains in each visitor’s browser. Hosted checklist data includes site flags, lifer booleans, and public Macaulay metadata, not the personal observation export. See [REVIEW.md](REVIEW.md) for shared storage, review, and autonomous batch instructions.
 
 Counts: 849 trip species, 283 potential worldwide lifers, 519 potential Colombia lifers (including worldwide lifers). Thirteen named site columns are supported; the empty OS column has no targets or site legend and is not offered as a site. The all-trip choice includes species with no site X. Thirteen checklist scientific-name errors were reconciled against Cornell taxonomy by unambiguous common names. Original source files are unchanged.
 

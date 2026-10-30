@@ -1,3 +1,6 @@
 preview.png
 photo-validation.json
 __pycache__/
+dist/server/
+dist/.openai/
+.review-agent.json

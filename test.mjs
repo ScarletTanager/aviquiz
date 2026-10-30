@@ -52,7 +52,7 @@ for(const bird of data.birds)for(const photo of bird.photos){
   }
 }
 assert.equal(annotatedPhotos,6);assert.ok(generalPhotos>0);
-assert.equal(tipsFor({...pilot[0],family:'Other'},pilot[0].photos[0],{enabled:true,answered:true,correct:false}),null);
+assert.equal(tipsFor({...pilot[0],id:'unsupported'},pilot[0].photos[0],{enabled:true,answered:true,correct:false}),null);
 assert.equal(JSON.stringify(data),snapshot);
 console.log(`Passed: general fallback on ${generalPhotos} unreviewed photos; six annotations retained; source links; all-photo opt-in/miss-only gating; unsupported species excluded; checklist unchanged.`);
 assert.equal(data.birds.length,849);

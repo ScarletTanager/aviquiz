@@ -19,6 +19,7 @@ export const SPECIES_TIPS={
   ]}
 };
 
+const BUILTIN_SPECIES_TIPS=structuredClone(SPECIES_TIPS);
 export const ID_TIPS={
   '103726981':{speciesId:'strxen1',width:1200,height:797,source:'https://ebird.org/species/strxen1',features:[
     {title:'Pale face stripe',lines:['Find the light stripe','below and behind the eye.'],point:[0.484,0.368]},
@@ -53,15 +54,26 @@ export function annotationFor(bird,photo,{enabled=false,answered=false,correct=t
 }
 
 export function tipsFor(bird,photo,{enabled=false,answered=false,correct=true}={}){
-  if(!enabled||!answered||correct||bird.family.replace(/\s*\(\d+\)\s*$/,'')!=='Furnariidae')return null;
+  if(!enabled||!answered||correct)return null;
   const general=SPECIES_TIPS[bird.id];
   if(!general)return null;
-  const annotation=annotationFor(bird,photo,{enabled,answered,correct});
+  const candidate=ID_TIPS[photo.id],annotation=candidate?.speciesId===bird.id?candidate:null;
   return {kind:annotation?'annotated':'general',source:general.source,annotation,tips:general.tips};
 }
 
 export function annotatedBirds(birds){
-  return birds.filter(b=>b.family==='Furnariidae').map(b=>({...b,photos:b.photos.filter(p=>ID_TIPS[p.id]?.speciesId===b.id)})).filter(b=>b.photos.length);
+  return birds.map(b=>({...b,photos:b.photos.filter(p=>ID_TIPS[p.id]?.speciesId===b.id)})).filter(b=>b.photos.length);
+}
+
+export function applySharedTips(documents){
+  for(const key of Object.keys(ID_TIPS))delete ID_TIPS[key];
+  // Keep the original general summaries available if shared photo tips are withdrawn.
+  for(const key of Object.keys(SPECIES_TIPS))delete SPECIES_TIPS[key];
+  Object.assign(SPECIES_TIPS,structuredClone(BUILTIN_SPECIES_TIPS));
+  for(const doc of documents){
+    ID_TIPS[doc.photoId]={speciesId:doc.speciesId,width:doc.width,height:doc.height,source:doc.source,features:doc.features};
+    SPECIES_TIPS[doc.speciesId]={source:doc.source,tips:doc.tips};
+  }
 }
 
 export function annotationGeometry(entry){
