@@ -14,11 +14,13 @@ class Statement{
   async run(){return sqlite.prepare(this.sql).run(...this.args);}
 }
 const DB={prepare:sql=>new Statement(sql),batch:async statements=>{sqlite.exec('BEGIN');try{const values=[];for(const s of statements)values.push(await s.run());sqlite.exec('COMMIT');return values;}catch(e){sqlite.exec('ROLLBACK');throw e;}}};
-const env={DB,REVIEW_AGENT_KEY:'test-agent-key'},owner='0a42fa64-ecdd-4efa-98c5-e2c95f94320f';
+const env={DB,REVIEW_AGENT_KEY:'test-agent-key',REVIEW_OWNER_EMAIL:'owner@example.org'},owner='0a42fa64-ecdd-4efa-98c5-e2c95f94320f';
 const req=(path,body,headers={})=>new Request('https://quiz.example'+path,{method:body?'POST':'GET',headers:{...(body?{'content-type':'application/json'}:{}),...headers},...(body?{body:JSON.stringify(body)}:{})});
 const call=async(path,body,headers={'oai-authenticated-user-id':owner})=>{const response=await api(req(path,body,headers),env);return {status:response.status,body:await response.json()};};
 assert.equal((await call('/api/reviews',null,{})).status,403);
 assert.equal((await call('/api/reviews',null,{'oai-authenticated-user-id':'viewer'})).status,403);
+assert.equal((await call('/api/reviews',null,{'oai-authenticated-user-id':'site-scoped-owner','oai-authenticated-user-email':'OWNER@example.org'})).status,200);
+assert.equal((await call('/api/reviews',null,{'oai-authenticated-user-email':'owner@example.org'})).status,403);
 assert.equal((await call('/api/reviews',null,{'x-review-agent-key':'wrong'})).status,403);
 assert.equal((await call('/api/reviews',null,{'x-review-agent-key':'test-agent-key'})).status,200);
 const bird=catalog.birds[0],photo=bird.photos[0];

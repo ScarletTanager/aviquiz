@@ -1,6 +1,6 @@
 # Shared photo review
 
-Open `/review` on the quiz site. Only the owner can edit. Existing viewers can use approved tips but cannot read review drafts or write reviews. Sites supplies the authenticated owner identity; the Worker checks it on every workspace API operation. The site's existing audience is unchanged.
+Open `/review` on the quiz site. Only the owner can edit. Existing viewers can use approved tips but cannot read review drafts or write reviews. Sites supplies authenticated identity headers; the Worker checks the owner account ID or the configured owner's verified email on every operation (request IDs can be Site-scoped). `REVIEW_OWNER_EMAIL` is a server-side configuration value, never a browser field. The site's existing audience is unchanged.
 
 The workspace shows coverage, a taxonomic breadth-first queue, site/family filters, and batches of 10, 20, or 50 species. Each queue entry proposes one candidate per species. The first global round prioritizes species without an approved image; round two begins once each species with remaining usable candidates has one. Existing extra pilot images are retained. Filters do not bypass the global round. Skipping every candidate flags the species as needing replacement rather than silently claiming coverage.
 

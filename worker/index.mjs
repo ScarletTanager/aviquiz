@@ -5,7 +5,11 @@ const json=(value,status=200)=>new Response(JSON.stringify(value),{status,header
 const rowValue=r=>({photoId:r.photo_id,speciesId:r.species_id,status:r.status,revision:r.revision,document:JSON.parse(r.document_json),approved:r.approved_json?JSON.parse(r.approved_json):null,updatedAt:r.updated_at});
 async function rows(db){return (await db.prepare('SELECT * FROM photo_reviews ORDER BY species_id, photo_id').all()).results.map(rowValue);}
 async function canEdit(request,env){
-  if(request.headers.get('oai-authenticated-user-id')===OWNER_ID)return true;
+  const userId=request.headers.get('oai-authenticated-user-id');
+  const email=request.headers.get('oai-authenticated-user-email')?.trim().toLowerCase();
+  // Sites request IDs can be Site-scoped rather than access-policy account IDs.
+  // Match the platform-authenticated owner's configured email in that case.
+  if(userId&&(userId===OWNER_ID||(env.REVIEW_OWNER_EMAIL&&email===env.REVIEW_OWNER_EMAIL.trim().toLowerCase())))return true;
   const supplied=request.headers.get('x-review-agent-key');
   if(!supplied||!env.REVIEW_AGENT_KEY)return false;
   const hash=async s=>new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)));
