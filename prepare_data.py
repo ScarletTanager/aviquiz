@@ -24,7 +24,8 @@ sites=[]
 for col in range(3,16):
     code=s.cell(20,col).value
     legend=next((s.cell(r,1).value for r in range(2,16) if s.cell(r,1).value.startswith(code+' -')),code)
-    sites.append({'code':code,'name':legend.split(' -',1)[-1].strip(),'column':col})
+    site_name='Reserva Bosque Guajira' if code=='BG' else legend.split(' -',1)[-1].strip()
+    sites.append({'code':code,'name':site_name,'column':col})
 birds=[]; corrections=[]; unresolved=[]; family=''
 for row in s.iter_rows(min_row=21,max_row=941):
     text=row[0].value
