@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './dist/quiz.mjs';
 import {emptyProgress,parseProgress,recordAttempt,mistakeRate,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './dist/progress.mjs';
-import {accuracyStatistics,sortAccuracy} from './dist/statistics.mjs';
+import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './dist/statistics.mjs';
 const data=JSON.parse(fs.readFileSync(new URL('./dist/data.json',import.meta.url)));
 assert.equal(data.birds.length,849);
 assert.equal(new Set(data.birds.map(b=>b.id)).size,849);
@@ -116,3 +116,28 @@ assert.deepEqual(sortAccuracy(accuracy.sites,'name','asc').map(r=>r.id),['B','C'
 assert.ok(accuracyStatistics(data.birds,data.sites,emptyProgress()).families.every(r=>r.rate===null));
 const beforeStats=JSON.stringify(statsHistory);accuracyStatistics(statsBirds,statsSites,statsHistory);assert.equal(JSON.stringify(statsHistory),beforeStats);
 console.log('Passed: weighted site/family accuracy; shared-site membership; no-history vs zero scores; species without site flags; taxonomy/alphabetic/rate sorts both ways; missing history placement; unchanged progress.');
+for(const [kind,groups] of [['site',accuracy.sites],['family',accuracy.families]]){
+  for(const group of groups){
+    const rows=speciesAccuracy(statsBirds,statsHistory,kind,group.id);
+    assert.equal(rows.reduce((n,r)=>n+r.correct,0),group.correct);
+    assert.equal(rows.reduce((n,r)=>n+r.total,0),group.total);
+    assert.deepEqual(sortAccuracy(rows).map(r=>r.id),rows.map(r=>r.id));
+  }
+}
+for(const site of data.sites){
+  const rows=speciesAccuracy(data.birds,allMissed,'site',site.code);
+  assert.deepEqual(rows.map(r=>r.id),eligibleBirds(data.birds,site.code).map(b=>b.id));
+  assert.ok(rows.every(r=>r.total===1&&r.correct===0&&r.rate===0));
+}
+for(const family of families){
+  const rows=speciesAccuracy(data.birds,emptyProgress(),'family',family);
+  assert.deepEqual(rows.map(r=>r.id),eligibleBirds(data.birds,'all','none',family).map(b=>b.id));
+  assert.ok(rows.every(r=>r.rate===null));
+}
+assert.deepEqual(speciesAccuracy(data.birds,emptyProgress(),'site','missing'),[]);
+assert.deepEqual(speciesAccuracy(data.birds,emptyProgress(),'unknown','Furnariidae'),[]);
+assert.deepEqual(listQuizSettings('site','Ch',25),{mode:'regular',site:'Ch',family:'all',count:25,filter:'none'});
+assert.deepEqual(listQuizSettings('family','Furnariidae'),{mode:'regular',site:'all',family:'Furnariidae',count:20,filter:'none'});
+assert.equal(speciesAccuracy(data.birds,emptyProgress(),'family','Furnariidae').length,51);
+assert.equal(speciesAccuracy(data.birds,emptyProgress(),'site','Ch').length,261);
+console.log('Passed: every linked site/family species list; individual accuracy reconciles to group totals; taxonomic order; empty/unknown scopes; quiz launch scopes without inherited lifer filters.');

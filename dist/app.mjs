@@ -1,25 +1,53 @@
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './quiz.mjs';
 import {PROGRESS_KEY,emptyProgress,parseProgress,recordAttempt,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
-import {accuracyStatistics,sortAccuracy} from './statistics.mjs';
+import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './statistics.mjs';
 const $=id=>document.getElementById(id);
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
 let progress=emptyProgress(),activeSettings=null,storageUsable=true;
 let familiesExpanded=false,sitesExpanded=false;
+let speciesScope=null;
+const formatRate=rate=>rate===null?'—':new Intl.NumberFormat('en',{style:'percent',maximumFractionDigits:1}).format(rate);
 const escapeHTML=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function renderStatistics(){
   if(!data)return;
   const stats=accuracyStatistics(data.birds,data.sites,progress);
-  const rowsHTML=rows=>rows.map(row=>`<li class="accuracy-row"><span class="accuracy-name">${escapeHTML(row.name)}</span><span class="accuracy-value"><strong>${row.rate===null?'—':new Intl.NumberFormat('en',{style:'percent',maximumFractionDigits:1}).format(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></span></li>`).join('');
+  const rowsHTML=(rows,kind)=>rows.map(row=>`<li class="accuracy-row"><a class="accuracy-name accuracy-link" href="#species/${kind}/${encodeURIComponent(row.id)}">${escapeHTML(row.name)}</a><span class="accuracy-value"><strong>${formatRate(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></span></li>`).join('');
   const sites=sortAccuracy(stats.sites,$('site-stat-sort').value,$('site-stat-direction').value);
-  $('site-accuracy-list').innerHTML=rowsHTML(sitesExpanded?sites:sites.slice(0,5));
+  $('site-accuracy-list').innerHTML=rowsHTML(sitesExpanded?sites:sites.slice(0,5),'site');
   $('site-expand').hidden=sites.length<=5;
   $('site-expand').setAttribute('aria-expanded',String(sitesExpanded));
   $('site-expand').textContent=sitesExpanded?'▾ Show first 5 sites':`▸ Show all ${sites.length} sites`;
   const families=sortAccuracy(stats.families,$('family-stat-sort').value,$('family-stat-direction').value);
-  $('family-accuracy-list').innerHTML=rowsHTML(familiesExpanded?families:families.slice(0,10));
+  $('family-accuracy-list').innerHTML=rowsHTML(familiesExpanded?families:families.slice(0,10),'family');
   $('family-expand').hidden=families.length<=10;
   $('family-expand').setAttribute('aria-expanded',String(familiesExpanded));
   $('family-expand').textContent=familiesExpanded?'▾ Show first 10 families':`▸ Show all ${families.length} families`;
+}
+function renderSpeciesList(){
+  if(!data||!speciesScope)return;
+  const {kind,id}=speciesScope;
+  const rows=speciesAccuracy(data.birds,progress,kind,id);
+  const title=kind==='site'?data.sites.find(s=>s.code===id)?.name:id;
+  $('species-title').textContent=title;
+  $('species-kind').textContent=kind==='site'?'SITE SPECIES':'FAMILY SPECIES';
+  $('species-subtitle').textContent=`${rows.length} species · ${kind==='site'?'All families · X-marked targets':'All sites'}`;
+  const sorted=sortAccuracy(rows,$('species-sort').value,$('species-direction').value);
+  $('species-rows').innerHTML=sorted.map(row=>`<tr><td><strong>${escapeHTML(row.name)}</strong><span class="species-scientific">${escapeHTML(row.scientificName)}</span></td><td class="species-rate"><strong>${formatRate(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></td></tr>`).join('');
+  const settings=listQuizSettings(kind,id);
+  $('species-start').disabled=!eligibleBirds(data.birds,settings.site,'none',settings.family).some(b=>b.photos.length);
+  $('species-start').textContent=kind==='site'?'Start site quiz →':'Start family quiz →';
+}
+function navigateSpeciesHash(){
+  if(!data)return;
+  sessionToken++;
+  let parts;
+  try{parts=location.hash.slice(1).split('/').map(decodeURIComponent);}catch{parts=[];}
+  const [route,kind,id]=parts;
+  const valid=route==='species'&&parts.length===3&&((kind==='site'&&data.sites.some(s=>s.code===id))||(kind==='family'&&data.birds.some(b=>familyName(b.family)===id)));
+  if(valid){
+    speciesScope={kind,id};$('species-sort').value='taxonomy';$('species-direction').value='asc';$('species-count').value='20';
+    readProgress();renderSpeciesList();showView('species-page');$('species-title').focus({preventScroll:true});
+  }else{speciesScope=null;showView('setup');}
 }
 function selectedFilter(){return document.querySelector('input[name="filter"]:checked').value;}
 function formSettings(){return {mode:document.querySelector('input[name="mode"]:checked').value,site:$('site').value,family:$('family').value,count:Number($('count').value),filter:selectedFilter()};}
@@ -50,7 +78,7 @@ function updatePool(){
   $('count').removeAttribute('max');
   $('start').disabled=!ready.length;
 }
-function showView(id){for(const v of ['setup','session','results'])$(v).hidden=v!==id;if(id==='setup')renderStatistics();window.scrollTo({top:0,behavior:'instant'});}
+function showView(id){for(const v of ['setup','session','results','species-page'])$(v).hidden=v!==id;if(id==='setup')renderStatistics();window.scrollTo({top:0,behavior:'instant'});}
 function begin(settings=formSettings()){
   const count=settings.count;
   if(!Number.isInteger(count)||count<1){$('settings-error').textContent='Choose a whole number of questions, at least 1.';return;}
@@ -60,6 +88,7 @@ function begin(settings=formSettings()){
   queue=buildQuestions(birds,count,familyMode);
   if(!queue.length){showView('setup');updatePool();$('settings-error').textContent=review?'No species currently need review with these settings. Choose a regular quiz or change your filters.':'No species match these settings.';return;}
   activeSettings={...settings};
+  if(location.hash)history.replaceState(null,'',location.pathname+location.search);
   index=0;answers=[];showView('session');
   const siteLabel=settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
   $('session-label').textContent=(review?(settings.mistakeIds?'Review this quiz’s mistakes':'Review recent mistakes'):'Regular quiz')+' · '+siteLabel+(settings.family!=='all'?' · '+settings.family:'')+(review?'':' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[settings.filter]));
@@ -133,9 +162,19 @@ $('review-quiz').addEventListener('click',()=>{
 for(const id of ['site-stat-sort','site-stat-direction','family-stat-sort','family-stat-direction'])$(id).addEventListener('change',renderStatistics);
 $('family-expand').addEventListener('click',()=>{familiesExpanded=!familiesExpanded;renderStatistics();});
 $('site-expand').addEventListener('click',()=>{sitesExpanded=!sitesExpanded;renderStatistics();});
-window.addEventListener('storage',e=>{if(e.key===PROGRESS_KEY||e.key===null){readProgress();if(data){updatePool();renderStatistics();}}});
+for(const id of ['species-sort','species-direction'])$(id).addEventListener('change',renderSpeciesList);
+$('species-quiz').addEventListener('submit',e=>{
+  e.preventDefault();if(!speciesScope)return;
+  const settings=listQuizSettings(speciesScope.kind,speciesScope.id,Number($('species-count').value));
+  $('site').value=settings.site;$('family').value=settings.family;$('count').value=String(settings.count);
+  document.querySelector('input[name="mode"][value="regular"]').checked=true;
+  document.querySelector('input[name="filter"][value="none"]').checked=true;
+  updatePool();begin(settings);
+});
+window.addEventListener('hashchange',navigateSpeciesHash);
+window.addEventListener('storage',e=>{if(e.key===PROGRESS_KEY||e.key===null){readProgress();if(data){updatePool();renderStatistics();renderSpeciesList();}}});
 try{
-  const response=await fetch('data.json');if(!response.ok)throw new Error('Checklist unavailable');data=await response.json();
+  const response=await fetch('data.json',{cache:'no-store'});if(!response.ok)throw new Error('Checklist unavailable');data=await response.json();
   for(const site of data.sites){const option=document.createElement('option');option.value=site.code;option.textContent=`${site.code} · ${site.name}`;$('site').append(option);}
   // Bird records follow the checklist's taxonomic order; preserve each family's first occurrence.
   for(const family of new Set(data.birds.map(b=>familyName(b.family)))){const option=document.createElement('option');option.value=family;option.textContent=family;$('family').append(option);}
@@ -144,4 +183,5 @@ try{
   const hero=data.birds.find(b=>b.name==='Multicolored Tanager'&&b.photos.length)||data.birds.find(b=>b.photos.length);
   if(hero){$('hero-photo').onerror=()=>{$('hero-photo').hidden=true;$('hero-label').textContent='Macaulay photograph unavailable';$('hero-credit').textContent='The image server could not deliver this photo. Please try again later.';};$('hero-photo').src=hero.photos[0].url;$('hero-photo').alt=hero.name;$('hero-label').textContent=hero.name;$('hero-credit').textContent=`© ${hero.photos[0].photographer} · Macaulay Library ML${hero.photos[0].id}`;}
   readProgress();updatePool();renderStatistics();
+  if(location.hash)navigateSpeciesHash();
 }catch(error){$('pool').textContent='Could not load the checklist. Please reload the page.';$('settings-error').textContent=error.message;}

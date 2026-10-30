@@ -25,3 +25,16 @@ export function sortAccuracy(rows,by='taxonomy',direction='asc'){
     return difference*sign||a.order-b.order;
   });
 }
+
+export function speciesAccuracy(birds,progress,kind,id){
+  if(!['site','family'].includes(kind))return [];
+  return birds.map((bird,order)=>({bird,order})).filter(({bird})=>kind==='site'?bird.sites.includes(id):familyName(bird.family)===id).map(({bird,order})=>{
+    const attempts=progress.species[bird.id]?.attempts||[];
+    const correct=attempts.filter(Boolean).length;
+    return {id:bird.id,name:bird.name,scientificName:bird.scientificName,order,correct,total:attempts.length,rate:attempts.length?correct/attempts.length:null};
+  });
+}
+
+export function listQuizSettings(kind,id,count=20){
+  return {mode:'regular',site:kind==='site'?id:'all',family:kind==='family'?id:'all',count,filter:'none'};
+}
