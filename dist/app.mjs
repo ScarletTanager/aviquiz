@@ -4,13 +4,17 @@ import {accuracyStatistics,sortAccuracy} from './statistics.mjs';
 const $=id=>document.getElementById(id);
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
 let progress=emptyProgress(),activeSettings=null,storageUsable=true;
-let familiesExpanded=false;
+let familiesExpanded=false,sitesExpanded=false;
 const escapeHTML=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function renderStatistics(){
   if(!data)return;
   const stats=accuracyStatistics(data.birds,data.sites,progress);
   const rowsHTML=rows=>rows.map(row=>`<li class="accuracy-row"><span class="accuracy-name">${escapeHTML(row.name)}</span><span class="accuracy-value"><strong>${row.rate===null?'—':new Intl.NumberFormat('en',{style:'percent',maximumFractionDigits:1}).format(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></span></li>`).join('');
-  $('site-accuracy-list').innerHTML=rowsHTML(sortAccuracy(stats.sites,$('site-stat-sort').value,$('site-stat-direction').value));
+  const sites=sortAccuracy(stats.sites,$('site-stat-sort').value,$('site-stat-direction').value);
+  $('site-accuracy-list').innerHTML=rowsHTML(sitesExpanded?sites:sites.slice(0,5));
+  $('site-expand').hidden=sites.length<=5;
+  $('site-expand').setAttribute('aria-expanded',String(sitesExpanded));
+  $('site-expand').textContent=sitesExpanded?'▾ Show first 5 sites':`▸ Show all ${sites.length} sites`;
   const families=sortAccuracy(stats.families,$('family-stat-sort').value,$('family-stat-direction').value);
   $('family-accuracy-list').innerHTML=rowsHTML(familiesExpanded?families:families.slice(0,10));
   $('family-expand').hidden=families.length<=10;
@@ -128,6 +132,7 @@ $('review-quiz').addEventListener('click',()=>{
 });
 for(const id of ['site-stat-sort','site-stat-direction','family-stat-sort','family-stat-direction'])$(id).addEventListener('change',renderStatistics);
 $('family-expand').addEventListener('click',()=>{familiesExpanded=!familiesExpanded;renderStatistics();});
+$('site-expand').addEventListener('click',()=>{sitesExpanded=!sitesExpanded;renderStatistics();});
 window.addEventListener('storage',e=>{if(e.key===PROGRESS_KEY||e.key===null){readProgress();if(data){updatePool();renderStatistics();}}});
 try{
   const response=await fetch('data.json');if(!response.ok)throw new Error('Checklist unavailable');data=await response.json();
