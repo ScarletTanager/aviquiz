@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {setImmediate as tick} from 'node:timers/promises';
 import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,emptyProgress,recordAttempt} from './dist/progress.mjs';
+import {ID_TIPS,SPECIES_TIPS} from './dist/id-tips.mjs';
+import {ANNOTATION_REVIEW_KEY,parseReviewedPhotos,unreviewedPhotos} from './dist/annotation-review.mjs';
+const sharedAnnotations=Object.entries(ID_TIPS).map(([photoId,doc])=>({...doc,photoId,tips:SPECIES_TIPS[doc.speciesId].tips}));
 const data=JSON.parse(fs.readFileSync('dist/data.json')),audio=JSON.parse(fs.readFileSync('dist/audio.json'));
 const html=fs.readFileSync('dist/index.html','utf8');
 const elements=new Map(),radios=[];
@@ -44,7 +47,7 @@ globalThis.window={scrollTo(){},addEventListener:(name,fn)=>(windowEvents[name]?
 globalThis.location={hash:'',pathname:'/',search:''};globalThis.history={replaceState(){location.hash='';}};
 const existing=recordAttempt(emptyProgress(),data.birds[0].id,true),visualInitial=JSON.stringify(existing),store=new Map([[PROGRESS_KEY,visualInitial]]);
 globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)};
-globalThis.fetch=async url=>({ok:!(process.env.AUDIO_CATALOG_FAIL==='1'&&url==='audio.json'),json:async()=>url==='data.json'?data:url==='audio.json'?audio:{annotations:[],coverage:{covered:23,approved:26}}});
+globalThis.fetch=async url=>({ok:!(process.env.AUDIO_CATALOG_FAIL==='1'&&url==='audio.json'),json:async()=>url==='data.json'?data:url==='audio.json'?audio:{annotations:sharedAnnotations,coverage:{covered:3,approved:6}}});
 async function settle(){await tick();await tick();}
 assert.ok($('site').options[0],'Site option fixture');
 await import('./dist/app.mjs');await settle();
@@ -78,7 +81,7 @@ for(let n=0;n<100&&$('audio-error').hidden;n++)$('question-audio').onerror();
 assert.equal($('audio-error').hidden,false);
 assert.equal($('unavailable').hidden,false);await $('unavailable').fire('click');assert.equal(store.get(AUDIO_PROGRESS_KEY),audioAfter);assert.match($('result-summary').textContent,/No questions could be scored/);
 await $('new-quiz').fire('click');assert.equal($('medium').value,'photo');assert.equal(store.get(PROGRESS_KEY),visualInitial);
-location.hash=`#species/audio/family/${encodeURIComponent(first.family)}`;for(const fn of windowEvents.hashchange)fn();await settle();
+location.hash=`#species/audio/family/${encodeURIComponent(first.family.replace(/\s*\(\d+\)\s*$/,''))}`;for(const fn of windowEvents.hashchange)fn();await settle();
 assert.equal($('species-page').hidden,false);assert.match($('species-subtitle').textContent,/audio statistics/);$('species-count').value='1';await $('species-quiz').fire('submit');assert.equal($('audio-question').hidden,false);await $('exit').fire('click');
 // Visual practice still updates only the original key.
 $('medium').value='photo';await $('medium').fire('change');radio('mode','regular').checked=true;$('site').value='all';$('family').value='all';$('count').value='1';await $('settings').fire('submit');
@@ -107,6 +110,27 @@ assert.equal($('review-quiz').disabled,false);
 await $('again').fire('click');$('question-image').onload();await $('reveal').fire('click');
 assert.equal(store.get(PROGRESS_KEY),visualBeforeExperiment);
 await $('exit').fire('click');$('experimental-tips').checked=false;
+// Personal annotation review is by photo, explicit, persistent and independent of scores.
+assert.equal(parseReviewedPhotos('bad json').size,0);
+assert.equal(parseReviewedPhotos('["123",null,"bad",123]').size,1);
+assert.deepEqual(unreviewedPhotos([{photos:[{id:'1'},{id:'2'}]}],new Set(['1']))[0].photos,[{id:'2'}]);
+$('count').value='2';radio('mode','annotations').checked=true;await $('settings').fire('change',{target:radio('mode','annotations')});
+await $('settings').fire('submit');
+const reviewedId=$('question-image').src.match(/asset\/(\d+)/)[1];$('question-image').onload();
+assert.equal($('id-features').hidden,false);assert.equal($('mark-photo-reviewed').hidden,false);assert.equal($('answer-form').hidden,true);
+await $('mark-photo-reviewed').fire('click');
+assert.ok(parseReviewedPhotos(store.get(ANNOTATION_REVIEW_KEY)).has(reviewedId));
+const skippedId=$('question-image').src.match(/asset\/(\d+)/)[1];$('question-image').onload();await $('next').fire('click');
+assert.equal(parseReviewedPhotos(store.get(ANNOTATION_REVIEW_KEY)).has(skippedId),false);
+assert.match($('result-title').textContent,/1 \/ 2 photos marked reviewed/);
+assert.equal(store.get(PROGRESS_KEY),visualBeforeExperiment);assert.equal(store.get(AUDIO_PROGRESS_KEY),audioAfter);
+$('count').value='20';await $('again').fire('click');
+for(let n=0;n<2;n++){
+ assert.notEqual($('question-image').src.match(/asset\/(\d+)/)[1],reviewedId);$('question-image').onload();await $('next').fire('click');
+}
+await $('exit').fire('click');await $('mark-original-reviewed').fire('click');
+assert.equal(parseReviewedPhotos(store.get(ANNOTATION_REVIEW_KEY)).size,26);assert.equal($('start').disabled,true);
+$('medium').value='audio';await $('medium').fire('change');assert.equal(radio('mode','annotations').disabled,true);assert.equal(radio('mode','regular').checked,true);
 const emptyFamily=[...new Set(data.birds.map(b=>b.family))].find(f=>!data.birds.some(b=>b.family===f&&audio.recordings[b.id]));
 if(emptyFamily){$('medium').value='audio';await $('medium').fire('change');$('family').value=emptyFamily;await $('family').fire('change');assert.equal($('start').disabled,true);assert.match($('pool').textContent,/No verified recordings/);}
 console.log('Passed app integration: legacy visual history, audio playback gating, hidden answer metadata, miss/correct scoring, separate statistics, results, repeat, review, unscored failures, linked audio scopes, reset, visual regression and empty audio scopes. No browser/screen capture used.');
