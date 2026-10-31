@@ -1,6 +1,8 @@
 import {eligibleBirds} from './quiz.mjs';
 
 export const PROGRESS_KEY='colombia-field-quiz:progress:v1';
+export const AUDIO_PROGRESS_KEY='colombia-field-quiz:audio-progress:v1';
+export const progressKey=medium=>medium==='audio'?AUDIO_PROGRESS_KEY:PROGRESS_KEY;
 export const RECENT_ATTEMPTS=20;
 export const emptyProgress=()=>({version:1,species:{}});
 export function parseProgress(serialized){
