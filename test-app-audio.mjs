@@ -86,6 +86,27 @@ assert.equal($('photo-question').hidden,false);assert.equal($('audio-question').
 const photoId=$('question-image').src.match(/asset\/(\d+)/)[1],photoBird=data.birds.find(b=>b.photos.some(p=>p.id===photoId));$('question-image').onload();$('answer').value=photoBird.name;await $('answer-form').fire('submit');await $('next').fire('click');
 assert.match($('result-summary').textContent,/visual practice · 100%/);assert.equal(store.get(AUDIO_PROGRESS_KEY),audioAfter);assert.notEqual(store.get(PROGRESS_KEY),visualInitial);
 await $('new-quiz').fire('click');
+// Experimental photo sessions retain session feedback without changing either history.
+const visualBeforeExperiment=store.get(PROGRESS_KEY);
+const statsBeforeExperiment=$('family-accuracy-list').innerHTML;
+$('experimental-tips').checked=true;$('count').value='3';await $('settings').fire('submit');
+assert.match($('session-label').textContent,/history not recorded/);
+for(let n=0;n<3;n++){
+ const id=$('question-image').src.match(/asset\/(\d+)/)[1],bird=data.birds.find(b=>b.photos.some(p=>p.id===id));
+ $('question-image').onload();
+ if(n===2)await $('reveal').fire('click');
+ else{$('answer').value=n===0?bird.name:'intentionally wrong';await $('answer-form').fire('submit');}
+ assert.equal(store.get(PROGRESS_KEY),visualBeforeExperiment);
+ assert.equal(store.get(AUDIO_PROGRESS_KEY),audioAfter);
+ assert.equal($('family-accuracy-list').innerHTML,statsBeforeExperiment);
+ await $('next').fire('click');
+}
+assert.match($('result-title').textContent,/1 \/ 3/);
+assert.match($('result-summary').textContent,/not added to statistics/);
+assert.equal($('review-quiz').disabled,false);
+await $('again').fire('click');$('question-image').onload();await $('reveal').fire('click');
+assert.equal(store.get(PROGRESS_KEY),visualBeforeExperiment);
+await $('exit').fire('click');$('experimental-tips').checked=false;
 const emptyFamily=[...new Set(data.birds.map(b=>b.family))].find(f=>!data.birds.some(b=>b.family===f&&audio.recordings[b.id]));
 if(emptyFamily){$('medium').value='audio';await $('medium').fire('change');$('family').value=emptyFamily;await $('family').fire('change');assert.equal($('start').disabled,true);assert.match($('pool').textContent,/No verified recordings/);}
 console.log('Passed app integration: legacy visual history, audio playback gating, hidden answer metadata, miss/correct scoring, separate statistics, results, repeat, review, unscored failures, linked audio scopes, reset, visual regression and empty audio scopes. No browser/screen capture used.');

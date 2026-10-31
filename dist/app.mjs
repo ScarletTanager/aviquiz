@@ -84,6 +84,7 @@ function readProgress(medium=selectedMedium()){
   catch{storageUsable[medium]=false;$('storage-status').textContent=`Saved ${mediumName(medium)} progress could not be read. This visit will still track your answers.`;}
 }
 function rememberAnswer(bird,correct){
+  if(activeSettings.experimentalTips)return;
   const medium=activeSettings.medium||'photo';
   readProgress(medium);histories[medium]=recordAttempt(histories[medium],bird.id,correct);
   if(storageUsable[medium])try{localStorage.setItem(progressKey(medium),JSON.stringify(histories[medium]));$('storage-status').textContent='Visual and audio progress are saved separately in this browser. Other browsers and devices have separate histories.';}
@@ -126,6 +127,7 @@ async function begin(settings=formSettings()){
   const siteLabel=settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
   $('session-label').textContent=mediumName(settings.medium).toUpperCase()+' · '+(review?(settings.mistakeIds?'Review this quiz’s mistakes':'Review recent mistakes'):'Regular quiz')+' · '+siteLabel+(settings.family!=='all'?' · '+settings.family:'')+(review?'':' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[settings.filter]));
   if(settings.pilotTips)$('session-label').textContent+=' · Reviewed photo sampler';
+  if(settings.experimentalTips)$('session-label').textContent+=' · Experimental · history not recorded';
   nextQuestion();
 }
 function credit(photo,revealName=false){
@@ -202,6 +204,7 @@ function finish(){
   $('result-title').textContent=`${correct} / ${scored.length} identified.`;
   $('result-summary').textContent=`${mediumName(activeSettings.medium)} practice · ${scored.length?Math.round(correct/scored.length*100)+'% correct.':'No questions could be scored.'}${answers.length>scored.length?` ${answers.length-scored.length} skipped or unavailable ${audio?'recordings':'photos'} were not scored.`:''} Review your birds below, then choose your next session.`;
   const mistakes=sessionMistakeIds(answers);
+  if(activeSettings.experimentalTips)$('result-summary').textContent+=' Experimental session: these answers were not added to statistics or recent mistake history.';
   $('review-quiz').disabled=!mistakes.length;$('review-quiz').textContent=`Review this quiz’s mistakes (${mistakes.length}) →`;
   $('result-review-help').textContent=mistakes.length?'Review covers the species you missed in this quiz, regardless of their overall miss rate. Different media are used when available, within the same practice medium and geographic preference tier.':'No mistaken IDs in this quiz to review.';
   $('review').innerHTML=answers.map(a=>`<article class="review-row ${audio?'audio-review':''}">${audio?`<audio controls preload="none" aria-label="${escapeHTML(a.bird.name)} recording" src="${escapeHTML(a.photo.url)}"></audio>`:`<img src="${escapeHTML(a.photo.url)}" alt="${escapeHTML(a.bird.name)}" loading="lazy">`}<div><h3>${escapeHTML(a.bird.name)}</h3><p>${escapeHTML(a.bird.scientificName)}</p><p>${a.unavailable?'Skipped or unavailable':a.revealed?'Answer revealed':`Your answer: ${escapeHTML(a.guess)}`}</p><a href="${escapeHTML(a.photo.source)}" target="_blank" rel="noopener noreferrer">© ${escapeHTML(a.photo.recordist||a.photo.photographer)} · Macaulay Library ML${escapeHTML(a.photo.id)} ↗</a>${audio?recordingDetails(a.photo):''}</div><span class="review-status">${a.unavailable?'Not scored':a.correct?'✓ Correct':'↻ Review'}</span></article>`).join('');
