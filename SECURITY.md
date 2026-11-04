@@ -14,7 +14,7 @@ CodeQL publishes findings in the repository's Security / Code scanning view. A s
 
 Actions are pinned to full commit hashes and checkout credentials are not persisted. Only CodeQL jobs receive `security-events: write` for uploading analysis; other jobs use read-only repository access. Workflows use `pull_request`, never `pull_request_target` to execute untrusted pull-request code. They receive no AWS, Cognito, Sites, review-agent, or eBird application secrets and do not deploy the site.
 
-Dependabot is used for alerts only. Automatic security-update PRs are disabled by the owner, and there is no `.github/dependabot.yml` requesting scheduled version-update PRs. Dependency updates are reviewed and applied manually. Review scanner/tool version changes and any associated checksums together; the Gitleaks checksum, Action commit hashes, and pip-audit pin require deliberate maintenance.
+`.github/dependabot.yml` requests weekly GitHub Actions and Python version-update PRs. These are intentionally enabled and reviewed before merging; there is no automatic merge configuration. Separately, the owner enabled Dependabot alerts but did not enable automatic security-update PRs. Review scanner/tool version changes and any associated checksums together; the Gitleaks checksum and pip-audit pin require deliberate maintenance because those inline version strings are not managed by this Dependabot configuration.
 
 ## Repository settings
 
