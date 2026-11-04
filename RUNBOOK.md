@@ -21,6 +21,8 @@ See [ARCHITECTIURE.md](ARCHITECTIURE.md) for boundaries, components, and future 
 
 ## Prerequisites and credential handling
 
+See [SECURITY.md](SECURITY.md) for GitHub scans, pinned tools, local audit commands, and repository settings. Workflow changes do not deploy the site. Review CodeQL alerts as well as job conclusions; successful scanning does not mean no findings. Keep built-in secret scanning/push protection distinct from the post-push Gitleaks CI check.
+
 - Node 24+ for ES-module tooling, `import.meta.dirname`, and SQLite-backed tests; Python 3 for the optional static preview. No npm installation is currently required.
 - Git and authorized source-repository access for publishing. GitHub `origin` and the source repository returned by Sites may differ; verify both rather than assuming a push to one updates the other.
 - Access to the Sites tools and installed Sites workflow helper for hosted deployment. The helper is supplied by the plugin, not checked into this repository.

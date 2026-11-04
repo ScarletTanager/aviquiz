@@ -1,0 +1,18 @@
+title = "Aviquiz secret detection"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "aviquiz-assigned-token"
+description = "Assigned eBird, review-agent, or Sites service token"
+regex = '''(?i)\b(?:ebird[_-]?(?:api[_-]?)?(?:token|key)|review[_-]?agent[_-]?key|siwc[_-]?bypass[_-]?bearer[_-]?token)\b["']?\s*[:=]\s*["']?([a-z0-9._~+/=-]{24,})(?:["']|\s|$)'''
+secretGroup = 1
+keywords = ["ebird", "review", "siwc"]
+
+[[rules]]
+id = "aviquiz-review-key-file"
+description = "Review-agent key accidentally tracked in its local credential file"
+path = '''(?:^|/)\.review-agent\.json$'''
+regex = '''"key"\s*:\s*"([^"]+)"'''
+secretGroup = 1

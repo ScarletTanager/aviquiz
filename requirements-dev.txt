@@ -1,0 +1,4 @@
+# Offline spreadsheet preparation only; no Python dependencies run in the Worker.
+# Keep transitive dependencies explicit for no-install vulnerability auditing.
+openpyxl==3.1.5
+et-xmlfile==2.0.0

@@ -1,0 +1,7 @@
+name: Aviquiz security analysis
+queries:
+  - uses: security-extended
+# dist/ contains authored application code. Do not exclude it wholesale.
+paths-ignore:
+  - dist/server
+  - dist/.openai

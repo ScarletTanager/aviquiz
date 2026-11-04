@@ -1,5 +1,7 @@
 # Colombia Field Quiz
 
+Security automation and reporting: [SECURITY.md](SECURITY.md). GitHub Actions runs CodeQL, full-history secret detection, dependency auditing, and the application/security regression suite. Repository-level secret protection and alert settings require a separate owner check.
+
 System documentation: [Architecture](ARCHITECTIURE.md) and [Operations runbook](RUNBOOK.md). These describe the current implementation and separate it from planned account and route capabilities.
 
 The dormant, provider-independent account and route-permission foundation is described in [AAA.md](AAA.md). Run `node test-accounts.mjs` with Node 24+ to validate it in isolated SQLite. It has no activated provider, production migration, or public endpoints.
