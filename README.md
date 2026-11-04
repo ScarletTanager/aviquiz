@@ -1,5 +1,19 @@
 # Colombia Field Quiz
 
+System documentation: [Architecture](ARCHITECTIURE.md) and [Operations runbook](RUNBOOK.md). These describe the current implementation and separate it from planned account and route capabilities.
+
+The dormant, provider-independent account and route-permission foundation is described in [AAA.md](AAA.md). Run `node test-accounts.mjs` with Node 24+ to validate it in isolated SQLite. It has no activated provider, production migration, or public endpoints.
+
+## Site statistics and question context
+
+The **Site-only quizzes** display switch chooses between the existing all-scopes site rates and a separate history restricted to the exact selected site with All families selected. Site-scoped regular and mistake-review quizzes qualify; family quizzes, all-sites quizzes, experimental sessions, personal annotation review, and unscored skips do not. Lifer filters do not disqualify a site-scoped quiz. Both histories are recorded regardless of the display switch. Family summaries and mistake-review eligibility continue to use general species history.
+
+Each photo/audio progress record retains its existing version/key and `species` history, with an optional `siteSpecies[siteCode][speciesId].attempts` map. Each site/species window independently retains 20 qualifying attempts; unrelated quizzes cannot evict that site's history. Old browser history has no quiz context and is never backfilled into site-only rates. Linked site lists preserve the view using an optional `/site-only` hash suffix and reconcile their species totals with the summary. Without that suffix, existing links retain all-scopes behavior. Switches default to the existing all-scopes view on page load.
+
+During a family quiz or any all-sites regular/mistake-review quiz, **Show a checklist site** reveals one uniformly selected named site from that species' X-marked checklist sites. This is a species/context clue, not a claim about media provenance. The choice is fixed per question, including retrying media or toggling the clue. The off-by-default preference lasts for this page visit across questions and sessions until switched off; a page reload resets it. A site quiz with All families selected hides the clue, and personal annotation review does not offer it. Species with no named site get an explicit unavailable message. Clues do not change selection, audio geographic ranking, or scoring.
+
+Run `node test-context.mjs` for history compatibility, cross-site isolation, independent windows, exclusions, linked statistics, and clue selection/eligibility. `node test-app-audio.mjs` also exercises the display switch, linked site-only page, contextual writes, and persistent question clues in both media without screen capture.
+
 Quiz built from checklist_dec2026.xlsx and the October 7, 2026 eBird export. The original observation export stays in the parent workspace. A small Worker serves visual/audio quizzes and shared D1 photo reviews; learning history remains in each visitor’s browser, separately for visual and audio practice. Hosted checklist data includes site flags, lifer booleans, and public Macaulay metadata, not the personal observation export. See [REVIEW.md](REVIEW.md) for shared photo reviews and [AUDIO.md](AUDIO.md) for audio coverage, geographic preferences, statistics, and limitations.
 
 Counts: 849 trip species, 283 potential worldwide lifers, 519 potential Colombia lifers (including worldwide lifers). Thirteen named site columns are supported; the empty OS column has no targets or site legend and is not offered as a site. The all-trip choice includes species with no site X. Thirteen checklist scientific-name errors were reconciled against Cornell taxonomy by unambiguous common names. Original source files are unchanged.

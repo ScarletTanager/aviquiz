@@ -131,6 +131,46 @@ for(let n=0;n<2;n++){
 await $('exit').fire('click');await $('mark-original-reviewed').fire('click');
 assert.equal(parseReviewedPhotos(store.get(ANNOTATION_REVIEW_KEY)).size,26);assert.equal($('start').disabled,true);
 $('medium').value='audio';await $('medium').fire('change');assert.equal(radio('mode','annotations').disabled,true);assert.equal(radio('mode','regular').checked,true);
+// Question site clues persist, do not reroll when toggled, and apply to both media.
+$('medium').value='photo';await $('medium').fire('change');$('experimental-tips').checked=false;
+const familyScope=data.birds.find(b=>b.sites.length&&b.photos.length).family.replace(/\s*\(\d+\)\s*$/,'');
+$('site').value='all';$('family').value=familyScope;$('count').value='2';await $('settings').fire('submit');
+assert.equal($('site-clue-control').hidden,false);assert.equal($('site-clue-toggle').checked,false);assert.equal($('site-clue').hidden,true);
+$('site-clue-toggle').checked=true;await $('site-clue-toggle').fire('change');assert.equal($('site-clue').hidden,false);
+const initialClue=$('site-clue').textContent;
+$('site-clue-toggle').checked=false;await $('site-clue-toggle').fire('change');assert.equal($('site-clue').hidden,true);
+$('site-clue-toggle').checked=true;await $('site-clue-toggle').fire('change');assert.equal($('site-clue').textContent,initialClue);
+$('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');assert.equal($('site-clue-toggle').checked,true);assert.equal($('site-clue').hidden,false);
+await $('exit').fire('click');
+// The display switch changes no history, preserves family summaries and linked scope.
+$('medium').value='photo';await $('medium').fire('change');$('site').value=data.sites[0].code;$('family').value='all';$('count').value='1';await $('settings').fire('submit');
+assert.equal($('site-clue-control').hidden,true);assert.equal($('site-clue').hidden,true);
+$('question-image').onload();const scopedPhoto=$('question-image').src.match(/asset\/(\d+)/)[1],scopedBird=data.birds.find(b=>b.photos.some(p=>p.id===scopedPhoto));
+await $('reveal').fire('click');await $('next').fire('click');await $('exit').fire('click');
+const scopedHistory=store.get(PROGRESS_KEY),siteCode=data.sites[0].code;
+assert.deepEqual(JSON.parse(scopedHistory).siteSpecies[siteCode][scopedBird.id].attempts,[false]);
+const familySummary=$('family-accuracy-list').innerHTML;
+$('site-only-stats').checked=true;await $('site-only-stats').fire('change');
+assert.equal(store.get(PROGRESS_KEY),scopedHistory);assert.equal($('family-accuracy-list').innerHTML,familySummary);
+assert.match($('site-accuracy-list').innerHTML,/\/site-only/);
+location.hash=`#species/photo/site/${siteCode}/site-only`;for(const fn of windowEvents.hashchange)fn();await settle();
+assert.equal($('species-page').hidden,false);assert.match($('species-subtitle').textContent,/Site-only quizzes/);assert.match($('species-explanation').textContent,/older history/);
+await $('exit').fire('click');
+// A family quiz at the same site changes general history, not the site-only bucket.
+$('family').value=scopedBird.family.replace(/\s*\(\d+\)\s*$/,'');$('count').value='1';await $('settings').fire('submit');
+assert.equal($('site-clue-control').hidden,false);assert.equal($('site-clue-toggle').checked,true);
+$('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');
+assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)).siteSpecies,JSON.parse(scopedHistory).siteSpecies);
+await $('exit').fire('click');
+// Audio gets its own scoped history and retains the clue preference.
+$('medium').value='audio';await $('medium').fire('change');$('site').value='all';$('family').value='all';$('count').value='1';await $('settings').fire('submit');
+assert.equal($('site-clue-control').hidden,false);assert.equal($('site-clue-toggle').checked,true);assert.equal($('site-clue').hidden,false);
+$('site-clue-toggle').checked=false;await $('site-clue-toggle').fire('change');await $('exit').fire('click');
+$('site').value=data.sites.find(s=>data.birds.some(b=>b.sites.includes(s.code)&&audio.recordings[b.id]?.length)).code;
+await $('settings').fire('submit');const scopedAudioBird=lookup();$('question-audio').onplaying();await $('reveal').fire('click');await $('next').fire('click');
+assert.deepEqual(JSON.parse(store.get(AUDIO_PROGRESS_KEY)).siteSpecies[$('site').value][scopedAudioBird.id].attempts,[false]);
+assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)).siteSpecies,JSON.parse(scopedHistory).siteSpecies);
+await $('exit').fire('click');
 const emptyFamily=[...new Set(data.birds.map(b=>b.family))].find(f=>!data.birds.some(b=>b.family===f&&audio.recordings[b.id]));
 if(emptyFamily){$('medium').value='audio';await $('medium').fire('change');$('family').value=emptyFamily;await $('family').fire('change');assert.equal($('start').disabled,true);assert.match($('pool').textContent,/No verified recordings/);}
 console.log('Passed app integration: legacy visual history, audio playback gating, hidden answer metadata, miss/correct scoring, separate statistics, results, repeat, review, unscored failures, linked audio scopes, reset, visual regression and empty audio scopes. No browser/screen capture used.');

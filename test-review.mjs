@@ -60,7 +60,7 @@ assert.equal(tipsFor(bird,bird.photos[1],{enabled:true,answered:true,correct:fal
 assert.equal(annotatedBirds(catalog.birds).length,1);
 applySharedTips([]);
 assert.equal(tipsFor(bird,photo,{enabled:true,answered:true,correct:false}),null);
-for(const path of ['/','/review','/review-app.mjs','/data.json'])assert.equal((await worker.fetch(req(path),env)).status,200);
+for(const path of ['/','/review','/review-app.mjs','/data.json','/site-clue.mjs'])assert.equal((await worker.fetch(req(path),env)).status,200);
 assert.equal((await worker.fetch(req('/unknown'),env)).status,404);
 assert.equal((await api(req('/api/reviews'),{})).status,503);
 console.log('Passed: real SQLite storage/migration, owner and agent access, viewer denial, cross-origin denial, draft isolation, approval, revision conflicts, concurrent breadth-first approvals, exhausted candidates, unpublish, idempotent pilot import, shared tips across families and withdrawal, Worker assets, storage failure.');

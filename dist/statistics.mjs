@@ -1,6 +1,6 @@
 import {familyName} from './quiz.mjs';
 
-export function accuracyStatistics(birds,sites,progress){
+export function accuracyStatistics(birds,sites,progress,{siteOnly=false}={}){
   const siteRows=sites.map((site,order)=>({id:site.code,name:site.name,order,correct:0,total:0}));
   const sitesById=new Map(siteRows.map(row=>[row.id,row]));
   const familiesById=new Map();
@@ -9,8 +9,12 @@ export function accuracyStatistics(birds,sites,progress){
     if(!familiesById.has(family))familiesById.set(family,{id:family,name:family,order:familiesById.size,correct:0,total:0});
     const attempts=progress.species[bird.id]?.attempts||[];
     const correct=attempts.filter(Boolean).length;
-    const groups=[familiesById.get(family),...new Set(bird.sites).values()].map(group=>typeof group==='string'?sitesById.get(group):group);
-    for(const row of groups){if(!row)continue;row.correct+=correct;row.total+=attempts.length;}
+    const familyRow=familiesById.get(family);familyRow.correct+=correct;familyRow.total+=attempts.length;
+    for(const site of new Set(bird.sites)){
+      const row=sitesById.get(site);if(!row)continue;
+      const siteAttempts=siteOnly?progress.siteSpecies?.[site]?.[bird.id]?.attempts||[]:attempts;
+      row.correct+=siteAttempts.filter(Boolean).length;row.total+=siteAttempts.length;
+    }
   }
   const finish=rows=>rows.map(row=>({...row,rate:row.total?row.correct/row.total:null}));
   return {sites:finish(siteRows),families:finish([...familiesById.values()])};
@@ -26,10 +30,10 @@ export function sortAccuracy(rows,by='taxonomy',direction='asc'){
   });
 }
 
-export function speciesAccuracy(birds,progress,kind,id){
+export function speciesAccuracy(birds,progress,kind,id,{siteOnly=false}={}){
   if(!['site','family'].includes(kind))return [];
   return birds.map((bird,order)=>({bird,order})).filter(({bird})=>kind==='site'?bird.sites.includes(id):familyName(bird.family)===id).map(({bird,order})=>{
-    const attempts=progress.species[bird.id]?.attempts||[];
+    const attempts=siteOnly&&kind==='site'?progress.siteSpecies?.[id]?.[bird.id]?.attempts||[]:progress.species[bird.id]?.attempts||[];
     const correct=attempts.filter(Boolean).length;
     return {id:bird.id,name:bird.name,scientificName:bird.scientificName,order,correct,total:attempts.length,rate:attempts.length?correct/attempts.length:null};
   });

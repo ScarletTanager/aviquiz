@@ -12,6 +12,8 @@ The Statistics for selector switches visual/audio site summaries, family summari
 
 Rates divide correct by scored attempts, not species-average rates. Site statistics use target-species membership from the checklist, including answers made in other scopes. A shared species contributes to each applicable site. Audio site rates combine recording localities and do not establish mastery of the site’s dialect. Family rates cover all sites. Skips and unavailable media are excluded. Storage failure for one medium does not disable the other.
 
+The **Site-only quizzes** display switch instead uses a separate audio history for that exact site with All families selected. Family/all-sites sessions do not enter it, and it starts with the context-tracking update because prior answers have no site provenance. Site-scoped mistake reviews qualify; each site/species has its own last-20 window. Both site views are recorded independently of the display switch; family rates and recent-mistake eligibility keep using general audio history. The optional per-question checklist-site clue in family/all-sites quizzes is independent of recording locality and does not alter audio selection.
+
 ## Geographic selection and limitations
 
 `audio.mjs` ranks current catalog records: explicitly confirmed site (reserved for independently verified mappings), named site-area match, same department, Colombia, neighboring country, then distant fallback. No initial record is asserted to have a confirmed site/subspecies assignment. Only the best available geographic tier enters a scope's question pool; random selection cannot displace a nearby clip with a distant one. These preferences search this quiz’s saved catalog, not the full Macaulay archive.

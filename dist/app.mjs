@@ -1,4 +1,5 @@
 import {audioBirds,validateAudioCatalog} from './audio.mjs';
+import {offersSiteClue,chooseSiteClue} from './site-clue.mjs';
 import {ANNOTATION_REVIEW_KEY,ORIGINAL_REVIEW_PHOTOS,parseReviewedPhotos,unreviewedPhotos} from './annotation-review.mjs';
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './quiz.mjs';
 import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,progressKey,emptyProgress,parseProgress,recordAttempt,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
@@ -7,6 +8,15 @@ import {ID_TIPS,tipsFor,annotatedBirds,annotationSvg,applySharedTips} from './id
 const $=id=>document.getElementById(id);
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
 let activeSettings=null,audioCatalog={version:1,recordings:{}};
+let siteClueEnabled=false,currentSiteClue=null;
+const siteOnlyStats=()=>$('site-only-stats').checked;
+function renderSiteClue(){
+  const available=activeSettings&&offersSiteClue(activeSettings);
+  $('site-clue-control').hidden=!available;
+  $('site-clue-toggle').checked=siteClueEnabled;
+  $('site-clue').hidden=!available||!siteClueEnabled;
+  $('site-clue').textContent=currentSiteClue?`Checklist site: ${currentSiteClue.name}`:'No named checklist site is available for this species.';
+}
 const histories={photo:emptyProgress(),audio:emptyProgress()},storageUsable={photo:true,audio:true};
 const selectedMedium=()=>$('medium').value;
 const statsMedium=()=>$('stats-medium').value;
@@ -35,9 +45,10 @@ const escapeHTML=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>'
 function renderStatistics(){
   if(!data)return;
   $('accuracy-title').textContent=`Your ${mediumName(statsMedium())} ID accuracy`;
-  $('stats-medium-help').textContent=statsMedium()==='audio'?'Audio history only. Site rates combine answers for that site’s target species from all audio scopes and recording locations; they do not measure mastery of a local dialect.':'Visual history only. Existing photo-quiz history is retained. Audio answers do not affect these rates.';
-  const stats=accuracyStatistics(data.birds,data.sites,histories[statsMedium()]);
-  const rowsHTML=(rows,kind)=>rows.map(row=>`<li class="accuracy-row"><a class="accuracy-name accuracy-link" href="#species/${statsMedium()}/${kind}/${encodeURIComponent(row.id)}">${escapeHTML(row.name)}</a><span class="accuracy-value"><strong>${formatRate(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></span></li>`).join('');
+  $('stats-medium-help').textContent=statsMedium()==='audio'?'Audio history only. Audio site rates do not measure mastery of a local dialect; recording locality can differ from quiz scope.':'Visual history only. Existing photo-quiz history is retained. Audio answers do not affect these rates.';
+  $('site-stats-help').textContent=siteOnlyStats()?'Site-only quizzes: answers from this exact site with All families selected, including site-scoped mistake reviews. Family and all-sites quizzes are excluded. Each species retains its last 20 qualifying answers per site and medium. Tracking starts with this update; older answers have no site context.':'All quiz scopes: use each target species’ last 20 answers from any quiz. A shared species can contribute to multiple sites. Family statistics always use all quiz scopes.';
+  const stats=accuracyStatistics(data.birds,data.sites,histories[statsMedium()],{siteOnly:siteOnlyStats()});
+  const rowsHTML=(rows,kind)=>rows.map(row=>`<li class="accuracy-row"><a class="accuracy-name accuracy-link" href="#species/${statsMedium()}/${kind}/${encodeURIComponent(row.id)}${kind==='site'&&siteOnlyStats()?'/site-only':''}">${escapeHTML(row.name)}</a><span class="accuracy-value"><strong>${formatRate(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></span></li>`).join('');
   const sites=sortAccuracy(stats.sites,$('site-stat-sort').value,$('site-stat-direction').value);
   $('site-accuracy-list').innerHTML=rowsHTML(sitesExpanded?sites:sites.slice(0,5),'site');
   $('site-expand').hidden=sites.length<=5;
@@ -52,11 +63,13 @@ function renderStatistics(){
 function renderSpeciesList(){
   if(!data||!speciesScope)return;
   const {kind,id}=speciesScope;
-  const rows=speciesAccuracy(data.birds,histories[speciesScope.medium],kind,id);
+  const siteOnly=kind==='site'&&speciesScope.siteOnly;
+  const rows=speciesAccuracy(data.birds,histories[speciesScope.medium],kind,id,{siteOnly});
   const title=kind==='site'?data.sites.find(s=>s.code===id)?.name:id;
   $('species-title').textContent=title;
   $('species-kind').textContent=kind==='site'?'SITE SPECIES':'FAMILY SPECIES';
   $('species-subtitle').textContent=`${rows.length} species · ${mediumName(speciesScope.medium)} statistics · ${kind==='site'?'All families · X-marked targets':'All sites'}`;
+  if(kind==='site')$('species-subtitle').textContent+=siteOnly?' · Site-only quizzes':' · All quiz scopes';
   const sorted=sortAccuracy(rows,$('species-sort').value,$('species-direction').value);
   $('species-rows').innerHTML=sorted.map(row=>`<tr><td><strong>${escapeHTML(row.name)}</strong><span class="species-scientific">${escapeHTML(row.scientificName)}</span></td><td class="species-rate"><strong>${formatRate(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></td></tr>`).join('');
   const settings=listQuizSettings(kind,id);
@@ -64,6 +77,7 @@ function renderSpeciesList(){
   const ready=speciesScope.medium==='audio'?audioBirds(scoped,audioCatalog,settings.site):scoped;
   $('species-start').disabled=!ready.some(b=>b.photos.length);
   $('species-explanation').textContent=`${mediumName(speciesScope.medium)==='audio'?'Audio':'Visual'} correct IDs ÷ scored attempts, using each species’ last 20 attempts in this medium. Regular quizzes and mistake reviews count, except sessions with experimental ID tips enabled. Revealed answers count as misses; unavailable media do not count. — means no answers yet.${speciesScope.medium==='audio'?` ${ready.filter(b=>b.photos.length).length} of these species currently have audio in this quiz’s catalog.`:''}`;
+  if(siteOnly)$('species-explanation').textContent+=' Only answers from this exact site with All families selected count here, using the last 20 qualifying answers per species at this site. Family/all-sites quizzes and older history without site context are excluded.';
   $('species-start').textContent=kind==='site'?'Start site quiz →':'Start family quiz →';
 }
 function navigateSpeciesHash(){
@@ -71,10 +85,10 @@ function navigateSpeciesHash(){
   sessionToken++;stopAudio();
   let parts;try{parts=location.hash.slice(1).split('/').map(decodeURIComponent);}catch{parts=[];}
   const [route,...rest]=parts;
-  const [medium,kind,id]=rest.length===3?rest:[statsMedium(),...rest];
-  const valid=route==='species'&&['photo','audio'].includes(medium)&&((kind==='site'&&data.sites.some(s=>s.code===id))||(kind==='family'&&data.birds.some(b=>familyName(b.family)===id)));
+  const [medium,kind,id,scope]=rest.length>=3?rest:[statsMedium(),...rest];
+  const valid=route==='species'&&rest.length>=2&&rest.length<=4&&(!scope||(scope==='site-only'&&kind==='site'))&&['photo','audio'].includes(medium)&&((kind==='site'&&data.sites.some(s=>s.code===id))||(kind==='family'&&data.birds.some(b=>familyName(b.family)===id)));
   if(valid){
-    speciesScope={medium,kind,id};$('stats-medium').value=medium;$('species-sort').value='taxonomy';$('species-direction').value='asc';$('species-count').value='20';
+    speciesScope={medium,kind,id,siteOnly:scope==='site-only'};if(kind==='site')$('site-only-stats').checked=speciesScope.siteOnly;$('stats-medium').value=medium;$('species-sort').value='taxonomy';$('species-direction').value='asc';$('species-count').value='20';
     readProgress(medium);renderSpeciesList();showView('species-page');$('species-title').focus({preventScroll:true});
   }else{speciesScope=null;showView('setup');}
 }
@@ -95,7 +109,7 @@ function readProgress(medium=selectedMedium()){
 function rememberAnswer(bird,correct){
   if(activeSettings.experimentalTips)return;
   const medium=activeSettings.medium||'photo';
-  readProgress(medium);histories[medium]=recordAttempt(histories[medium],bird.id,correct);
+  readProgress(medium);histories[medium]=recordAttempt(histories[medium],bird.id,correct,activeSettings);
   if(storageUsable[medium])try{localStorage.setItem(progressKey(medium),JSON.stringify(histories[medium]));$('storage-status').textContent='Visual and audio progress are saved separately in this browser. Other browsers and devices have separate histories.';}
   catch{storageUsable[medium]=false;$('storage-status').textContent=`Browser storage is unavailable for ${mediumName(medium)} practice. Progress is tracked for this visit.`;}
   renderStatistics();
@@ -183,6 +197,7 @@ function loadAudio(){
 }
 function nextQuestion(){
   stopAudio();const audio=activeSettings.medium==='audio';
+  currentSiteClue=offersSiteClue(activeSettings)?chooseSiteClue(queue[index],data.sites):null;renderSiteClue();
   activeTips=null;$('show-id-features').hidden=true;$('show-id-features').setAttribute('aria-expanded','false');$('id-features').hidden=true;$('id-tip-diagram').innerHTML='';$('id-tip-general').innerHTML='';$('id-tip-credit').textContent='';$('id-tip-source').innerHTML='';
   $('mark-photo-reviewed').hidden=true;
   sessionToken++;answered=false;photoTry=0;photoOrder=audio?queue[index].photos:shuffle(queue[index].photos);
@@ -278,6 +293,8 @@ $('review-quiz').addEventListener('click',()=>{
 });
 $('medium').addEventListener('change',()=>{readProgress();$('stats-medium').value=selectedMedium();updatePool();renderStatistics();});
 $('stats-medium').addEventListener('change',()=>{readProgress(statsMedium());renderStatistics();});
+$('site-only-stats').addEventListener('change',renderStatistics);
+$('site-clue-toggle').addEventListener('change',()=>{siteClueEnabled=$('site-clue-toggle').checked;renderSiteClue();});
 document.addEventListener('play',e=>{if(e.target.tagName==='AUDIO')document.querySelectorAll('audio').forEach(a=>{if(a!==e.target)a.pause();});},true);
 for(const id of ['site-stat-sort','site-stat-direction','family-stat-sort','family-stat-direction'])$(id).addEventListener('change',renderStatistics);
 $('family-expand').addEventListener('click',()=>{familiesExpanded=!familiesExpanded;renderStatistics();});
