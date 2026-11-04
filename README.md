@@ -1,6 +1,6 @@
 # Colombia Field Quiz
 
-Security automation and reporting: [SECURITY.md](SECURITY.md). GitHub Actions runs CodeQL, full-history secret detection, dependency auditing, and the application/security regression suite. Repository-level secret protection and alert settings require a separate owner check.
+Security automation and reporting: [SECURITY.md](SECURITY.md). GitHub Actions runs CodeQL, full-history secret detection, dependency auditing, and the application/security regression suite. The owner confirmed secret scanning, push protection, and Dependabot alerts are enabled. Automatic dependency-update PRs are intentionally disabled.
 
 System documentation: [Architecture](ARCHITECTIURE.md) and [Operations runbook](RUNBOOK.md). These describe the current implementation and separate it from planned account and route capabilities.
 

@@ -14,17 +14,17 @@ CodeQL publishes findings in the repository's Security / Code scanning view. A s
 
 Actions are pinned to full commit hashes and checkout credentials are not persisted. Only CodeQL jobs receive `security-events: write` for uploading analysis; other jobs use read-only repository access. Workflows use `pull_request`, never `pull_request_target` to execute untrusted pull-request code. They receive no AWS, Cognito, Sites, review-agent, or eBird application secrets and do not deploy the site.
 
-`.github/dependabot.yml` requests weekly GitHub Actions and Python dependency update PRs. Updates are not automatically merged. Review scanner/tool version changes and any associated checksums together. The Gitleaks binary checksum and pip-audit tool pin require deliberate maintenance; Dependabot does not automatically manage those inline version strings.
+Dependabot is used for alerts only. Automatic security-update PRs are disabled by the owner, and there is no `.github/dependabot.yml` requesting scheduled version-update PRs. Dependency updates are reviewed and applied manually. Review scanner/tool version changes and any associated checksums together; the Gitleaks checksum, Action commit hashes, and pip-audit pin require deliberate maintenance.
 
-## Repository settings requiring an owner check
+## Repository settings
 
-In the repository's **Settings / Code security** area, enable or confirm:
+On November 4, 2026, the owner confirmed the repository's **Settings / Code security** configuration:
 
-1. Secret scanning.
-2. Secret scanning push protection.
-3. Dependency graph and Dependabot alerts; enable security updates if desired.
+1. Secret scanning was already enabled.
+2. Secret scanning push protection was already enabled.
+3. Dependabot alerts are enabled; automatic dependency security-update PRs are not enabled.
 
-The initial setup token could write repository content but received HTTP 403 attempting to enable secret scanning/push protection and vulnerability alerts. Their status must be confirmed by an authorized repository administrator; this document does not claim they were enabled. Do not expose a broader token in chat merely to resolve this. CodeQL uses an advanced workflow; GitHub default setup should be disabled if it conflicts with that workflow. If GitHub policy blocks CodeQL uploads, check code-scanning availability/settings and the run diagnostics.
+The setup token can write repository content but received HTTP 403 attempting to manage these settings and read CodeQL alerts. The status above is owner-confirmed, not independently read through that token. No broader token is needed for the current workflows. CodeQL uses an advanced workflow; GitHub default setup should be disabled if it conflicts with that workflow. If GitHub policy blocks CodeQL uploads, check code-scanning availability/settings and the run diagnostics.
 
 Gitleaks in CI runs after code is pushed; it does not prevent the initial publication of a secret. Push protection is a separate GitHub control, and supported-token pattern coverage is not universal. If a genuine key is found, revoke/rotate it first, assess exposure, and coordinate history cleanup without forcing away collaborators' work. Do not suppress real leaks merely to make a check green.
 
