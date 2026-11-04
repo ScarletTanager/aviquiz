@@ -1,18 +1,22 @@
-# Aviquiz architecture
+# AviQuiz architecture
 
-Status: current implementation, documented November 1, 2026. Proposed capabilities are identified separately below. This file retains the filename requested for the architecture document.
+Status: current implementation, updated November 4, 2026. Proposed capabilities are identified separately below. This file retains the filename requested for the architecture document.
 
 ## System context
 
-Aviquiz provides photo and vocalization identification quizzes from a prepared Colombia trip checklist. Visitors select sites, families, lifer filters, question counts, and regular or mistake-review practice. Experimental photo guidance combines paraphrased eBird/Merlin descriptions with manually checked arrows on specific Macaulay Library photographs.
+AviQuiz provides photo and vocalization identification quizzes from a prepared Colombia trip checklist. Visitors select sites, families, lifer filters, question counts, and regular or mistake-review practice. Experimental photo guidance combines paraphrased eBird/Merlin descriptions with manually checked arrows on specific Macaulay Library photographs.
 
 The deployed application is a browser application plus a small HTTP Worker and a shared database. Quiz selection, answer matching, statistics, and personal annotation-review marks run in the browser. The backend serves application assets and manages shared annotation drafts and published snapshots. Media streams directly from Cornell; the backend does not proxy or store it.
 
-Current hosted site: <https://sandy-colombia-bird-quiz.lovelyquail12.chatgpt.site>
+Current hosted site: <https://sandy-colombia-bird-quiz.scarlet-tanager.chatgpt.site>
 
 Source repository: <https://github.com/ScarletTanager/aviquiz>
 
-The current Sites audience controls entry to the hosted site. Application-level guest use means no separate Aviquiz account; it does not bypass that staging/hosting access policy. Permanent anonymous access to ordinary quizzes is a product requirement for future public production hosting.
+The current Sites audience controls entry to the hosted site. Application-level guest use means no separate AviQuiz account; it does not bypass that staging/hosting access policy. Permanent anonymous access to ordinary quizzes is a product requirement for future public production hosting.
+
+## Page structure
+
+The landing page at `/` introduces AviQuiz and the current collection. Quiz configuration, sessions, and results live at `/quiz`; accuracy summaries and linked species lists live at `/statistics`. The shared review workspace remains at `/review`. The Worker serves the same application shell for `/quiz` and `/statistics` (including trailing slashes); browser History API navigation switches views without resetting quiz settings. Species drilldowns retain their `#species/...` links, including older bookmarks. All pages share the existing origin and unchanged browser-storage keys, so rebranding does not migrate learning history.
 
 ## Component interaction diagram
 
@@ -59,7 +63,7 @@ flowchart TB
 | Quiz shell and presentation | `dist/index.html`, `dist/style.css`; HTML/CSS | Responsive setup, quiz, statistics, results, and annotation views without a framework or application dependency installation. |
 | Browser orchestration | `dist/app.mjs`; JavaScript ES modules | Loads catalogs and shared tips; coordinates filters, media events, sessions, and views. |
 | Selection and grading | `dist/quiz.mjs` | Pure selection and common/scientific-name matching, including punctuation normalization and limited, unambiguous typo tolerance. |
-| Progress and statistics | `dist/progress.mjs`, `dist/statistics.mjs`; localStorage | Separate photo/audio rolling histories and weighted summaries without requiring an Aviquiz account or backend personal-data storage. |
+| Progress and statistics | `dist/progress.mjs`, `dist/statistics.mjs`; localStorage | Separate photo/audio rolling histories and weighted summaries without requiring an AviQuiz account or backend personal-data storage. |
 | Personal annotation review | `dist/annotation-review.mjs` | Tracks explicitly reviewed photo IDs separately from shared publication and quiz accuracy. |
 | Audio selection | `dist/audio.mjs`, `dist/audio.json` | Ranks saved Macaulay records by geographic preference. A local catalog makes behavior repeatable and avoids an archive search on every quiz. |
 | Photo guidance | `dist/id-tips.mjs`; generated SVG | Combines shared annotations with species text and built-in fallback guidance. Normalized coordinates and uncropped images retain landmark placement across display sizes; labels sit outside the image. |
@@ -129,7 +133,7 @@ Sites supplies the current hosting access boundary and trusted visitor identity 
 
 The owner's current ID is in `worker/index.mjs`; `REVIEW_OWNER_EMAIL` handles the platform's site-scoped identity case. `REVIEW_AGENT_KEY` is a runtime secret. Its ignored local counterpart `.review-agent.json` is used by the batch client. Unattended hosted requests also use the platform service credential. Platform access does not itself give a caller a visitor identity or application editing privileges.
 
-Server checks include JSON payload validation, same-origin checks when an Origin header is supplied, revision checks, and approval guards. This is a narrow owner/agent model, not the proposed general AAA system. There is no Aviquiz password store, customer signup, per-user feature authorization, general admin console, comprehensive audit trail, or Turnstile integration today. Experimental UI options are not currently restricted by per-user grants.
+Server checks include JSON payload validation, same-origin checks when an Origin header is supplied, revision checks, and approval guards. This is a narrow owner/agent model, not the proposed general AAA system. There is no AviQuiz password store, customer signup, per-user feature authorization, general admin console, comprehensive audit trail, or Turnstile integration today. Experimental UI options are not currently restricted by per-user grants.
 
 ## Availability and operational limits
 
@@ -145,7 +149,7 @@ Server-only `worker/identity.mjs`, `worker/permissions.mjs`, and `worker/account
 
 ## Planned evolution, not activated
 
-- Permanent guest quizzes, with independent managed Aviquiz authentication for account-backed capabilities. Provider selection and hosting compatibility remain undecided; production may use Azure or another host.
+- Permanent guest quizzes, with independent managed AviQuiz authentication for account-backed capabilities. Provider selection and hosting compatibility remain undecided; production may use Azure or another host.
 - Immutable internal user IDs linked to verified provider identities; no application password storage. Global grants for administration, experimentation, and annotation editing/publication.
 - Server-owned routes: ordered sites and optional dates, private/public visibility, owner-only deletion except explicit administrator intervention, invited viewers, contributors, and optional editors. Per-route permissions must be checked server-side.
 - Account-backed history and personal review marks with explicit, deduplicated import of local history. Staging and production identity/data must be isolated.

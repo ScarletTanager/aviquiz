@@ -44,13 +44,20 @@ globalThis.document={getElementById:id=>{assert.ok(elements.has(id),'Missing DOM
  querySelectorAll:q=>q.includes('input[name="filter"]')?radios.filter(r=>r.name==='filter'):q==='#review audio'?[]:q==='audio'?[$('question-audio')]:[],
  addEventListener:(name,fn)=>(documentEvents[name]??=[]).push(fn)};
 globalThis.window={scrollTo(){},addEventListener:(name,fn)=>(windowEvents[name]??=[]).push(fn)};
-globalThis.location={hash:'',pathname:'/',search:''};globalThis.history={replaceState(){location.hash='';}};
+globalThis.location={hash:'',pathname:'/',search:''};globalThis.history={pushState(_s,_t,url){const u=new URL(url,'https://aviquiz.test');Object.assign(location,{pathname:u.pathname,search:u.search,hash:u.hash});},replaceState(s,t,url){this.pushState(s,t,url);}};
 const existing=recordAttempt(emptyProgress(),data.birds[0].id,true),visualInitial=JSON.stringify(existing),store=new Map([[PROGRESS_KEY,visualInitial]]);
 globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)};
-globalThis.fetch=async url=>({ok:!(process.env.AUDIO_CATALOG_FAIL==='1'&&url==='audio.json'),json:async()=>url==='data.json'?data:url==='audio.json'?audio:{annotations:sharedAnnotations,coverage:{covered:3,approved:6}}});
+globalThis.fetch=async url=>{url=url.replace(/^\//,'');return {ok:!(process.env.AUDIO_CATALOG_FAIL==='1'&&url==='audio.json'),json:async()=>url==='data.json'?data:url==='audio.json'?audio:{annotations:sharedAnnotations,coverage:{covered:3,approved:6}}};};
 async function settle(){await tick();await tick();}
 assert.ok($('site').options[0],'Site option fixture');
 await import('./dist/app.mjs');await settle();
+assert.equal($('landing').hidden,false);assert.equal($('setup').hidden,true);assert.equal($('statistics').hidden,true);
+assert.match(document.title,/AviQuiz/);
+await $('nav-practice').fire('click');assert.equal(location.pathname,'/quiz');assert.equal($('setup').hidden,false);assert.equal($('statistics').hidden,true);
+$('count').value='7';await $('nav-statistics').fire('click');assert.equal(location.pathname,'/statistics');assert.equal($('statistics').hidden,false);assert.equal($('setup').hidden,true);assert.equal($('nav-statistics').attrs['aria-current'],'page');
+await $('nav-home').fire('click');assert.equal($('landing').hidden,false);assert.equal($('count').value,'7');assert.equal(store.get(PROGRESS_KEY),visualInitial);
+for(const [pathname,view] of [['/quiz/','setup'],['/statistics/','statistics'],['/','landing']]){location.pathname=pathname;for(const fn of windowEvents.popstate)fn();assert.equal($(view).hidden,false);}
+await $('landing-practice').fire('click');$('count').value='20';
 if(process.env.AUDIO_CATALOG_FAIL==='1'){
  assert.equal($('medium').querySelector('option[value=audio]').disabled,true);
  assert.match($('audio-coverage').textContent,/could not load/);
@@ -58,6 +65,12 @@ if(process.env.AUDIO_CATALOG_FAIL==='1'){
  assert.equal(store.get(PROGRESS_KEY),visualInitial);
  console.log('Passed: failed audio catalog disables audio while visual quizzes and existing history remain usable.');process.exit(0);
 }
+await $('landing-audio').fire('click');assert.equal(location.search,'?medium=audio');assert.equal($('medium').value,'audio');assert.equal($('setup').hidden,false);
+$('medium').value='photo';await $('medium').fire('change');await $('nav-practice').fire('click');
+const normalFetch=globalThis.fetch;let releaseTips;
+globalThis.fetch=url=>url==='/api/annotations'?new Promise(resolve=>{releaseTips=()=>resolve({ok:true,json:async()=>({annotations:sharedAnnotations,coverage:{covered:3,approved:6}})});}):normalFetch(url);
+await $('settings').fire('submit');assert.ok(releaseTips);await $('nav-home').fire('click');releaseTips();await settle();assert.equal($('landing').hidden,false);assert.equal($('session').hidden,true);globalThis.fetch=normalFetch;
+await $('nav-practice').fire('click');
 assert.equal($('settings-error').textContent,'');assert.match($('accuracy-title').textContent,/visual/);assert.equal(store.has(AUDIO_PROGRESS_KEY),false);
 await $('medium').fire('change',{$unused:1,target:Object.assign($('medium'),{value:'audio'})});
 assert.match($('accuracy-title').textContent,/audio/);assert.equal($('photo-tip-options').hidden,true);assert.match($('family-accuracy-list').innerHTML,/No answers yet/);

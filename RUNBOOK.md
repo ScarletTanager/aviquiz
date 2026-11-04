@@ -1,14 +1,14 @@
-# Aviquiz runbook
+# AviQuiz runbook
 
-Documented November 1, 2026 for the current Sites-hosted Worker and D1 deployment. Azure and independent Aviquiz authentication are proposals, not operating environments. Commands below run from the repository root unless stated otherwise.
+Updated November 4, 2026 for the current Sites-hosted Worker and D1 deployment. Azure and independent AviQuiz authentication are proposals, not operating environments. Commands below run from the repository root unless stated otherwise.
 
 ## Identify the system before changing it
 
 | Item | Current value / source of truth |
 | --- | --- |
 | Repository | <https://github.com/ScarletTanager/aviquiz> |
-| Hosted quiz | <https://sandy-colombia-bird-quiz.lovelyquail12.chatgpt.site> |
-| Shared review workspace | <https://sandy-colombia-bird-quiz.lovelyquail12.chatgpt.site/review> |
+| Hosted quiz | <https://sandy-colombia-bird-quiz.scarlet-tanager.chatgpt.site> |
+| Shared review workspace | <https://sandy-colombia-bird-quiz.scarlet-tanager.chatgpt.site/review> |
 | Project ID | Read `.openai/hosting.json`; currently `appgprj_6ade5e114ee881919dad878f0f62fb49`. Reuse it; do not create a replacement Site. |
 | Backend source | `worker/index.mjs` |
 | Generated deployment entrypoint | `dist/server/index.js` |
@@ -18,6 +18,10 @@ Documented November 1, 2026 for the current Sites-hosted Worker and D1 deploymen
 Use `git status --short` and `git log -1 --oneline` to identify local changes and the source revision. Use Sites `get_site` and saved-version/deployment tools for current live revision, audience, and status; local HEAD is not proof of deployment. Never change audience as a workaround for a failed operation.
 
 See [ARCHITECTIURE.md](ARCHITECTIURE.md) for boundaries, components, and future plans.
+
+## Page navigation checks
+
+After deployment, check `/` (landing), `/quiz` (configuration), `/statistics` (accuracy), and `/review` (shared review). Refresh `/quiz/` and `/statistics/` directly to verify Worker aliases; assets use absolute paths. A plain static-file server previews navigation from `/`, but cannot resolve these extensionless paths on refresh. Use the built Worker for route checks (`test-review.mjs`). Check that browser Back/Forward works and existing photo/audio history remains present. Never rename storage keys as part of a display-brand change.
 
 ## Prerequisites and credential handling
 
@@ -161,7 +165,7 @@ Record the URL/route, time with timezone, source/deployment version, user access
 | Review API 403 for owner | Confirm authenticated identity reaches the Worker and owner ID or `REVIEW_OWNER_EMAIL` matches the provider identity. For an agent, verify both hosting service access and matching review key without printing either. Do not make the API public. |
 | Save 409 | Reload current review state. Resolve a stale revision or breadth-first approval conflict, then resubmit deliberately. |
 | Save 400 / 413 / 415 | Check document validation/length limits, JSON syntax, body size, action, and `application/json` content type. Cross-origin POSTs with an Origin header are rejected. |
-| Photo/audio unavailable | Inspect the asset URL/status and content type. Try another candidate or skip without scoring. A Cornell outage/403 cannot be repaired by redeploying unchanged Aviquiz code. |
+| Photo/audio unavailable | Inspect the asset URL/status and content type. Try another candidate or skip without scoring. A Cornell outage/403 cannot be repaired by redeploying unchanged AviQuiz code. |
 | Audio selector disabled | Check `/audio.json` load/validation and console errors. Photo practice should remain usable. Subspecies/locality uncertainty is a catalog limitation, not necessarily a playback defect. |
 | Audio cannot be answered yet | Press Play; the app gates scoring on the playback event. Check native-player support and loading errors; retry or skip unclear/unavailable media. |
 | Unexpected statistics or review birds | Check selected medium, site membership, retained last-20 attempts, strict >25% threshold, reveals, and experimental exclusion. Earlier experimental attempts were not tagged and remain in old history. Local histories differ across origins/devices. |

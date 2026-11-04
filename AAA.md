@@ -6,7 +6,7 @@ Implemented November 1, 2026 as server-only library code with isolated database 
 
 | File | Interface / purpose |
 | --- | --- |
-| `worker/identity.mjs` | `resolvePrincipal(request, {db, verifyIdentity})` maps a verified `(issuer, subject)` pair to an immutable Aviquiz user ID. Anonymous requests need no database lookup. Unknown identities do not automatically create accounts. |
+| `worker/identity.mjs` | `resolvePrincipal(request, {db, verifyIdentity})` maps a verified `(issuer, subject)` pair to an immutable AviQuiz user ID. Anonymous requests need no database lookup. Unknown identities do not automatically create accounts. |
 | `worker/permissions.mjs` | Pure deny-by-default checks for global grants, feature availability, and a specific route's ownership/membership. |
 | `worker/accounts.mjs` | Server-internal account registration and grant/route sharing services. Reloads actor grants for each call, checks object access, and commits mutations and audit events together. |
 | `schema/identity-routes.sql` | Staged SQLite-compatible tables and constraints, tested with the current D1-shaped adapter. This is not a registered production migration. |
@@ -14,7 +14,7 @@ Implemented November 1, 2026 as server-only library code with isolated database 
 
 The `verifyIdentity` function is the deliberately small provider adapter seam. It must use a supported authentication/session library to validate credentials and return either `null` (no credentials) or `{issuer, subject, email, emailVerified}` from trusted, verified provider claims. Invalid credentials must raise an error, not silently become a signed-in user. Issuer and subject are exact, case-sensitive identifiers; email is not an identity key.
 
-Before a real adapter is accepted, test issuer allowlisting, signature validation and key rotation, audience, token lifetime and intended token use, and applicable state/nonce/PKCE/session protections. Do not pass decoded unverified JWTs, request headers, request bodies, or localStorage claims to these services. The structural `verifiedIdentity` validator is **not cryptographic authentication**. Current Sites headers are not an independent Aviquiz provider adapter.
+Before a real adapter is accepted, test issuer allowlisting, signature validation and key rotation, audience, token lifetime and intended token use, and applicable state/nonce/PKCE/session protections. Do not pass decoded unverified JWTs, request headers, request bodies, or localStorage claims to these services. The structural `verifiedIdentity` validator is **not cryptographic authentication**. Current Sites headers are not an independent AviQuiz provider adapter.
 
 The future controller resolves the actor server-side and passes the resulting internal user ID to service calls. It must never let a caller supply an acting user ID. `readRoute(null, id)` intentionally supports guest access to public routes. An account disabled in the database is treated as unauthenticated for public reading, and cannot perform protected mutations. No long-lived grant cache is introduced; each new resolution/call sees revocation.
 
@@ -30,7 +30,7 @@ The future controller resolves the actor server-side and passes the resulting in
 
 Grants are `system.admin`, `experiment.id-tips`, `annotations.read`, `annotations.edit`, and `annotations.publish`. Unknown grants/actions are rejected. These are composable capabilities, not automatic role inheritance: an annotation editor does not receive publication privileges or experimental access merely by being an editor. UI roles can later bundle the appropriate read/edit grants.
 
-`system.admin` authorizes the known privileged operations. `setGrant` requires an administrator and records the target and permission, but intentionally refuses to assign/revoke `system.admin`. Initial administrator bootstrap, last-administrator protection, stronger authentication, recovery, and privileged grant lifecycle must be designed before activation. There is no hardcoded new Aviquiz administrator or self-promotion path; SQL provisioning exists only in the isolated test fixture.
+`system.admin` authorizes the known privileged operations. `setGrant` requires an administrator and records the target and permission, but intentionally refuses to assign/revoke `system.admin`. Initial administrator bootstrap, last-administrator protection, stronger authentication, recovery, and privileged grant lifecycle must be designed before activation. There is no hardcoded new AviQuiz administrator or self-promotion path; SQL provisioning exists only in the isolated test fixture.
 
 `canUseExperiment` requires both a trusted global enable switch and the user's grant. The implemented feature key is `id-tips`; unknown features fail closed. No feature gate has yet replaced the existing public experimental checkbox or review API authorization. Agent/service identities and narrower annotation permissions must be integrated explicitly before that change.
 
@@ -81,6 +81,6 @@ Before activation:
 
 No fake sign-in or test-provider bypass should be deployed. Turnstile is intentionally deferred. Cornell clarification remains a prerequisite for the separate bulk-data integration.
 
-Launch policy subsequently agreed: Aviquiz account creation will be administrator-invited only; public guest quizzes remain permanent. The dormant registration method does not yet implement invitation validation and must not be exposed until expiring, single-use, verified-email-bound invitations and limits are enforced. Route membership for existing users is separate from account invitations. Cognito Essentials is the current candidate, not a provisioned integration; self-service signup must be disabled before launch.
+Launch policy subsequently agreed: AviQuiz account creation will be administrator-invited only; public guest quizzes remain permanent. The dormant registration method does not yet implement invitation validation and must not be exposed until expiring, single-use, verified-email-bound invitations and limits are enforced. Route membership for existing users is separate from account invitations. Cognito Essentials is the current candidate, not a provisioned integration; self-service signup must be disabled before launch.
 
 Design references: [OpenID Connect identifiers](https://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes), [OWASP authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
