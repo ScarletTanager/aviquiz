@@ -66,7 +66,8 @@ if(process.env.AUDIO_CATALOG_FAIL==='1'){
  console.log('Passed: failed audio catalog disables audio while visual quizzes and existing history remain usable.');process.exit(0);
 }
 await $('landing-audio').fire('click');assert.equal(location.search,'?medium=audio');assert.equal($('medium').value,'audio');assert.equal($('setup').hidden,false);
-$('medium').value='photo';await $('medium').fire('change');await $('nav-practice').fire('click');
+await $('nav-home').fire('click');await $('landing-sight').fire('click');assert.equal(location.search,'?medium=photo');assert.equal($('medium').value,'photo');assert.equal($('setup').hidden,false);
+await $('medium').fire('change');await $('nav-practice').fire('click');
 const normalFetch=globalThis.fetch;let releaseTips;
 globalThis.fetch=url=>url==='/api/annotations'?new Promise(resolve=>{releaseTips=()=>resolve({ok:true,json:async()=>({annotations:sharedAnnotations,coverage:{covered:3,approved:6}})});}):normalFetch(url);
 await $('settings').fire('submit');assert.ok(releaseTips);await $('nav-home').fire('click');releaseTips();await settle();assert.equal($('landing').hidden,false);assert.equal($('session').hidden,true);globalThis.fetch=normalFetch;

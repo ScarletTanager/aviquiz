@@ -152,11 +152,12 @@ function navigateLocation(){
   const page=location.pathname.startsWith('/quiz')?'setup':location.pathname.startsWith('/statistics')?'statistics':'landing';
   showView(page,{updateUrl:false});
   if(data&&page==='setup'){
-    if(new URLSearchParams(location.search).get('medium')==='audio'&&!$('medium').querySelector('option[value=audio]').disabled)$('medium').value='audio';
+    const medium=new URLSearchParams(location.search).get('medium');
+    if(medium==='photo'||(medium==='audio'&&!$('medium').querySelector('option[value=audio]').disabled))$('medium').value=medium;
     readProgress();updatePool();
   }
 }
-for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav-statistics':'/statistics','landing-practice':'/quiz','landing-statistics':'/statistics','landing-audio':'/quiz?medium=audio','practice-statistics':'/statistics','statistics-practice':'/quiz','species-back':'/statistics','results-statistics':'/statistics'})){
+for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav-statistics':'/statistics','landing-practice':'/quiz','landing-statistics':'/statistics','landing-sight':'/quiz?medium=photo','landing-audio':'/quiz?medium=audio','practice-statistics':'/statistics','statistics-practice':'/quiz','species-back':'/statistics','results-statistics':'/statistics'})){
   $(id).addEventListener('click',event=>{
     if(event.button>0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     event.preventDefault();if(location.pathname+location.search+location.hash!==url)history.pushState(null,'',url);
