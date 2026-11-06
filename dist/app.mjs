@@ -93,7 +93,7 @@ function navigateSpeciesHash(){
   }else{speciesScope=null;showView(location.pathname.startsWith('/statistics')?'statistics':location.pathname.startsWith('/quiz')?'setup':'landing',{updateUrl:false});}
 }
 function selectedFilter(){return document.querySelector('input[name="filter"]:checked').value;}
-function formSettings(){const mode=document.querySelector('input[name="mode"]:checked').value;return {medium:selectedMedium(),mode,site:$('site').value,family:$('family').value,count:Number($('count').value),filter:selectedFilter(),experimentalTips:selectedMedium()==='photo'&&(mode==='annotations'||$('experimental-tips').checked)};}
+function formSettings(){const mode=document.querySelector('input[name="mode"]:checked').value;return {medium:selectedMedium(),mode,site:$('site').value,family:$('family').value,count:Number($('count').value),allSpecies:$('all-species').checked,filter:selectedFilter(),experimentalTips:selectedMedium()==='photo'&&(mode==='annotations'||$('experimental-tips').checked)};}
 function pool(settings=formSettings()){
   const medium=settings.medium||'photo';
   if(settings.mode==='annotations')return unreviewedPhotos(annotatedBirds(eligibleBirds(data.birds,settings.site,'none',settings.family)),reviewedPhotos);
@@ -121,10 +121,15 @@ function updatePool(){
   if(audio&&annotationOption.checked)document.querySelector('input[name="mode"][value="regular"]').checked=true;
   readReviewedPhotos();
   $('photo-tip-options').hidden=audio;$('try-id-pilot').hidden=audio||!$('experimental-tips').checked;$('try-id-pilot').disabled=!Object.keys(ID_TIPS).length;
-  const settings=formSettings(),annotationReview=settings.mode==='annotations',review=settings.mode==='review',familyMode=annotationReview||(!review&&settings.family!=='all'),birds=pool(settings),ready=questionPool(birds,familyMode),requested=settings.count;
+  const settings=formSettings(),annotationReview=settings.mode==='annotations',review=settings.mode==='review',familyMode=annotationReview||(!settings.allSpecies&&!review&&settings.family!=='all'),birds=pool(settings),ready=questionPool(birds,familyMode);
+  $('all-species-label').textContent=annotationReview?'Use all unreviewed annotated photos':'Use all eligible species';
+  $('all-species-help').textContent=annotationReview?'Sets Questions to all unreviewed annotated photos in this scope. Species may repeat. Uncheck to enter a custom count.':'Sets Questions to the current scope’s playable species count, with one question per species, including when a family is selected. Updates as filters change. Species without media in the selected mode are excluded. Uncheck to enter a custom count.';
+  $('count').readOnly=settings.allSpecies;
+  if(settings.allSpecies)$('count').value=String(ready.length);
+  const requested=Number($('count').value);
   $('lifer-filters').hidden=review;$('lifer-filters').disabled=review;$('review-help').hidden=!review;
   $('review-help').textContent=`Review species missed more than 25% of the time over their last 20 ${mediumName(medium)} attempts (or all if fewer). Visual and audio mistakes are separate. Revealed answers count as misses; unavailable media do not count.`;
-  $('family-help').textContent=review?'Site and family filters apply to mistakes in the selected medium. Each species appears once.':`Choose a family to practice different ${audio?'recordings':'photos'} of the same species. Site and lifer filters still apply.`;
+  $('family-help').textContent=settings.allSpecies&&!annotationReview?'All eligible species: each playable species appears once. Site and lifer filters still apply.':review?'Site and family filters apply to mistakes in the selected medium. Each species appears once.':`Choose a family to practice different ${audio?'recordings':'photos'} of the same species. Site and lifer filters still apply.`;
   let base=review?reviewBirds(data.birds,histories[medium],settings.site):eligibleBirds(data.birds,settings.site,settings.filter);
   if(audio)base=audioBirds(base,audioCatalog,settings.site).filter(b=>b.photos.length);
   for(const option of $('family').options){if(option.value==='all')continue;const n=base.filter(b=>familyName(b.family)===option.value).length;option.textContent=`${option.value} · ${n} species`;}
@@ -167,15 +172,17 @@ for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav
 }
 async function begin(settings=formSettings()){
   if(starting)return;
-  const count=settings.count;
-  if(!Number.isInteger(count)||count<1){$('settings-error').textContent='Choose a whole number of questions, at least 1.';return;}
+  let count=settings.count;
+  if(!settings.allSpecies&&(!Number.isInteger(count)||count<1)){$('settings-error').textContent='Choose a whole number of questions, at least 1.';return;}
   settings={...settings,medium:settings.medium||'photo'};
   if(settings.mode==='annotations'){settings.medium='photo';settings.experimentalTips=true;settings.filter='none';readReviewedPhotos();}
   readProgress(settings.medium);const navigation=navigationToken;starting=true;if(settings.medium==='photo')await loadSharedTips();starting=false;if(navigation!==navigationToken)return;
   $('medium').value=settings.medium;
   $('settings-error').textContent='';
-  const review=settings.mode==='review',familyMode=settings.mode==='annotations'||(!review&&(settings.pilotTips||settings.family!=='all'));
+  const review=settings.mode==='review',familyMode=settings.mode==='annotations'||(!settings.allSpecies&&!review&&(settings.pilotTips||settings.family!=='all'));
   const birds=review?withFreshPhotos(pool(settings),settings.avoidPhotoIds):pool(settings);
+  if(settings.allSpecies)count=questionPool(birds,familyMode).length;
+  settings.count=count;
   queue=buildQuestions(birds,count,familyMode);
   if(!queue.length){showView('setup');updatePool();$('settings-error').textContent=review?'No species currently need review with these settings. Choose a regular quiz or change your filters.':'No species match these settings.';return;}
   activeSettings={...settings};
@@ -303,6 +310,7 @@ $('mark-photo-reviewed').addEventListener('click',()=>{
   if(activeSettings?.mode!=='annotations'||!answered||$('id-features').hidden||activeTips?.kind!=='annotated')return;
   markPhotosReviewed([currentPhoto.id]);answers[answers.length-1].personallyReviewed=true;advance();
 });
+$('all-species').addEventListener('change',updatePool);
 $('site').addEventListener('change',updatePool);$('family').addEventListener('change',updatePool);document.querySelectorAll('input[name="filter"]').forEach(el=>el.addEventListener('change',updatePool));$('count').addEventListener('input',()=>{if(data)updatePool();});
 $('answer-form').addEventListener('submit',e=>{e.preventDefault();finishAnswer();});$('reveal').addEventListener('click',()=>finishAnswer(true));
 $('next').addEventListener('click',advance);
@@ -332,7 +340,7 @@ $('species-quiz').addEventListener('submit',e=>{
   e.preventDefault();if(!speciesScope)return;
   const settings=listQuizSettings(speciesScope.kind,speciesScope.id,Number($('species-count').value));
   settings.medium=speciesScope.medium;$('medium').value=settings.medium;settings.experimentalTips=settings.medium==='photo'&&$('experimental-tips').checked;
-  $('site').value=settings.site;$('family').value=settings.family;$('count').value=String(settings.count);
+  $('all-species').checked=false;$('site').value=settings.site;$('family').value=settings.family;$('count').value=String(settings.count);
   document.querySelector('input[name="mode"][value="regular"]').checked=true;
   document.querySelector('input[name="filter"][value="none"]').checked=true;
   updatePool();begin(settings);

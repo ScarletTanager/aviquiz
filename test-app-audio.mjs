@@ -36,7 +36,7 @@ for(const match of html.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/s
 }
 const $=id=>{assert.ok(elements.has(id),id);return elements.get(id);};
 for(const id of ['count','species-count'])$(id).value='20';
-$('settings').reset=()=>{$('medium').value='photo';$('site').value='all';$('family').value='all';$('count').value='20';$('experimental-tips').checked=false;radio('mode','regular').checked=true;radio('filter','none').checked=true;};
+$('settings').reset=()=>{$('all-species').checked=false;$('medium').value='photo';$('site').value='all';$('family').value='all';$('count').value='20';$('experimental-tips').checked=false;radio('mode','regular').checked=true;radio('filter','none').checked=true;};
 const radio=(name,value)=>radios.find(r=>r.name===name&&r.value===value);
 const documentEvents={},windowEvents={};
 globalThis.document={getElementById:id=>{assert.ok(elements.has(id),'Missing DOM ID '+id);return elements.get(id);},createElement:tag=>new Element('',tag.toUpperCase()),
@@ -188,3 +188,19 @@ await $('exit').fire('click');
 const emptyFamily=[...new Set(data.birds.map(b=>b.family))].find(f=>!data.birds.some(b=>b.family===f&&audio.recordings[b.id]));
 if(emptyFamily){$('medium').value='audio';await $('medium').fire('change');$('family').value=emptyFamily;await $('family').fire('change');assert.equal($('start').disabled,true);assert.match($('pool').textContent,/No verified recordings/);}
 console.log('Passed app integration: legacy visual history, audio playback gating, hidden answer metadata, miss/correct scoring, separate statistics, results, repeat, review, unscored failures, linked audio scopes, reset, visual regression and empty audio scopes. No browser/screen capture used.');
+
+// All-species counts track intersecting filters and suppress family repeats.
+await $('new-quiz').fire('click');$('all-species').checked=true;await $('all-species').fire('change');
+const scoped=()=>data.birds.filter(b=>($('site').value==='all'||b.sites.includes($('site').value))&&($('family').value==='all'||b.family.replace(/\s*\(\d+\)\s*$/,'').trim()===$('family').value)&&(radio('filter','world').checked?b.worldLifer:radio('filter','colombia').checked?b.colombiaLifer:true));
+const guajira=data.sites.find(s=>s.name.includes('Guajira'));assert.ok(guajira);$('site').value=guajira.code;await $('site').fire('change');assert.equal(Number($('count').value),scoped().filter(b=>b.photos.length).length);assert.equal($('count').readOnly,true);
+$('site').value='all';$('family').value='Furnariidae';await $('family').fire('change');
+radio('filter','world').checked=true;await radio('filter','world').fire('change');assert.equal(Number($('count').value),scoped().filter(b=>b.photos.length).length);
+radio('filter','none').checked=true;await radio('filter','none').fire('change');
+const expected=scoped().filter(b=>b.photos.length),seen=new Set();$('experimental-tips').checked=true;await $('settings').fire('submit');
+for(let i=0;i<expected.length;i++){
+ const id=$('question-image').src.match(/asset\/(\d+)/)[1],bird=data.birds.find(b=>b.photos.some(p=>p.id===id));assert.ok(bird);assert.ok(!seen.has(bird.id));seen.add(bird.id);$('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');
+}
+assert.equal($('results').hidden,false);assert.equal(seen.size,expected.length);
+await $('exit').fire('click');$('medium').value='audio';await $('medium').fire('change');assert.equal(Number($('count').value),scoped().filter(b=>audio.recordings[b.id]?.length).length);
+$('all-species').checked=false;await $('all-species').fire('change');assert.equal($('count').readOnly,false);$('count').value='3';await $('count').fire('input');assert.equal($('count').value,'3');
+console.log('Passed all-species sizing: Guajira, family/lifer intersections, unique family session, audio coverage, custom count.');
