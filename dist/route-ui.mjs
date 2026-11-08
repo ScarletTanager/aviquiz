@@ -10,6 +10,13 @@ export async function createRouteEditor({birds,startQuiz}){
   let draft=structuredClone(DEFAULT_ROUTE), viewing=null, linkHash='', rows=[], problem='';
   const current=()=>viewing||draft;
   const markChanged=()=>{$('route-link').hidden=true;$('route-copy-status').textContent='';};
+  function coverageNote(place){
+    const c=place.coverage;
+    if(!c)return '';
+    const outings=`${c.outings} eligible ${c.outings===1?'outing':'outings'}`;
+    const seasons=`${c.seasons} sampled ${c.seasons===1?'April':'Aprils'}`;
+    return `${outings} across ${seasons}.${c.seasons===1?' Include species reported in only one season to use this stop’s records.':''}`;
+  }
   function button(label,action){const b=make('button',label);b.type='button';b.className='text-button';b.addEventListener('click',action);return b;}
   function refresh(){
     $('route-error').textContent=problem;
@@ -18,7 +25,8 @@ export async function createRouteEditor({birds,startQuiz}){
     const playable=rows.filter(r=>r.bird).length;
     $('route-preview-status').textContent=`${rows.length} species in this list · ${playable} with Macaulay photos in AviQuiz.`;
     $('route-start').disabled=!playable;
-    $('route-share').disabled=!rows.length;
+    // A valid itinerary remains shareable even if its current quiz filters yield no birds.
+    $('route-share').disabled=Boolean($('route-error').textContent);
     $('route-questions').max=String(playable||1);
     if(Number($('route-questions').value)>playable)$('route-questions').value=String(Math.max(1,playable));
     const fragment=document.createDocumentFragment();
@@ -36,7 +44,13 @@ export async function createRouteEditor({birds,startQuiz}){
     $('route-shared-title').textContent=viewing?.title||'';
     $('route-shared-tier').textContent=viewing?.single?'Includes species reported in only one season, which may include rarities and one-time sightings.':'Recurring species plus any curated targets.';
     const stops=$('route-shared-stops');stops.replaceChildren();
-    if(viewing)for(const stop of viewing.stops)stops.append(make('li',`${placeById.get(stop.place).name} · ${stop.date}`));
+    if(viewing)for(const stop of viewing.stops){
+      const place=placeById.get(stop.place);
+      const item=make('li',`${place.name} · ${stop.date}`);
+      const note=coverageNote(place);
+      if(note){const p=make('p',note);p.className='field-help';item.append(p);}
+      stops.append(item);
+    }
     $('route-title').value=draft.title;$('route-single').checked=draft.single;
     const stopList=$('route-stops');stopList.replaceChildren();
     draft.stops.forEach((stop,index)=>{
@@ -45,7 +59,10 @@ export async function createRouteEditor({birds,startQuiz}){
       for(const place of catalog.places){const option=make('option',place.name);option.value=place.id;select.append(option);}
       select.value=stop.place;placeLabel.append(select);fieldset.append(placeLabel);
       const dateLabel=make('label','Visit date'),input=make('input');input.type='date';input.value=stop.date;dateLabel.append(input);fieldset.append(dateLabel);
-      const windowNote=make('p',`Study window: ${placeById.get(stop.place).start} to ${placeById.get(stop.place).end} each year.`);windowNote.className='field-help';fieldset.append(windowNote);
+      const place=placeById.get(stop.place);
+      const windowNote=make('p',`Study window: ${place.start} to ${place.end} each year.`);windowNote.className='field-help';fieldset.append(windowNote);
+      const note=coverageNote(place);
+      if(note){const p=make('p',note);p.className='field-help';fieldset.append(p);}
       select.addEventListener('change',()=>{
         stop.place=select.value;
         const {start,end}=placeById.get(stop.place);

@@ -259,3 +259,27 @@ for(const place of ['L3218682','L1252500','L4057071']){
  assert.ok(list.filter(r=>r.bird).length>=20,place+' has a full default photo quiz');
 }
 console.log('Passed Caldas route picker, February date window, leap day, and playable photo coverage.');
+
+// The April itinerary can fit all eight stops, including single-year stops.
+const aprilIds=['L4221043','L1924284','L35649123','L10054711','L10047928','L41847287','L19781143','L2697672'];
+const aprilStart={...sharedRoute,title:'April in Colombia',stops:[{place:aprilIds[0],date:'2027-04-12'}],single:true};
+history.pushState(null,'','/routes#route='+encodeURIComponent(JSON.stringify(aprilStart)));
+for(const fn of windowEvents.popstate)fn();await settle();await $('route-copy-edit').fire('click');
+for(let i=1;i<8;i++)await $('route-add-stop').fire('click');
+assert.equal($('route-add-stop').disabled,true);
+await $('route-share').fire('click');
+const aprilRoute=decodeRoute(new URL($('route-link-value').value).hash,routeCatalog);
+assert.deepEqual(aprilRoute.stops.map(s=>s.place),aprilIds);
+assert.equal(aprilRoute.stops.at(-1).date,'2027-04-19');
+const aprilRows=routeCandidates(aprilRoute,routeCatalog,data.birds);
+assert.ok(aprilRows.filter(r=>r.bird).length>=20);
+assert.equal(new Set(aprilRows.map(row=>row.key)).size,aprilRows.length);
+assert.deepEqual(new Set(aprilRows.flatMap(row=>row.evidence.map(e=>e.place))),new Set(aprilIds));
+const sparse={...aprilRoute,stops:[{place:'L41847287',date:'2027-04-12'}],single:false};
+history.pushState(null,'','/routes#route='+encodeURIComponent(JSON.stringify(sparse)));
+for(const fn of windowEvents.popstate)fn();await settle();
+assert.match($('route-shared-stops').options[0].options[0].textContent,/1 sampled April/);
+assert.equal($('route-start').disabled,true);
+await $('route-copy-edit').fire('click');assert.equal($('route-share').disabled,false);
+$('route-single').checked=true;await $('route-single').fire('change');assert.equal($('route-start').disabled,false);
+console.log('Passed April eight-stop route, sparse-coverage display, and optional single-season questions.');
