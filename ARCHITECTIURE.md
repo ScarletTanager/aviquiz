@@ -151,6 +151,7 @@ Server-only `worker/identity.mjs`, `worker/permissions.mjs`, and `worker/account
 
 - Permanent guest quizzes, with independent managed AviQuiz authentication for account-backed capabilities. Provider selection and hosting compatibility remain undecided; production may use Azure or another host.
 - Immutable internal user IDs linked to verified provider identities; no application password storage. Global grants for administration, experimentation, and annotation editing/publication.
+- Seasonal species evidence for future routes: see [EBD.md](EBD.md) for archive findings, the local aggregate schema and query, and refresh limits. This is not deployed.
 - Server-owned routes: ordered sites and optional dates, private/public visibility, owner-only deletion except explicit administrator intervention, invited viewers, contributors, and optional editors. Per-route permissions must be checked server-side.
 - Account-backed history and personal review marks with explicit, deduplicated import of local history. Staging and production identity/data must be isolated.
 - Versioned eBird bulk-data ingestion and derived seasonal/geographic species lists. This requires an ingestion/storage design and confirmation of permitted use, including commercial-guide use, attribution, redistribution, and sensitive-species handling.

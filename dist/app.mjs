@@ -6,12 +6,13 @@ import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,progressKey,emptyProgress,parseProgress,
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './statistics.mjs';
 import {ID_TIPS,tipsFor,annotatedBirds,annotationSvg,applySharedTips} from './id-tips.mjs';
 const $=id=>document.getElementById(id);
+let routeEditor;
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
 let activeSettings=null,audioCatalog={version:1,recordings:{}};
 let siteClueEnabled=false,currentSiteClue=null;
 const siteOnlyStats=()=>$('site-only-stats').checked;
 function renderSiteClue(){
-  const available=activeSettings&&offersSiteClue(activeSettings);
+  const available=activeSettings&&!activeSettings.route&&offersSiteClue(activeSettings);
   $('site-clue-control').hidden=!available;
   $('site-clue-toggle').checked=siteClueEnabled;
   $('site-clue').hidden=!available||!siteClueEnabled;
@@ -95,6 +96,7 @@ function navigateSpeciesHash(){
 function selectedFilter(){return document.querySelector('input[name="filter"]:checked').value;}
 function formSettings(){const mode=document.querySelector('input[name="mode"]:checked').value;return {medium:selectedMedium(),mode,site:$('site').value,family:$('family').value,count:Number($('count').value),allSpecies:$('all-species').checked,filter:selectedFilter(),experimentalTips:selectedMedium()==='photo'&&(mode==='annotations'||$('experimental-tips').checked)};}
 function pool(settings=formSettings()){
+  if(settings.route)return settings.mistakeIds?settings.route.pool.filter(b=>settings.mistakeIds.includes(b.id)):settings.route.pool;
   const medium=settings.medium||'photo';
   if(settings.mode==='annotations')return unreviewedPhotos(annotatedBirds(eligibleBirds(data.birds,settings.site,'none',settings.family)),reviewedPhotos);
   const birds=settings.mode==='review'?reviewBirds(data.birds,histories[medium],settings.site,settings.family,settings.mistakeIds):eligibleBirds(data.birds,settings.site,settings.filter,settings.family);
@@ -107,7 +109,7 @@ function readProgress(medium=selectedMedium()){
   catch{storageUsable[medium]=false;$('storage-status').textContent=`Saved ${mediumName(medium)} progress could not be read. This visit will still track your answers.`;}
 }
 function rememberAnswer(bird,correct){
-  if(activeSettings.experimentalTips)return;
+  if(activeSettings.experimentalTips||activeSettings.route)return;
   const medium=activeSettings.medium||'photo';
   readProgress(medium);histories[medium]=recordAttempt(histories[medium],bird.id,correct,activeSettings);
   if(storageUsable[medium])try{localStorage.setItem(progressKey(medium),JSON.stringify(histories[medium]));$('storage-status').textContent='Visual and audio progress are saved separately in this browser. Other browsers and devices have separate histories.';}
@@ -142,17 +144,32 @@ function updatePool(){
 }
 function showView(id,{updateUrl=true}={}){
   stopAudio();
-  for(const v of ['landing','setup','statistics','session','results','species-page'])$(v).hidden=v!==id;
-  const section=id==='landing'?'home':['statistics','species-page'].includes(id)?'statistics':'practice';
-  const path=section==='home'?'/':section==='statistics'?'/statistics':'/quiz';
+  for(const v of ['landing','setup','routes','statistics','session','results','species-page'])$(v).hidden=v!==id;
+  const section=id==='landing'?'home':id==='routes'?'routes':['statistics','species-page'].includes(id)?'statistics':'practice';
+  const path=section==='home'?'/':section==='routes'?'/routes':section==='statistics'?'/statistics':'/quiz';
   if(updateUrl&&location.pathname+location.search+location.hash!==path)history.pushState(null,'',path);
-  for(const name of ['home','practice','statistics']){const link=$('nav-'+name);if(name===section)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}
-  document.title=id==='landing'?'AviQuiz · Bird identification practice':`AviQuiz · ${section==='statistics'?'Statistics':'Practice'}`;
+  for(const name of ['home','practice','routes','statistics']){const link=$('nav-'+name);if(name===section)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}
+  document.title=id==='landing'?'AviQuiz · Bird identification practice':`AviQuiz · ${section==='statistics'?'Statistics':section==='routes'?'Routes':'Practice'}`;
   if(id==='statistics'){readProgress('photo');readProgress('audio');renderStatistics();}
   window.scrollTo({top:0,behavior:'instant'});
 }
+function openRoutePage(){
+  showView('routes',{updateUrl:false});
+  if(!data)return;
+  const token=navigationToken;
+  routeEditor??=import('./route-ui.mjs').then(m=>m.createRouteEditor({birds:data.birds,startQuiz:route=>{
+    begin({route,count:route.count,medium:'photo',mode:'regular',site:'all',family:'all',filter:'none'});
+  }})).catch(error=>{routeEditor=null;throw error;});
+  routeEditor.then(editor=>{if(token===navigationToken)editor.open(location.hash);}).catch(()=>{
+    if(token===navigationToken)$('route-loading').textContent='Route data could not load. Please reload to try again.';
+  });
+}
+function returnToRoute(route){
+  history.pushState(null,'','/routes'+route.hash);navigateLocation();$('routes-heading').focus({preventScroll:true});
+}
 function navigateLocation(){
   navigationToken++;sessionToken++;
+  if(location.pathname==='/routes'||location.pathname==='/routes/'){openRoutePage();return;}
   if(location.hash.startsWith('#species/')){if(data)navigateSpeciesHash();return;}
   const page=location.pathname.startsWith('/quiz')?'setup':location.pathname.startsWith('/statistics')?'statistics':'landing';
   showView(page,{updateUrl:false});
@@ -162,12 +179,15 @@ function navigateLocation(){
     readProgress();updatePool();
   }
 }
-for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav-statistics':'/statistics','landing-practice':'/quiz','landing-statistics':'/statistics','landing-sight':'/quiz?medium=photo','landing-audio':'/quiz?medium=audio','practice-statistics':'/statistics','statistics-practice':'/quiz','species-back':'/statistics','results-statistics':'/statistics'})){
+$('skip-main').addEventListener('click',event=>{
+  if(!$('routes').hidden&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();$('main-content').focus();}
+});
+for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav-routes':'/routes','nav-statistics':'/statistics','landing-practice':'/quiz','landing-statistics':'/statistics','landing-sight':'/quiz?medium=photo','landing-audio':'/quiz?medium=audio','practice-statistics':'/statistics','statistics-practice':'/quiz','species-back':'/statistics','results-statistics':'/statistics'})){
   $(id).addEventListener('click',event=>{
     if(event.button>0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     event.preventDefault();if(location.pathname+location.search+location.hash!==url)history.pushState(null,'',url);
     navigateLocation();
-    const heading=!$('landing').hidden?'landing-heading':!$('setup').hidden?'setup-heading':'statistics-heading';$(heading).focus({preventScroll:true});
+    const heading=!$('landing').hidden?'landing-heading':!$('setup').hidden?'setup-heading':!$('routes').hidden?'routes-heading':'statistics-heading';$(heading).focus({preventScroll:true});
   });
 }
 async function begin(settings=formSettings()){
@@ -176,8 +196,8 @@ async function begin(settings=formSettings()){
   if(!settings.allSpecies&&(!Number.isInteger(count)||count<1)){$('settings-error').textContent='Choose a whole number of questions, at least 1.';return;}
   settings={...settings,medium:settings.medium||'photo'};
   if(settings.mode==='annotations'){settings.medium='photo';settings.experimentalTips=true;settings.filter='none';readReviewedPhotos();}
-  readProgress(settings.medium);const navigation=navigationToken;starting=true;if(settings.medium==='photo')await loadSharedTips();starting=false;if(navigation!==navigationToken)return;
-  $('medium').value=settings.medium;
+  readProgress(settings.medium);const navigation=navigationToken;starting=true;if(settings.medium==='photo'&&!settings.route)await loadSharedTips();starting=false;if(navigation!==navigationToken)return;
+  if(!settings.route)$('medium').value=settings.medium;
   $('settings-error').textContent='';
   const review=settings.mode==='review',familyMode=settings.mode==='annotations'||(!settings.allSpecies&&!review&&(settings.pilotTips||settings.family!=='all'));
   const birds=review?withFreshPhotos(pool(settings),settings.avoidPhotoIds):pool(settings);
@@ -187,8 +207,9 @@ async function begin(settings=formSettings()){
   if(!queue.length){showView('setup');updatePool();$('settings-error').textContent=review?'No species currently need review with these settings. Choose a regular quiz or change your filters.':'No species match these settings.';return;}
   activeSettings={...settings};
   index=0;answers=[];showView('session');
-  const siteLabel=settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
+  const siteLabel=settings.route?settings.route.title:settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
   $('session-label').textContent=mediumName(settings.medium).toUpperCase()+' · '+(review?(settings.mistakeIds?'Review this quiz’s mistakes':'Review recent mistakes'):'Regular quiz')+' · '+siteLabel+(settings.family!=='all'?' · '+settings.family:'')+(review?'':' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[settings.filter]));
+  if(settings.route)$('session-label').textContent+=' · Route prototype · history not recorded';
   if(settings.pilotTips)$('session-label').textContent+=' · Reviewed photo sampler';
   if(settings.experimentalTips)$('session-label').textContent+=' · Experimental · history not recorded';
   if(settings.mode==='annotations')$('session-label').textContent=`ANNOTATION REVIEW · ${siteLabel} · ${settings.family==='all'?'All families':settings.family} · history not recorded`;
@@ -232,7 +253,7 @@ function loadAudio(){
 }
 function nextQuestion(){
   stopAudio();const audio=activeSettings.medium==='audio';
-  currentSiteClue=offersSiteClue(activeSettings)?chooseSiteClue(queue[index],data.sites):null;renderSiteClue();
+  currentSiteClue=!activeSettings.route&&offersSiteClue(activeSettings)?chooseSiteClue(queue[index],data.sites):null;renderSiteClue();
   activeTips=null;$('show-id-features').hidden=true;$('show-id-features').setAttribute('aria-expanded','false');$('id-features').hidden=true;$('id-tip-diagram').innerHTML='';$('id-tip-general').innerHTML='';$('id-tip-credit').textContent='';$('id-tip-source').innerHTML='';
   $('mark-photo-reviewed').hidden=true;
   sessionToken++;answered=false;photoTry=0;photoOrder=audio?queue[index].photos:shuffle(queue[index].photos);
@@ -250,7 +271,7 @@ function finishAnswer(revealed=false){
   answered=true;
   $('unavailable').hidden=true;
   $('retry-audio').disabled=true;
-  const bird=queue[index],grade=revealed?{correct:false,fuzzy:false}:gradeAnswer(guess,bird,data.birds);
+  const bird=queue[index],grade=revealed?{correct:false,fuzzy:false}:gradeAnswer(guess,bird,activeSettings.route?[...data.birds,...activeSettings.route.pool]:data.birds);
   answers.push({bird,guess,correct:grade.correct,revealed,photo:currentPhoto});
   rememberAnswer(bird,grade.correct);
   $('answer').disabled=true;$('check').disabled=true;$('reveal').hidden=true;$('next').hidden=false;$('question-status').textContent=grade.correct?'IDENTIFIED':'KEEP LEARNING';
@@ -271,6 +292,7 @@ function finish(){
   $('result-title').textContent=`${correct} / ${scored.length} identified.`;
   $('result-summary').textContent=`${mediumName(activeSettings.medium)} practice · ${scored.length?Math.round(correct/scored.length*100)+'% correct.':'No questions could be scored.'}${answers.length>scored.length?` ${answers.length-scored.length} skipped or unavailable ${audio?'recordings':'photos'} were not scored.`:''} Review your birds below, then choose your next session.`;
   const mistakes=sessionMistakeIds(answers);
+  if(activeSettings.route)$('result-summary').textContent+=' Route prototype: saved statistics were not changed.';
   if(activeSettings.experimentalTips)$('result-summary').textContent+=' Experimental session: these answers were not added to statistics or recent mistake history.';
   if(activeSettings.mode==='annotations'){$('result-title').textContent=`${answers.filter(a=>a.personallyReviewed).length} / ${answers.length} photos marked reviewed.`;$('result-summary').textContent='Marked photos are excluded from future annotation reviews in this browser. Unmarked and unavailable photos remain eligible. No statistics or mistake history were changed.';$('review-quiz').hidden=true;}
   else $('review-quiz').hidden=false;
@@ -317,15 +339,15 @@ $('next').addEventListener('click',advance);
 $('retry-audio').addEventListener('click',()=>{photoTry=(photoTry+1)%photoOrder.length;loadAudio();});
 $('retry-photo').addEventListener('click',()=>{photoTry=(photoTry+1)%queue[index].photos.length;loadPhoto();});
 $('unavailable').addEventListener('click',()=>{if(answered)return;answers.push({bird:queue[index],guess:'',correct:false,unavailable:true,photo:currentPhoto});advance();});
-function startOver(){sessionToken++;$('settings').reset();$('settings-error').textContent='';updatePool();showView('setup');}
-$('exit').addEventListener('click',()=>{sessionToken++;updatePool();showView('setup');});
+function startOver(){if(activeSettings?.route){returnToRoute(activeSettings.route);return;}sessionToken++;$('settings').reset();$('settings-error').textContent='';updatePool();showView('setup');}
+$('exit').addEventListener('click',()=>{if(activeSettings?.route){returnToRoute(activeSettings.route);return;}sessionToken++;updatePool();showView('setup');});
 $('new-quiz').addEventListener('click',startOver);
 $('again').addEventListener('click',()=>begin(activeSettings));
 $('review-quiz').addEventListener('click',()=>{
   const mistakeIds=sessionMistakeIds(answers);if(!mistakeIds.length)return;
   const settings={...activeSettings,mode:'review',filter:'none',mistakeIds,avoidPhotoIds:answers.map(a=>a.photo.id)};
-  document.querySelector('input[name="mode"][value="review"]').checked=true;
-  updatePool();begin(settings);
+  if(!settings.route){document.querySelector('input[name="mode"][value="review"]').checked=true;updatePool();}
+  begin(settings);
 });
 $('medium').addEventListener('change',()=>{readProgress();$('stats-medium').value=selectedMedium();updatePool();renderStatistics();});
 $('stats-medium').addEventListener('change',()=>{readProgress(statsMedium());renderStatistics();});

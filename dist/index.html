@@ -6,13 +6,34 @@
 <title>AviQuiz · Bird identification practice</title><link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<a class="skip-link" href="#main-content">Skip to content</a>
-<header class="site-header"><a id="nav-home" href="/" class="wordmark" aria-label="AviQuiz home"><span class="birdmark"><svg viewBox="0 0 48 36" aria-hidden="true" focusable="false"><path d="M4 22C14 7 23 6 24 20C29 11 39 9 44 12C33 14 28 23 24 29C17 18 12 18 4 22Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>AviQuiz</a><nav class="site-nav" aria-label="Main navigation"><a id="nav-practice" href="/quiz">Practice</a><a id="nav-statistics" href="/statistics">Statistics</a></nav><span class="edition">A FIELD GUIDE TO KNOWING MORE</span></header>
-<main id="main-content">
+<a id="skip-main" class="skip-link" href="#main-content">Skip to content</a>
+<header class="site-header"><a id="nav-home" href="/" class="wordmark" aria-label="AviQuiz home"><span class="birdmark"><svg viewBox="0 0 48 36" aria-hidden="true" focusable="false"><path d="M4 22C14 7 23 6 24 20C29 11 39 9 44 12C33 14 28 23 24 29C17 18 12 18 4 22Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>AviQuiz</a><nav class="site-nav" aria-label="Main navigation"><a id="nav-practice" href="/quiz">Practice</a><a id="nav-routes" href="/routes">Routes</a><a id="nav-statistics" href="/statistics">Statistics</a></nav><span class="edition">A FIELD GUIDE TO KNOWING MORE</span></header>
+<main id="main-content" tabindex="-1">
 <section id="landing" aria-labelledby="landing-heading">
 <div class="intro landing-intro"><div><p class="eyebrow">FOR THE MOMENT YOU MEET THE BIRD</p><h1 id="landing-heading" tabindex="-1">A little practice.<br>A world of birds.</h1><p class="lede">Learn the details. Recognize the voice.<br>Build a little familiarity before your next day in the field.</p><div class="landing-actions"><a id="landing-practice" class="button-link" href="/quiz">Start a quiz <span aria-hidden="true">→</span></a><a id="landing-statistics" class="text-button" href="/statistics">Explore your progress →</a></div><p class="landing-footnote">Photographs and vocalizations from the Macaulay Library.</p></div><figure class="hero"><img id="hero-photo" alt="A bird from the Colombia trip checklist"><figcaption id="hero-credit"></figcaption><span class="photo-label" id="hero-label"></span></figure></div>
 <section class="collection-band" aria-label="Current bird collection"><div><p class="eyebrow">THE CURRENT COLLECTION</p><h2>Colombia, from páramo<br>to Pacific foothills.</h2></div><div class="collection-number"><strong id="total">849</strong><span>checklist species</span></div><div class="collection-number"><strong id="collection-sites">13</strong><span>birding sites</span></div><p>Choose a site, work through a family, or explore the whole trip checklist.</p></section>
 <section class="landing-story" aria-label="Ways to practice"><div><p class="eyebrow">LOOK A LITTLE CLOSER</p><h2>Make the next sighting<br>a familiar one.</h2></div><div class="practice-stories"><article><span class="story-number" aria-hidden="true">01 / SIGHT</span><h3>Find the telling detail.</h3><p>Practice with photographs, narrow your focus to a bird family, and return to the species that need another look.</p><a id="landing-sight" class="text-button" href="/quiz?medium=photo">Practice by sight →</a></article><article><span class="story-number" aria-hidden="true">02 / SOUND</span><h3>Get to know the voice.</h3><p>Listen to Macaulay Library recordings, with the closest available geographic matches and clear notes on their limits.</p><a id="landing-audio" class="text-button" href="/quiz?medium=audio">Practice by sound →</a></article></div></section>
+</section>
+<section id="routes" hidden aria-labelledby="routes-heading">
+<div class="page-heading"><p class="eyebrow">TESTER PROTOTYPE</p><h1 id="routes-heading" tabindex="-1">Plan a practice route.</h1><p class="lede">Choose stops and visit dates, then preview the birds and share a route your AviQuiz friends can try.</p></div>
+<p id="route-loading" role="status">Loading route data…</p>
+<div id="route-content" class="route-layout" hidden>
+<div>
+<div id="route-editor">
+<label for="route-title">Route name</label><input id="route-title" maxlength="60" required>
+<div id="route-stops"></div><button id="route-add-stop" class="secondary-button" type="button">Add stop</button>
+<label class="all-species-control"><input id="route-single" type="checkbox">Include single-season species</label>
+<details class="route-curated"><summary>Curated practice targets</summary><p class="field-help">Add a bird to the route’s quiz as a study target, with no stop association or reporting rate. The prototype offers only a small set of common birds.</p><div id="route-extras"></div></details>
+<div class="route-share"><h2>Share this route</h2><p class="field-help">Anyone with the link who can access AviQuiz can open it. The link contains the itinerary and can be forwarded. Editing creates a new link; an old link cannot be revoked here.</p><button id="route-share" type="button">Create share link</button><div id="route-link" hidden><label for="route-link-value">Shareable route link</label><input id="route-link-value" readonly><button id="route-copy-link" class="text-button" type="button">Copy link</button><p id="route-copy-status" class="field-help" role="status"></p></div></div>
+</div>
+<div id="route-shared" hidden><p class="eyebrow">SHARED ROUTE</p><h2 id="route-shared-title"></h2><ol id="route-shared-stops"></ol><p id="route-shared-tier" class="field-help"></p><button id="route-copy-edit" class="secondary-button" type="button">Make an editable copy</button></div>
+<p id="route-error" role="alert"></p>
+</div>
+<div class="route-preview"><p class="eyebrow">PRACTICE LIST</p><h2>Birds on this route</h2><p id="route-preview-status" role="status"></p><p class="field-help">The preview uses fixed seasonal windows from eBird’s September 2026 Basic Dataset (2017–2025 checklists). Recurring means reported in at least two sampled seasons. Date changes within a window use the same list.</p>
+<form id="route-quiz-form"><label for="route-questions">Questions<input id="route-questions" type="number" min="1" value="20" required></label><button id="route-start" type="submit" disabled>Start photo quiz →</button></form><p class="field-help">One question per species with a photo. Prototype quizzes don’t change saved statistics.</p>
+<div class="route-table"><table class="species-table"><thead><tr><th scope="col">Species</th><th scope="col">Evidence</th><th scope="col">Quiz</th></tr></thead><tbody id="route-preview-rows"></tbody></table></div>
+<p class="field-help">Checklist data: Cornell Lab of Ornithology, eBird Basic Dataset, EBD_relSep-2026. Photo credit appears in the quiz.</p></div>
+</div>
 </section>
 <section id="setup" hidden aria-labelledby="setup-heading">
 <div class="page-heading"><p class="eyebrow">YOUR NEXT SESSION</p><h1 id="setup-heading" tabindex="-1">Choose your patch.</h1><p class="lede">Pick a site, focus on a family, or follow your curiosity across the whole checklist.</p></div>

@@ -79,7 +79,7 @@ export default {
     const path=new URL(request.url).pathname;
     if(path.startsWith('/api/'))return api(request,env);
     if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405});
-    const name=['/','/index.html','/quiz','/quiz/','/statistics','/statistics/'].includes(path)?'/index.html':path==='/review'||path==='/review/'?'/review.html':path;
+    const name=['/','/index.html','/quiz','/quiz/','/routes','/routes/','/statistics','/statistics/'].includes(path)?'/index.html':path==='/review'||path==='/review/'?'/review.html':path;
     const asset=ASSETS[name];if(!asset)return new Response('Not found',{status:404});
     return new Response(request.method==='HEAD'?null:asset.body,{headers:{'content-type':asset.type,'cache-control':'no-cache','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin'}});
   }

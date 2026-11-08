@@ -7,6 +7,7 @@ import {ID_TIPS,SPECIES_TIPS} from './dist/id-tips.mjs';
 import {ANNOTATION_REVIEW_KEY,parseReviewedPhotos,unreviewedPhotos} from './dist/annotation-review.mjs';
 const sharedAnnotations=Object.entries(ID_TIPS).map(([photoId,doc])=>({...doc,photoId,tips:SPECIES_TIPS[doc.speciesId].tips}));
 const data=JSON.parse(fs.readFileSync('dist/data.json')),audio=JSON.parse(fs.readFileSync('dist/audio.json'));
+const routeCatalog=JSON.parse(fs.readFileSync('dist/route-pilot.json'));
 const html=fs.readFileSync('dist/index.html','utf8');
 const elements=new Map(),radios=[];
 class Element{
@@ -21,7 +22,10 @@ class Element{
   get textContent(){return this._text;}
   setAttribute(k,v){this.attrs[k]=String(v);}
   removeAttribute(k){delete this.attrs[k];if(k==='src')this.src='';}
-  append(option){this.options.push(option);}
+  append(...children){this.options.push(...children);}
+  replaceChildren(...children){this.options=children;}
+  get lastChild(){return this.options.at(-1);}
+  select(){}
   focus(){} scrollIntoView(){} pause(){this.paused=true;} load(){}
   querySelector(q){const value=q.match(/value=['"]?([^'"\]]+)/)?.[1];return this.options.find(o=>o.value===value);}
 }
@@ -35,19 +39,19 @@ for(const match of html.matchAll(/<select\b[^>]*id="([^"]+)"[^>]*>([\s\S]*?)<\/s
  const e=elements.get(match[1]);for(const option of match[2].matchAll(/<option(?: value="([^"]*)")?[^>]*>([^<]*)<\/option>/g)){const o=new Element('','OPTION');o.value=option[1]??option[2];o.textContent=option[2];e.options.push(o);}e.value=e.options[0]?.value||'';
 }
 const $=id=>{assert.ok(elements.has(id),id);return elements.get(id);};
-for(const id of ['count','species-count'])$(id).value='20';
+for(const id of ['count','species-count','route-questions'])$(id).value='20';
 $('settings').reset=()=>{$('all-species').checked=false;$('medium').value='photo';$('site').value='all';$('family').value='all';$('count').value='20';$('experimental-tips').checked=false;radio('mode','regular').checked=true;radio('filter','none').checked=true;};
 const radio=(name,value)=>radios.find(r=>r.name===name&&r.value===value);
 const documentEvents={},windowEvents={};
-globalThis.document={getElementById:id=>{assert.ok(elements.has(id),'Missing DOM ID '+id);return elements.get(id);},createElement:tag=>new Element('',tag.toUpperCase()),
+globalThis.document={getElementById:id=>{assert.ok(elements.has(id),'Missing DOM ID '+id);return elements.get(id);},createElement:tag=>new Element('',tag.toUpperCase()),createDocumentFragment:()=>new Element('', 'FRAGMENT'),
  querySelector:q=>{const name=q.match(/name="([^"]+)"/)?.[1],value=q.match(/value="([^"]+)"/)?.[1];return radios.find(r=>r.name===name&&(value?r.value===value:r.checked));},
  querySelectorAll:q=>q.includes('input[name="filter"]')?radios.filter(r=>r.name==='filter'):q==='#review audio'?[]:q==='audio'?[$('question-audio')]:[],
  addEventListener:(name,fn)=>(documentEvents[name]??=[]).push(fn)};
 globalThis.window={scrollTo(){},addEventListener:(name,fn)=>(windowEvents[name]??=[]).push(fn)};
-globalThis.location={hash:'',pathname:'/',search:''};globalThis.history={pushState(_s,_t,url){const u=new URL(url,'https://aviquiz.test');Object.assign(location,{pathname:u.pathname,search:u.search,hash:u.hash});},replaceState(s,t,url){this.pushState(s,t,url);}};
+globalThis.location={origin:'https://aviquiz.test',hash:'',pathname:'/',search:''};globalThis.history={pushState(_s,_t,url){const u=new URL(url,'https://aviquiz.test');Object.assign(location,{pathname:u.pathname,search:u.search,hash:u.hash});},replaceState(s,t,url){this.pushState(s,t,url);}};
 const existing=recordAttempt(emptyProgress(),data.birds[0].id,true),visualInitial=JSON.stringify(existing),store=new Map([[PROGRESS_KEY,visualInitial]]);
 globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)};
-globalThis.fetch=async url=>{url=url.replace(/^\//,'');return {ok:!(process.env.AUDIO_CATALOG_FAIL==='1'&&url==='audio.json'),json:async()=>url==='data.json'?data:url==='audio.json'?audio:{annotations:sharedAnnotations,coverage:{covered:3,approved:6}}};};
+globalThis.fetch=async url=>{url=url.replace(/^\//,'');return {ok:!(process.env.AUDIO_CATALOG_FAIL==='1'&&url==='audio.json'),json:async()=>url==='data.json'?data:url==='audio.json'?audio:url==='route-pilot.json'?routeCatalog:{annotations:sharedAnnotations,coverage:{covered:3,approved:6}}};};
 async function settle(){await tick();await tick();}
 assert.ok($('site').options[0],'Site option fixture');
 await import('./dist/app.mjs');await settle();
@@ -204,3 +208,28 @@ assert.equal($('results').hidden,false);assert.equal(seen.size,expected.length);
 await $('exit').fire('click');$('medium').value='audio';await $('medium').fire('change');assert.equal(Number($('count').value),scoped().filter(b=>audio.recordings[b.id]?.length).length);
 $('all-species').checked=false;await $('all-species').fire('change');assert.equal($('count').readOnly,false);$('count').value='3';await $('count').fire('input');assert.equal($('count').value,'3');
 console.log('Passed all-species sizing: Guajira, family/lifer intersections, unique family session, audio coverage, custom count.');
+
+// The route link opens a read-only itinerary; the copy can be edited and quizzed.
+const {decodeRoute,routeCandidates}=await import('./dist/routes.mjs');
+const progressBeforeRoute=store.get(PROGRESS_KEY),siteBeforeRoute=$('site').value,mediumBeforeRoute=$('medium').value;
+await $('nav-routes').fire('click');
+for(let i=0;i<10&&$('route-content').hidden;i++)await settle();
+assert.equal($('routes').hidden,false);assert.equal($('route-content').hidden,false);
+assert.match($('route-preview-status').textContent,/species.*Macaulay/);
+await $('route-add-stop').fire('click');$('route-single').checked=true;await $('route-single').fire('change');
+await $('route-share').fire('click');const routeLink=new URL($('route-link-value').value);
+const sharedRoute=decodeRoute(routeLink.hash,routeCatalog);
+assert.equal(sharedRoute.stops.length,2);assert.equal(sharedRoute.single,true);
+assert.ok(routeCandidates(sharedRoute,routeCatalog,data.birds).some(r=>r.bird?.id==='kirwar'));
+assert.ok(!routeCandidates({...sharedRoute,single:false},routeCatalog,data.birds).some(r=>r.bird?.id==='kirwar'));
+assert.throws(()=>decodeRoute('#route='+encodeURIComponent(JSON.stringify({...sharedRoute,extras:['unknown species']})),routeCatalog));
+history.pushState(null,'',routeLink.href);for(const fn of windowEvents.popstate)fn();await settle();
+assert.equal($('route-editor').hidden,true);assert.equal($('route-shared').hidden,false);
+$('route-questions').value='1';await $('route-quiz-form').fire('submit');
+assert.equal($('session').hidden,false);assert.match($('session-label').textContent,/Route prototype/);
+$('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');
+assert.equal($('results').hidden,false);assert.equal(store.get(PROGRESS_KEY),progressBeforeRoute);
+await $('new-quiz').fire('click');await settle();assert.equal(location.hash,routeLink.hash);
+await $('route-copy-edit').fire('click');assert.equal(location.hash,'');assert.equal($('route-editor').hidden,false);
+await $('nav-practice').fire('click');assert.equal($('site').value,siteBeforeRoute);assert.equal($('medium').value,mediumBeforeRoute);
+console.log('Passed public route draft, link, quiz, copy, rarity toggle, and itinerary isolation.');
