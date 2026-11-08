@@ -34,7 +34,7 @@ export async function createRouteEditor({birds,startQuiz}){
     $('route-editor').hidden=Boolean(viewing);
     $('route-shared').hidden=!viewing;
     $('route-shared-title').textContent=viewing?.title||'';
-    $('route-shared-tier').textContent=viewing?.single?'Includes species reported in just one season.':'Recurring species plus any curated targets.';
+    $('route-shared-tier').textContent=viewing?.single?'Includes species reported in only one season, which may include rarities and one-time sightings.':'Recurring species plus any curated targets.';
     const stops=$('route-shared-stops');stops.replaceChildren();
     if(viewing)for(const stop of viewing.stops)stops.append(make('li',`${placeById.get(stop.place).name} · ${stop.date}`));
     $('route-title').value=draft.title;$('route-single').checked=draft.single;

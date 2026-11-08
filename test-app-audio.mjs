@@ -223,6 +223,7 @@ assert.equal(sharedRoute.stops.length,2);assert.equal(sharedRoute.single,true);
 assert.equal(sharedRoute.stops[1].date,'2027-09-28');
 assert.equal(nextVisitDate('2027-12-31'),'2028-01-01');
 assert.equal(nextVisitDate('2028-02-28'),'2028-02-29');
+assert.equal(nextVisitDate('2027-02-28'),'2027-03-01');
 assert.ok(routeCandidates(sharedRoute,routeCatalog,data.birds).some(r=>r.bird?.id==='kirwar'));
 assert.ok(!routeCandidates({...sharedRoute,single:false},routeCatalog,data.birds).some(r=>r.bird?.id==='kirwar'));
 assert.throws(()=>decodeRoute('#route='+encodeURIComponent(JSON.stringify({...sharedRoute,extras:['unknown species']})),routeCatalog));
@@ -236,3 +237,25 @@ await $('new-quiz').fire('click');await settle();assert.equal(location.hash,rout
 await $('route-copy-edit').fire('click');assert.equal(location.hash,'');assert.equal($('route-editor').hidden,false);
 await $('nav-practice').fire('click');assert.equal($('site').value,siteBeforeRoute);assert.equal($('medium').value,mediumBeforeRoute);
 console.log('Passed public route draft, link, quiz, copy, rarity toggle, and itinerary isolation.');
+
+// A Caldas route uses real February candidates, and Add stop stays in that window.
+const oneStop={...sharedRoute,stops:[sharedRoute.stops[0]]};
+history.pushState(null,'','/routes#route='+encodeURIComponent(JSON.stringify(oneStop)));
+for(const fn of windowEvents.popstate)fn();await settle();await $('route-copy-edit').fire('click');
+const firstPlaceSelect=$('route-stops').options[0].options[1].options[0];
+firstPlaceSelect.value='L3218682';await firstPlaceSelect.fire('change');
+const firstDateInput=$('route-stops').options[0].options[2].options[0];
+firstDateInput.value='2028-02-28';await firstDateInput.fire('change');
+await $('route-add-stop').fire('click');await $('route-share').fire('click');
+const caldasRoute=decodeRoute(new URL($('route-link-value').value).hash,routeCatalog);
+assert.equal(caldasRoute.stops[0].date,'2028-02-28');
+assert.ok(caldasRoute.stops.some(stop=>stop.date==='2028-02-29'&&['L1252500','L4057071'].includes(stop.place)));
+const spring={...caldasRoute,stops:[{place:'L3218682',date:'2028-03-01'}]};
+assert.throws(()=>decodeRoute('#route='+encodeURIComponent(JSON.stringify(spring)),routeCatalog),/study window/);
+const invalidLeap={...spring,stops:[{place:'L3218682',date:'2027-02-29'}]};
+assert.throws(()=>decodeRoute('#route='+encodeURIComponent(JSON.stringify(invalidLeap)),routeCatalog),/valid visit date/);
+for(const place of ['L3218682','L1252500','L4057071']){
+ const list=routeCandidates({...caldasRoute,stops:[{place,date:'2027-02-14'}]},routeCatalog,data.birds);
+ assert.ok(list.filter(r=>r.bird).length>=20,place+' has a full default photo quiz');
+}
+console.log('Passed Caldas route picker, February date window, leap day, and playable photo coverage.');
