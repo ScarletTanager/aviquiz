@@ -15,6 +15,10 @@ export function routePhotoBirds(birds){
 }
 const validDate=date=>typeof date==='string'&&/^\d{4}-\d\d-\d\d$/.test(date)&&date.slice(0,4)>='1900'&&
   Number.isFinite(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date;
+export function nextVisitDate(date){
+  if(!validDate(date))return '';
+  return new Date(Date.parse(date)+86400000).toISOString().split('T')[0];
+}
 export function validateRoute(value,catalog){
   if(value?.v!==1||typeof value.title!=='string'||!value.title.trim()||value.title.length>60||/[\u0000-\u001f\u007f]/.test(value.title)||
      !Array.isArray(value.stops)||value.stops.length<1||value.stops.length>8||typeof value.single!=='boolean'||

@@ -1,4 +1,4 @@
-import {CURATED_TARGETS,DEFAULT_ROUTE,decodeRoute,encodeRoute,routeCandidates,validateRoute} from './routes.mjs';
+import {CURATED_TARGETS,DEFAULT_ROUTE,decodeRoute,encodeRoute,nextVisitDate,routeCandidates,validateRoute} from './routes.mjs';
 
 export async function createRouteEditor({birds,startQuiz}){
   const $=id=>document.getElementById(id);
@@ -71,8 +71,11 @@ export async function createRouteEditor({birds,startQuiz}){
   $('route-single').addEventListener('change',e=>{draft.single=e.target.checked;markChanged();refresh();});
   $('route-add-stop').addEventListener('click',()=>{
     if(draft.stops.length>=8)return;
-    const place=catalog.places.find(p=>!draft.stops.some(s=>s.place===p.id))||catalog.places[0];
-    draft.stops.push({place:place.id,date:`${draft.stops[0].date.slice(0,4)||'2027'}-${place.start}`});markChanged();render();
+    const previous=draft.stops.at(-1),date=nextVisitDate(previous.date),md=date.slice(5);
+    const fits=p=>md>=p.start&&md<=p.end;
+    const unused=p=>!draft.stops.some(s=>s.place===p.id);
+    const place=catalog.places.find(p=>fits(p)&&unused(p))||catalog.places.find(fits)||placeById.get(previous.place);
+    draft.stops.push({place:place.id,date:date||`${DEFAULT_ROUTE.stops[0].date.slice(0,4)}-${place.start}`});markChanged();render();
   });
   $('route-copy-edit').addEventListener('click',()=>{
     draft=structuredClone(viewing);history.pushState(null,'','/routes');open('');$('route-title').focus();

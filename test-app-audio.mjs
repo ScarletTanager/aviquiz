@@ -210,7 +210,7 @@ $('all-species').checked=false;await $('all-species').fire('change');assert.equa
 console.log('Passed all-species sizing: Guajira, family/lifer intersections, unique family session, audio coverage, custom count.');
 
 // The route link opens a read-only itinerary; the copy can be edited and quizzed.
-const {decodeRoute,routeCandidates}=await import('./dist/routes.mjs');
+const {decodeRoute,nextVisitDate,routeCandidates}=await import('./dist/routes.mjs');
 const progressBeforeRoute=store.get(PROGRESS_KEY),siteBeforeRoute=$('site').value,mediumBeforeRoute=$('medium').value;
 await $('nav-routes').fire('click');
 for(let i=0;i<10&&$('route-content').hidden;i++)await settle();
@@ -220,6 +220,9 @@ await $('route-add-stop').fire('click');$('route-single').checked=true;await $('
 await $('route-share').fire('click');const routeLink=new URL($('route-link-value').value);
 const sharedRoute=decodeRoute(routeLink.hash,routeCatalog);
 assert.equal(sharedRoute.stops.length,2);assert.equal(sharedRoute.single,true);
+assert.equal(sharedRoute.stops[1].date,'2027-09-28');
+assert.equal(nextVisitDate('2027-12-31'),'2028-01-01');
+assert.equal(nextVisitDate('2028-02-28'),'2028-02-29');
 assert.ok(routeCandidates(sharedRoute,routeCatalog,data.birds).some(r=>r.bird?.id==='kirwar'));
 assert.ok(!routeCandidates({...sharedRoute,single:false},routeCatalog,data.birds).some(r=>r.bird?.id==='kirwar'));
 assert.throws(()=>decodeRoute('#route='+encodeURIComponent(JSON.stringify({...sharedRoute,extras:['unknown species']})),routeCatalog));
