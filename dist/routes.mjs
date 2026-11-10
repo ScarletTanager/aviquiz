@@ -1,3 +1,5 @@
+import {ROUTE_PHOTO_REFERENCES} from './route-photo-references.mjs';
+
 // Share links contain only a small, versioned itinerary; the catalog is trusted app data.
 export const MAX_ROUTE_STOPS=24;
 export const DEFAULT_ROUTE={v:1,title:'',stops:[],single:false,extras:[]};
@@ -16,11 +18,12 @@ const extraPhotos=[
   ["chvcon1","Chestnut-vented Conebill","Conirostrum speciosum","Thraupidae","356762201","Vitor Rolf Laubé"],
   ["wibhor1","Wing-banded Hornero","Furnarius figulus","Furnariidae","653490157","Shraddha Pandya"]
 ];
+const supplementalBirds=[...extraPhotos,...ROUTE_PHOTO_REFERENCES].map(([id,name,scientificName,family,asset,photographer])=>({
+  id,name,acceptedName:name,scientificName,family,sites:[],photos:[{id:asset,photographer,
+    source:`https://macaulaylibrary.org/asset/${asset}`,url:`https://cdn.download.ams.birds.cornell.edu/api/v2/asset/${asset}/1200`}]
+}));
 export function routePhotoBirds(birds){
-  return [...birds,...extraPhotos.map(([id,name,scientificName,family,asset,photographer])=>({
-    id,name,acceptedName:name,scientificName,family,sites:[],photos:[{id:asset,photographer,
-      source:`https://macaulaylibrary.org/asset/${asset}`,url:`https://cdn.download.ams.birds.cornell.edu/api/v2/asset/${asset}/1200`}]
-  }))];
+  return [...birds,...supplementalBirds];
 }
 const validDate=date=>typeof date==='string'&&/^\d{4}-\d\d-\d\d$/.test(date)&&date.slice(0,4)>='1900'&&
   Number.isFinite(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date;
