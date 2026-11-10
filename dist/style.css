@@ -52,3 +52,9 @@
 .experimental-option>summary{cursor:pointer;font-size:13px;font-weight:600}.experimental-option[open]>summary{margin-bottom:12px}
 
 #route-stops:empty + #route-add-stop { margin-top: 12px; }
+
+#statistics .accuracy-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(64px,.6fr) minmax(90px,1fr);align-items:start;gap:10px}
+#statistics .accuracy-name{align-self:center}
+#statistics .accuracy-value{min-width:0}
+#statistics .accuracy-value small{font-size:10px;line-height:1.45;overflow-wrap:anywhere}
+#statistics .latest-quiz{border-left:1px solid var(--line);padding-left:8px}

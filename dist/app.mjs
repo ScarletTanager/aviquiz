@@ -2,7 +2,7 @@ import {audioBirds,validateAudioCatalog} from './audio.mjs';
 import {offersSiteClue,chooseSiteClue} from './site-clue.mjs';
 import {ANNOTATION_REVIEW_KEY,ORIGINAL_REVIEW_PHOTOS,parseReviewedPhotos,unreviewedPhotos} from './annotation-review.mjs';
 import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './quiz.mjs';
-import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,progressKey,emptyProgress,parseProgress,recordAttempt,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
+import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,progressKey,emptyProgress,parseProgress,recordAttempt,recordQuizResult,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './statistics.mjs';
 import {ID_TIPS,tipsFor,annotatedBirds,annotationSvg,applySharedTips} from './id-tips.mjs';
 const $=id=>document.getElementById(id);
@@ -43,13 +43,29 @@ async function loadSharedTips(){
 }
 const formatRate=rate=>rate===null?'—':new Intl.NumberFormat('en',{style:'percent',maximumFractionDigits:1}).format(rate);
 const escapeHTML=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function latestQuizHTML(result,kind){
+  const label='<small>Latest quiz</small>';
+  if(!result)return `<span class="accuracy-value latest-quiz">${label}<small>No result yet</small></span>`;
+  const otherScope=kind==='site'
+    ?(result.family==='all'?'':result.family)
+    :(result.site==='all'?'':data.sites.find(site=>site.code===result.site)?.name);
+  const restriction=result.mode==='review'?'Mistake review':{world:'Worldwide lifers',colombia:'Colombia lifers'}[result.filter];
+  const scope=[otherScope,restriction].filter(Boolean).map(escapeHTML).join(' · ');
+  const rate=result.scored?result.correct/result.scored:null;
+  const score=result.scored?`${result.correct} / ${result.scored} correct`:'No scored questions';
+  return `<span class="accuracy-value latest-quiz">${label}<strong>${formatRate(rate)}</strong><small>${score}</small><small>${result.questions} ${result.questions===1?'question':'questions'} · ${result.species} / ${result.eligibleSpecies} species shown</small>${scope?`<small>${scope}</small>`:''}</span>`;
+}
 function renderStatistics(){
   if(!data)return;
   $('accuracy-title').textContent=`Your ${mediumName(statsMedium())} ID accuracy`;
   $('stats-medium-help').textContent=statsMedium()==='audio'?'Audio history only. Audio site rates do not measure mastery of a local dialect; recording locality can differ from quiz scope.':'Visual history only. Existing photo-quiz history is retained. Audio answers do not affect these rates.';
   $('site-stats-help').textContent=siteOnlyStats()?'Site-only quizzes: answers from this exact site with All families selected, including site-scoped mistake reviews. Family and all-sites quizzes are excluded. Each species retains its last 20 qualifying answers per site and medium. Tracking starts with this update; older answers have no site context.':'All quiz scopes: use each target species’ last 20 answers from any quiz. A shared species can contribute to multiple sites. Family statistics always use all quiz scopes.';
-  const stats=accuracyStatistics(data.birds,data.sites,histories[statsMedium()],{siteOnly:siteOnlyStats()});
-  const rowsHTML=(rows,kind)=>rows.map(row=>`<li class="accuracy-row"><a class="accuracy-name accuracy-link" href="#species/${statsMedium()}/${kind}/${encodeURIComponent(row.id)}${kind==='site'&&siteOnlyStats()?'/site-only':''}">${escapeHTML(row.name)}</a><span class="accuracy-value"><strong>${formatRate(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></span></li>`).join('');
+  const progress=histories[statsMedium()];
+  const stats=accuracyStatistics(data.birds,data.sites,progress,{siteOnly:siteOnlyStats()});
+  const rowsHTML=(rows,kind)=>{
+    const latest=progress.latestQuizzes?.[kind==='family'?'families':siteOnlyStats()?'siteOnly':'sites'];
+    return rows.map(row=>`<li class="accuracy-row"><a class="accuracy-name accuracy-link" href="#species/${statsMedium()}/${kind}/${encodeURIComponent(row.id)}${kind==='site'&&siteOnlyStats()?'/site-only':''}">${escapeHTML(row.name)}</a><span class="accuracy-value"><small>History</small><strong>${formatRate(row.rate)}</strong><small>${row.total?`${row.correct} / ${row.total} correct`:'No answers yet'}</small></span>${latestQuizHTML(latest?.[row.id],kind)}</li>`).join('');
+  };
   const sites=sortAccuracy(stats.sites,$('site-stat-sort').value,$('site-stat-direction').value);
   $('site-accuracy-list').innerHTML=rowsHTML(sitesExpanded?sites:sites.slice(0,5),'site');
   $('site-expand').hidden=sites.length<=5;
@@ -108,13 +124,17 @@ function readProgress(medium=selectedMedium()){
   try{histories[medium]=parseProgress(localStorage.getItem(progressKey(medium)));}
   catch{storageUsable[medium]=false;$('storage-status').textContent=`Saved ${mediumName(medium)} progress could not be read. This visit will still track your answers.`;}
 }
-function rememberAnswer(bird,correct){
-  if(activeSettings.experimentalTips||activeSettings.route)return;
-  const medium=activeSettings.medium||'photo';
-  readProgress(medium);histories[medium]=recordAttempt(histories[medium],bird.id,correct,activeSettings);
+function saveProgress(medium,progress){
+  histories[medium]=progress;
   if(storageUsable[medium])try{localStorage.setItem(progressKey(medium),JSON.stringify(histories[medium]));$('storage-status').textContent='Visual and audio progress are saved separately in this browser. Other browsers and devices have separate histories.';}
   catch{storageUsable[medium]=false;$('storage-status').textContent=`Browser storage is unavailable for ${mediumName(medium)} practice. Progress is tracked for this visit.`;}
   renderStatistics();
+}
+function rememberAnswer(bird,correct){
+  if(activeSettings.experimentalTips||activeSettings.route)return;
+  const medium=activeSettings.medium;
+  readProgress(medium);
+  saveProgress(medium,recordAttempt(histories[medium],bird.id,correct,activeSettings));
 }
 function updatePool(){
   if(!data)return;
@@ -205,7 +225,7 @@ async function begin(settings=formSettings()){
   settings.count=count;
   queue=buildQuestions(birds,count,familyMode);
   if(!queue.length){showView('setup');updatePool();$('settings-error').textContent=review?'No species currently need review with these settings. Choose a regular quiz or change your filters.':'No species match these settings.';return;}
-  activeSettings={...settings};
+  activeSettings={...settings,eligibleSpecies:new Set(questionPool(birds,familyMode).map(bird=>bird.id)).size};
   index=0;answers=[];showView('session');
   const siteLabel=settings.route?settings.route.title:settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
   $('session-label').textContent=mediumName(settings.medium).toUpperCase()+' · '+(review?(settings.mistakeIds?'Review this quiz’s mistakes':'Review recent mistakes'):'Regular quiz')+' · '+siteLabel+(settings.family!=='all'?' · '+settings.family:'')+(review?'':' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[settings.filter]));
@@ -287,6 +307,11 @@ function finishAnswer(revealed=false){
 function advance(){if(index+1<queue.length){index++;nextQuestion();}else finish();}
 function finish(){
   showView('results');sessionToken++;
+  const medium=activeSettings.medium;
+  readProgress(medium);
+  const progress=histories[medium];
+  const updated=recordQuizResult(progress,activeSettings,answers,activeSettings.eligibleSpecies);
+  if(updated!==progress)saveProgress(medium,updated);
   const audio=activeSettings.medium==='audio';
   const scored=answers.filter(a=>!a.unavailable),correct=scored.filter(a=>a.correct).length;
   $('result-title').textContent=`${correct} / ${scored.length} identified.`;

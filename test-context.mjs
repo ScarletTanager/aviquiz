@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {emptyProgress,parseProgress,recordAttempt,recentMistakeIds} from './dist/progress.mjs';
+import {emptyProgress,parseProgress,recordAttempt,recordQuizResult,recentMistakeIds} from './dist/progress.mjs';
 import {accuracyStatistics,speciesAccuracy,sortAccuracy} from './dist/statistics.mjs';
 import {chooseSiteClue,offersSiteClue} from './dist/site-clue.mjs';
 
@@ -43,6 +43,25 @@ assert.equal(history.siteSpecies.Ch.shared.attempts.length,20);
 assert.equal(history.siteSpecies.Gu.shared.attempts.length,1);
 const bad=parseProgress(JSON.stringify({version:1,species:{shared:{attempts:[true,'bad',false]}},siteSpecies:{all:{},Gu:{shared:{attempts:[true,1,false]}}}}));
 assert.deepEqual(bad.species.shared.attempts,[true,false]);assert.deepEqual(bad.siteSpecies.Gu.shared.attempts,[true,false]);assert.equal(bad.siteSpecies.all,undefined);
+
+const siteQuiz=recordQuizResult(history,gu,[{bird:birds[0],correct:true}],2);
+const familyQuiz={...gu,family:'Family',filter:'world'};
+const latest=recordQuizResult(siteQuiz,familyQuiz,[
+  {bird:birds[0],correct:false},{bird:birds[0],correct:true},{bird:birds[1],unavailable:true}
+],2);
+const expected={site:'Gu',family:'Family',mode:'regular',filter:'world',questions:3,scored:2,correct:1,species:2,eligibleSpecies:2};
+assert.deepEqual(latest.latestQuizzes.sites.Gu,expected);
+assert.deepEqual(latest.latestQuizzes.families.Family,expected);
+assert.deepEqual(latest.latestQuizzes.siteOnly,siteQuiz.latestQuizzes.siteOnly);
+assert.equal(latest.latestQuizzes.sites.Ch,undefined);
+assert.deepEqual(parseProgress(JSON.stringify(latest)),latest);
+assert.deepEqual(latest.species,history.species);
+for(const context of [{...familyQuiz,experimentalTips:true},{...familyQuiz,route:{}},{...familyQuiz,mode:'annotations'},{...gu,site:'all'}]){
+  assert.equal(recordQuizResult(latest,context,[{bird:birds[0],correct:false}],1),latest);
+}
+const zeroScored=recordQuizResult(latest,{...gu,mode:'review'},[{bird:birds[1],unavailable:true}],1);
+assert.deepEqual(zeroScored.latestQuizzes.sites.Gu,{...expected,family:'all',mode:'review',filter:'none',questions:1,scored:0,correct:0,species:1,eligibleSpecies:1});
+assert.deepEqual(zeroScored.latestQuizzes.families,latest.latestQuizzes.families);
 
 for(const medium of ['photo','audio']){
  assert.equal(offersSiteClue({medium,site:'all',family:'all',mode:'regular'}),true);

@@ -327,3 +327,45 @@ const tooMany={...fullBrazil,stops:Array.from({length:MAX_ROUTE_STOPS+1},()=>ful
 assert.throws(()=>encodeRoute(tooMany,routeCatalog),/supported stops/);
 assert.match(html,/<details id="photo-tip-options" class="experimental-option"><summary>Experimental ID tips/);
 console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, and collapsed ID tips markup.');
+
+// Finished scoped quizzes display the latest score beside history.
+{
+ await $('nav-practice').fire('click');
+ $('settings').reset();
+ const chicaque=data.sites.find(s=>/chicaque/i.test(s.name));
+ assert.ok(chicaque);
+ $('site').value=chicaque.code;$('count').value='1';
+ const priorLatest=JSON.parse(store.get(PROGRESS_KEY)).latestQuizzes;
+ await $('settings').fire('submit');$('question-image').onload();await $('reveal').fire('click');
+ assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)).latestQuizzes,priorLatest);
+ await $('next').fire('click');
+ const siteResult=JSON.parse(store.get(PROGRESS_KEY)).latestQuizzes.siteOnly[chicaque.code];
+ assert.equal(siteResult.scored,1);assert.equal(siteResult.correct,0);
+
+ await $('new-quiz').fire('click');
+ $('site').value=chicaque.code;$('family').value='Furnariidae';$('count').value='2';
+ await $('settings').fire('submit');$('question-image').onload();
+ const scopedPhoto=$('question-image').src.match(/asset\/(\d+)/)[1];
+ $('answer').value=data.birds.find(b=>b.photos.some(p=>p.id===scopedPhoto)).name;
+ await $('answer-form').fire('submit');await $('next').fire('click');await $('unavailable').fire('click');
+ const recent=JSON.parse(store.get(PROGRESS_KEY)).latestQuizzes;
+ assert.equal(recent.sites[chicaque.code].questions,2);
+ assert.equal(recent.sites[chicaque.code].scored,1);
+ assert.equal(recent.sites[chicaque.code].correct,1);
+ assert.equal(recent.sites[chicaque.code].eligibleSpecies,26);
+ assert.deepEqual(recent.families.Furnariidae,recent.sites[chicaque.code]);
+ assert.deepEqual(recent.siteOnly[chicaque.code],siteResult);
+ await $('nav-statistics').fire('click');await $('site-expand').fire('click');
+ $('stats-medium').value='photo';await $('stats-medium').fire('change');
+ const siteRow=()=> $('site-accuracy-list').innerHTML.split('</li>').find(row=>row.includes('/site/'+chicaque.code));
+ $('site-only-stats').checked=false;await $('site-only-stats').fire('change');
+ assert.match(siteRow(),/History.*Latest quiz.*100%.*1 \/ 1 correct.*2 questions.*\/ 26 species shown.*Furnariidae/);
+ await $('family-expand').fire('click');
+ const familyRow=$('family-accuracy-list').innerHTML.split('</li>').find(row=>row.includes('/family/Furnariidae'));
+ assert.match(familyRow,/History.*Latest quiz.*100%.*1 \/ 1 correct.*Chicaque/);
+ $('site-only-stats').checked=true;await $('site-only-stats').fire('change');
+ assert.match(siteRow(),/Latest quiz.*0%.*0 \/ 1 correct.*1 question/);
+ $('stats-medium').value='audio';await $('stats-medium').fire('change');
+ assert.match(siteRow(),/Latest quiz.*No result yet/);
+ console.log('Passed latest quiz display, scoped completion, skipped media, saved progress, site-only comparison and medium isolation.');
+}
