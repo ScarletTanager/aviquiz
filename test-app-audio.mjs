@@ -266,7 +266,7 @@ const aprilStart={...sharedRoute,title:'April in Colombia',stops:[{place:aprilId
 history.pushState(null,'','/routes#route='+encodeURIComponent(JSON.stringify(aprilStart)));
 for(const fn of windowEvents.popstate)fn();await settle();await $('route-copy-edit').fire('click');
 for(let i=1;i<8;i++)await $('route-add-stop').fire('click');
-assert.equal($('route-add-stop').disabled,true);
+assert.equal($('route-add-stop').disabled,false);
 await $('route-share').fire('click');
 const aprilRoute=decodeRoute(new URL($('route-link-value').value).hash,routeCatalog);
 assert.deepEqual(aprilRoute.stops.map(s=>s.place),aprilIds);
@@ -283,3 +283,30 @@ assert.equal($('route-start').disabled,true);
 await $('route-copy-edit').fire('click');assert.equal($('route-share').disabled,false);
 $('route-single').checked=true;await $('route-single').fire('change');assert.equal($('route-start').disabled,false);
 console.log('Passed April eight-stop route, sparse-coverage display, and optional single-season questions.');
+
+// Exact trip checklist evidence can contribute without a multi-season claim.
+const exampleBird=data.birds[0];
+const tripStop={id:'trip-fixture-1',name:'Trip stop',start:'09-01',end:'09-30',source:'trip-checklists',coverage:{checklists:2},species:[[exampleBird.scientificName,exampleBird.name,1,2]]};
+const tripCatalog={...routeCatalog,places:[...routeCatalog.places,tripStop]};
+const tripRoute={...sharedRoute,stops:[{place:tripStop.id,date:'2027-09-10'}],single:false};
+const [tripBird]=routeCandidates(tripRoute,tripCatalog,data.birds);
+assert.equal(tripBird.bird.id,exampleBird.id);assert.equal(tripBird.recurring,false);
+assert.deepEqual(tripBird.evidence,[{place:tripStop.id,checklists:1,totalChecklists:2}]);
+console.log('Passed trip-only species inclusion and checklist evidence.');
+
+// The full Brazil trip fits in a route and retains both kinds of evidence.
+const brazilPlaces=routeCatalog.places.filter(p=>p.group==='brazil-september');
+assert.equal(brazilPlaces.length,18);assert.equal(brazilPlaces.filter(p=>p.source==='trip-checklists').length,11);
+const regua=brazilPlaces.find(p=>p.id==='L612882');
+assert.ok(regua.coverage.seasons>1&&regua.coverage.outings>100);
+const fullBrazil={...sharedRoute,title:'September in Brazil',single:false,
+ stops:brazilPlaces.map((p,i)=>({place:p.id,date:`2027-09-${String(i+10).padStart(2,'0')}`}))};
+const {encodeRoute,MAX_ROUTE_STOPS}=await import('./dist/routes.mjs');
+assert.equal(decodeRoute(encodeRoute(fullBrazil,routeCatalog),routeCatalog).stops.length,18);
+const brazilRows=routeCandidates(fullBrazil,routeCatalog,data.birds);
+assert.ok(brazilRows.filter(r=>r.bird).length>=20);
+assert.ok(brazilRows.some(r=>r.fromTrip&&r.evidence.some(e=>e.totalChecklists===1)));
+const tooMany={...fullBrazil,stops:Array.from({length:MAX_ROUTE_STOPS+1},()=>fullBrazil.stops[0])};
+assert.throws(()=>encodeRoute(tooMany,routeCatalog),/supported stops/);
+assert.match(html,/<details id="photo-tip-options" class="experimental-option"><summary>Experimental ID tips/);
+console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, and collapsed ID tips markup.');

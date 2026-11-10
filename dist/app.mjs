@@ -301,7 +301,7 @@ function finish(){
   $('review').innerHTML=answers.map(a=>`<article class="review-row ${audio?'audio-review':''}">${audio?`<audio controls preload="none" aria-label="${escapeHTML(a.bird.name)} recording" src="${escapeHTML(a.photo.url)}"></audio>`:`<img src="${escapeHTML(a.photo.url)}" alt="${escapeHTML(a.bird.name)}" loading="lazy">`}<div><h3>${escapeHTML(a.bird.name)}</h3><p>${escapeHTML(a.bird.scientificName)}</p><p>${a.unavailable?'Skipped or unavailable':a.revealed?'Answer revealed':`Your answer: ${escapeHTML(a.guess)}`}</p><a href="${escapeHTML(a.photo.source)}" target="_blank" rel="noopener noreferrer">© ${escapeHTML(a.photo.recordist||a.photo.photographer)} · Macaulay Library ML${escapeHTML(a.photo.id)} ↗</a>${audio?recordingDetails(a.photo):''}</div><span class="review-status">${a.unavailable?'Not scored':a.correct?'✓ Correct':'↻ Review'}</span></article>`).join('');
 }
 $('settings').addEventListener('submit',e=>{e.preventDefault();begin();});
-$('settings').addEventListener('change',e=>{if(e.target.name==='mode'&&data){$('settings-error').textContent='';readProgress();updatePool();}});
+$('settings').addEventListener('change',e=>{if(e.target.name==='mode'&&data){if(e.target.value==='annotations'&&selectedMedium()==='photo')$('photo-tip-options').open=true;$('settings-error').textContent='';readProgress();updatePool();}});
 $('experimental-tips').addEventListener('change',updatePool);
 $('mark-original-reviewed').addEventListener('click',()=>{markPhotosReviewed(ORIGINAL_REVIEW_PHOTOS);updatePool();});
 $('try-id-pilot').addEventListener('click',()=>{

@@ -28,9 +28,19 @@ april_places = [
     ('L19781143', 'Vereda El Retiro — Predio La Esperanza, Guaviare', '04-01', '04-30'),
     ('L2697672', 'San José del Guaviare — Playa Güío, Guaviare', '04-01', '04-30'),
 ]
+brazil_hotspots = [
+    ('L4802409', 'Nova Friburgo — Ecolodge Itororó', '09-01', '09-30'),
+    ('L612882', 'Reserva Ecológica de Guapiaçu (REGUA)', '09-01', '09-30'),
+    ('L3042143', 'Macaé de Cima', '09-01', '09-30'),
+    ('L10073569', 'PE dos Três Picos — Estrada Velha', '09-01', '09-30'),
+    ('L8615496', 'PE dos Três Picos — Boca do Mato', '09-01', '09-30'),
+    ('L7532351', 'Nova Friburgo — estrada para o Pico da Caledônia', '09-01', '09-30'),
+    ('L4890478', 'Rio de Janeiro — Aeroporto Internacional Tom Jobim (Galeão)', '09-01', '09-30'),
+]
 output = {'version': 1, 'release': 'EBD_relSep-2026', 'years': '2017–2025', 'places': []}
 inputs = [(directory, *place) for directory, group in (
-    (source, places), (source / 'caldas', caldas_places), (source / 'april', april_places)
+    (source, places), (source / 'caldas', caldas_places),
+    (source / 'april', april_places), (source / 'brazil', brazil_hotspots)
 ) for place in group]
 for directory, key, name, start, end in inputs:
     details = json.loads((directory / f'{key}-results.json').read_text())
@@ -44,10 +54,19 @@ for directory, key, name, start, end in inputs:
         [r['scientific_name'], r['common_name'], int(r['reporting_seasons']), int(r['sampled_seasons'])]
         for r in records
     ])
-    if directory.name == 'april':
+    if directory.name in {'april', 'brazil'}:
         years = details['window_by_calendar_year']
         assert list(years) == [str(year) for year in range(2017, 2027)]
         entry['coverage'] = dict(outings=sum(row['outings'] for row in years.values()),
                                  seasons=sum(row['days'] > 0 for row in years.values()))
+    if directory.name == 'brazil':
+        entry['group'] = 'brazil-september'
     output['places'].append(entry)
+trip_stops = json.loads((source / 'brazil' / 'trip-checklists.json').read_text(encoding='utf-8'))
+assert len(trip_stops) == 11 and len({p['id'] for p in trip_stops}) == 11
+for p in trip_stops:
+    assert p['source'] == 'trip-checklists' and p['id'].startswith('trip-412397-')
+    assert p['start'] == '09-01' and p['end'] == '09-30' and p['coverage']['checklists'] >= 1
+    assert all(0 < row[2] <= row[3] == p['coverage']['checklists'] for row in p['species'])
+    output['places'].append({**p, 'group': 'brazil-september'})
 (root / 'dist/route-pilot.json').write_text(json.dumps(output, ensure_ascii=False, separators=(',', ':'))+'\n', encoding='utf-8')

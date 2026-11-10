@@ -1,4 +1,4 @@
-import {CURATED_TARGETS,DEFAULT_ROUTE,decodeRoute,encodeRoute,nextVisitDate,routeCandidates,validateRoute} from './routes.mjs';
+import {CURATED_TARGETS,DEFAULT_ROUTE,MAX_ROUTE_STOPS,decodeRoute,encodeRoute,nextVisitDate,routeCandidates,validateRoute} from './routes.mjs';
 
 export async function createRouteEditor({birds,startQuiz}){
   const $=id=>document.getElementById(id);
@@ -13,8 +13,10 @@ export async function createRouteEditor({birds,startQuiz}){
   function coverageNote(place){
     const c=place.coverage;
     if(!c)return '';
+    if(place.source==='trip-checklists')return `Trip report only · ${c.checklists} ${c.checklists===1?'checklist':'checklists'}. No seasonal reporting rate.`;
     const outings=`${c.outings} eligible ${c.outings===1?'outing':'outings'}`;
-    const seasons=`${c.seasons} sampled ${c.seasons===1?'April':'Aprils'}`;
+    const month=new Intl.DateTimeFormat('en',{month:'long',timeZone:'UTC'}).format(new Date(`2000-${place.start}T00:00:00Z`));
+    const seasons=`${c.seasons} sampled ${month}${c.seasons===1?'':'s'}`;
     return `${outings} across ${seasons}.${c.seasons===1?' Include species reported in only one season to use this stop’s records.':''}`;
   }
   function button(label,action){const b=make('button',label);b.type='button';b.className='text-button';b.addEventListener('click',action);return b;}
@@ -32,7 +34,7 @@ export async function createRouteEditor({birds,startQuiz}){
     const fragment=document.createDocumentFragment();
     for(const row of rows){
       const tr=make('tr');const label=make('td');label.append(make('strong',row.name),make('span',row.key));label.lastChild.className='species-scientific';
-      const evidence=row.evidence.map(e=>`${placeById.get(e.place).name}: ${e.seasons}/${e.sampled} seasons`);
+      const evidence=row.evidence.map(e=>`${placeById.get(e.place).name}: ${e.totalChecklists===undefined?`${e.seasons}/${e.sampled} seasons`:`${e.checklists}/${e.totalChecklists} trip checklists`}`);
       if(row.curated)evidence.push('Curated practice target');
       tr.append(label,make('td',evidence.join(' · ')),make('td',row.bird?'Photo ready':'No photo yet'));fragment.append(tr);
     }
@@ -42,7 +44,8 @@ export async function createRouteEditor({birds,startQuiz}){
     $('route-editor').hidden=Boolean(viewing);
     $('route-shared').hidden=!viewing;
     $('route-shared-title').textContent=viewing?.title||'';
-    $('route-shared-tier').textContent=viewing?.single?'Includes species reported in only one season, which may include rarities and one-time sightings.':'Recurring species plus any curated targets.';
+    const hasTripStop=viewing?.stops.some(s=>placeById.get(s.place).source==='trip-checklists');
+    $('route-shared-tier').textContent=(viewing?.single?'Includes species reported in only one season, which may include rarities and one-time sightings.':'Recurring species plus any curated targets.')+(hasTripStop?' Also includes birds from the trip checklists at stops without public hotspot data.':'');
     const stops=$('route-shared-stops');stops.replaceChildren();
     if(viewing)for(const stop of viewing.stops){
       const place=placeById.get(stop.place);
@@ -75,7 +78,7 @@ export async function createRouteEditor({birds,startQuiz}){
       if(draft.stops.length>1)actions.append(button('Remove stop',()=>{draft.stops.splice(index,1);markChanged();render();}));
       fieldset.append(actions);stopList.append(fieldset);
     });
-    $('route-add-stop').disabled=draft.stops.length>=8;
+    $('route-add-stop').disabled=draft.stops.length>=MAX_ROUTE_STOPS;
     const extras=$('route-extras');extras.replaceChildren();
     for(const [key,name] of CURATED_TARGETS){
       const label=make('label');const input=make('input');input.type='checkbox';input.checked=draft.extras.includes(key);
@@ -87,11 +90,13 @@ export async function createRouteEditor({birds,startQuiz}){
   $('route-title').addEventListener('input',e=>{draft.title=e.target.value;markChanged();refresh();});
   $('route-single').addEventListener('change',e=>{draft.single=e.target.checked;markChanged();refresh();});
   $('route-add-stop').addEventListener('click',()=>{
-    if(draft.stops.length>=8)return;
+    if(draft.stops.length>=MAX_ROUTE_STOPS)return;
     const previous=draft.stops.at(-1),date=nextVisitDate(previous.date),md=date.slice(5);
     const fits=p=>md>=p.start&&md<=p.end;
     const unused=p=>!draft.stops.some(s=>s.place===p.id);
-    const place=catalog.places.find(p=>fits(p)&&unused(p))||catalog.places.find(fits)||placeById.get(previous.place);
+    const previousPlace=placeById.get(previous.place);
+    const sameGroup=p=>previousPlace.group&&p.group===previousPlace.group;
+    const place=catalog.places.find(p=>fits(p)&&unused(p)&&sameGroup(p))||catalog.places.find(p=>fits(p)&&unused(p))||catalog.places.find(fits)||previousPlace;
     draft.stops.push({place:place.id,date:date||`${DEFAULT_ROUTE.stops[0].date.slice(0,4)}-${place.start}`});markChanged();render();
   });
   $('route-copy-edit').addEventListener('click',()=>{
