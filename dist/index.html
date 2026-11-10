@@ -20,12 +20,12 @@
 <div id="route-content" class="route-layout" hidden>
 <div>
 <div id="route-editor">
-<label for="route-title">Route name</label><input id="route-title" maxlength="60" required>
+<label for="route-title">Route name (required)</label><input id="route-title" maxlength="60" required>
 <div id="route-stops"></div><button id="route-add-stop" class="secondary-button" type="button">Add stop</button>
 <label class="all-species-control"><input id="route-single" type="checkbox" aria-describedby="route-single-help">Include species reported in only one season</label>
 <p class="field-help" id="route-single-help">Includes rarities and one-time sightings, as well as birds that may be regular but were recorded in only one sampled season.</p>
 <details class="route-curated"><summary>Curated practice targets</summary><p class="field-help">Add a bird to the route’s quiz as a study target, with no stop association or reporting rate. The prototype offers only a small set of common birds.</p><div id="route-extras"></div></details>
-<div class="route-share"><h2>Share this route</h2><p class="field-help">Anyone with the link who can access AviQuiz can open it. The link contains the itinerary and can be forwarded. Editing creates a new link; an old link cannot be revoked here.</p><button id="route-share" type="button">Create share link</button><div id="route-link" hidden><label for="route-link-value">Shareable route link</label><input id="route-link-value" readonly><button id="route-copy-link" class="text-button" type="button">Copy link</button><p id="route-copy-status" class="field-help" role="status"></p></div></div>
+<div class="route-share"><h2>Share this route</h2><p class="field-help">Anyone with the link who can access AviQuiz can open it. The link contains the itinerary and can be forwarded. Editing creates a new link; an old link cannot be revoked here.</p><button id="route-share" type="button" disabled>Create share link</button><div id="route-link" hidden><label for="route-link-value">Shareable route link</label><input id="route-link-value" readonly><button id="route-copy-link" class="text-button" type="button">Copy link</button><p id="route-copy-status" class="field-help" role="status"></p></div></div>
 </div>
 <div id="route-shared" hidden><p class="eyebrow">SHARED ROUTE</p><h2 id="route-shared-title"></h2><ol id="route-shared-stops"></ol><p id="route-shared-tier" class="field-help"></p><button id="route-copy-edit" class="secondary-button" type="button">Make an editable copy</button></div>
 <p id="route-error" role="alert"></p>

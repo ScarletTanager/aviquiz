@@ -23,14 +23,18 @@ export async function createRouteEditor({birds,startQuiz}){
   function refresh(){
     $('route-error').textContent=problem;
     rows=[];
-    if(!problem)try{rows=routeCandidates(current(),catalog,birds);}catch(e){$('route-error').textContent=e.message;}
+    const {title,stops}=current();
+    const missing=!title.trim()||!stops.length?'Enter a route name and add at least one stop.':
+      stops.some(s=>!s.place||!s.date)?'Choose a place and visit date for each stop.':'';
+    let ready=false;
+    if(!problem&&!missing)try{rows=routeCandidates(current(),catalog,birds);ready=true;}catch(e){$('route-error').textContent=e.message;}
     const playable=rows.filter(r=>r.bird).length;
-    $('route-preview-status').textContent=`${rows.length} species in this list · ${playable} with Macaulay photos in AviQuiz.`;
-    $('route-start').disabled=!playable;
+    $('route-preview-status').textContent=missing||`${rows.length} species in this list · ${playable} with Macaulay photos in AviQuiz.`;
+    $('route-start').disabled=!ready||!playable;
     // A valid itinerary remains shareable even if its current quiz filters yield no birds.
-    $('route-share').disabled=Boolean($('route-error').textContent);
+    $('route-share').disabled=!ready;
     $('route-questions').max=String(playable||1);
-    if(Number($('route-questions').value)>playable)$('route-questions').value=String(Math.max(1,playable));
+    if(playable&&Number($('route-questions').value)>playable)$('route-questions').value=String(playable);
     const fragment=document.createDocumentFragment();
     for(const row of rows){
       const tr=make('tr');const label=make('td');label.append(make('strong',row.name),make('span',row.key));label.lastChild.className='species-scientific';
@@ -40,7 +44,7 @@ export async function createRouteEditor({birds,startQuiz}){
     }
     $('route-preview-rows').replaceChildren(fragment);
   }
-  function render(){
+  function render(focusIndex=-1,focusField){
     $('route-editor').hidden=Boolean(viewing);
     $('route-shared').hidden=!viewing;
     $('route-shared-title').textContent=viewing?.title||'';
@@ -59,24 +63,28 @@ export async function createRouteEditor({birds,startQuiz}){
     draft.stops.forEach((stop,index)=>{
       const fieldset=make('fieldset');fieldset.className='route-stop';fieldset.append(make('legend',`Stop ${index+1}`));
       const placeLabel=make('label','Place'),select=make('select');
+      const placeholder=make('option','Choose a place');placeholder.value='';placeholder.disabled=true;select.append(placeholder);
       for(const place of catalog.places){const option=make('option',place.name);option.value=place.id;select.append(option);}
       select.value=stop.place;placeLabel.append(select);fieldset.append(placeLabel);
       const dateLabel=make('label','Visit date'),input=make('input');input.type='date';input.value=stop.date;dateLabel.append(input);fieldset.append(dateLabel);
       const place=placeById.get(stop.place);
-      const windowNote=make('p',`Study window: ${place.start} to ${place.end} each year.`);windowNote.className='field-help';fieldset.append(windowNote);
-      const note=coverageNote(place);
-      if(note){const p=make('p',note);p.className='field-help';fieldset.append(p);}
+      if(place){
+        const windowNote=make('p',`Study window: ${place.start} to ${place.end} each year.`);windowNote.className='field-help';fieldset.append(windowNote);
+        const note=coverageNote(place);
+        if(note){const p=make('p',note);p.className='field-help';fieldset.append(p);}
+      }
       select.addEventListener('change',()=>{
         stop.place=select.value;
         const {start,end}=placeById.get(stop.place);
-        if(!stop.date||stop.date.slice(5)<start||stop.date.slice(5)>end)stop.date=`${stop.date.slice(0,4)||'2027'}-${start}`;
-        markChanged();render();
+        if(stop.date&&(stop.date.slice(5)<start||stop.date.slice(5)>end))stop.date=`${stop.date.slice(0,4)}-${start}`;
+        markChanged();render(index,'date');
       });
       input.addEventListener('change',()=>{stop.date=input.value;markChanged();refresh();});
       const actions=make('div');actions.className='route-actions';
       if(index>0)actions.append(button('Move up',()=>{[draft.stops[index-1],draft.stops[index]]=[stop,draft.stops[index-1]];markChanged();render();}));
-      if(draft.stops.length>1)actions.append(button('Remove stop',()=>{draft.stops.splice(index,1);markChanged();render();}));
+      actions.append(button('Remove stop',()=>{draft.stops.splice(index,1);markChanged();render();}));
       fieldset.append(actions);stopList.append(fieldset);
+      if(index===focusIndex)(focusField==='date'?input:select).focus();
     });
     $('route-add-stop').disabled=draft.stops.length>=MAX_ROUTE_STOPS;
     const extras=$('route-extras');extras.replaceChildren();
@@ -91,13 +99,13 @@ export async function createRouteEditor({birds,startQuiz}){
   $('route-single').addEventListener('change',e=>{draft.single=e.target.checked;markChanged();refresh();});
   $('route-add-stop').addEventListener('click',()=>{
     if(draft.stops.length>=MAX_ROUTE_STOPS)return;
-    const previous=draft.stops.at(-1),date=nextVisitDate(previous.date),md=date.slice(5);
+    const previous=draft.stops.at(-1),date=nextVisitDate(previous?.date),md=date.slice(5);
     const fits=p=>md>=p.start&&md<=p.end;
     const unused=p=>!draft.stops.some(s=>s.place===p.id);
-    const previousPlace=placeById.get(previous.place);
-    const sameGroup=p=>previousPlace.group&&p.group===previousPlace.group;
-    const place=catalog.places.find(p=>fits(p)&&unused(p)&&sameGroup(p))||catalog.places.find(p=>fits(p)&&unused(p))||catalog.places.find(fits)||previousPlace;
-    draft.stops.push({place:place.id,date:date||`${DEFAULT_ROUTE.stops[0].date.slice(0,4)}-${place.start}`});markChanged();render();
+    const previousPlace=placeById.get(previous?.place);
+    const sameGroup=p=>previousPlace?.group&&p.group===previousPlace.group;
+    const place=previousPlace&&(catalog.places.find(p=>fits(p)&&unused(p)&&sameGroup(p))||catalog.places.find(p=>fits(p)&&unused(p))||catalog.places.find(fits)||previousPlace);
+    draft.stops.push({place:place?.id||'',date});markChanged();render(draft.stops.length-1,'place');
   });
   $('route-copy-edit').addEventListener('click',()=>{
     draft=structuredClone(viewing);history.pushState(null,'','/routes');open('');$('route-title').focus();

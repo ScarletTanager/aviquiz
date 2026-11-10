@@ -1,6 +1,6 @@
 // Share links contain only a small, versioned itinerary; the catalog is trusted app data.
 export const MAX_ROUTE_STOPS=24;
-export const DEFAULT_ROUTE={v:1,title:'Late September at Jordan Lake',stops:[{place:'jordan-dam',date:'2027-09-27'}],single:false,extras:[]};
+export const DEFAULT_ROUTE={v:1,title:'',stops:[],single:false,extras:[]};
 export const CURATED_TARGETS=new Map([
   ['Cathartes aura','Turkey Vulture'], ['Ardea alba','Great Egret'], ['Columba livia','Rock Pigeon']
 ]);
