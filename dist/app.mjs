@@ -163,6 +163,7 @@ function updatePool(){
   if(annotationReview){$('lifer-filters').hidden=true;$('lifer-filters').disabled=true;$('pool').textContent=ready.length?`${ready.length} annotated photos not yet marked reviewed · ${covered} species. Site and family filters apply; lifer filters do not. Quiz will use ${Math.min(requested,ready.length)} photos.`:'No unreviewed annotated photos match this site and family. New approved photos will appear here.';$('family-help').textContent='Review only published annotated photos you have not marked reviewed. A species may appear more than once.';}
 }
 function showView(id,{updateUrl=true}={}){
+  if(id!=='session'&&$('photo-zoom').open)$('photo-zoom').close();
   stopAudio();
   for(const v of ['landing','setup','routes','statistics','session','results','species-page'])$(v).hidden=v!==id;
   const section=id==='landing'?'home':id==='routes'?'routes':['statistics','species-page'].includes(id)?'statistics':'practice';
@@ -241,11 +242,13 @@ function credit(photo,revealName=false){
 }
 function loadPhoto(){
   const bird=queue[index],token=sessionToken;
+  if($('photo-zoom').open)$('photo-zoom').close();
+  const zoom=$('zoom-photo');zoom.disabled=true;
   currentPhoto=photoOrder[photoTry%photoOrder.length];imageReady=false;
   $('question-image').hidden=true;$('image-loading').hidden=false;$('image-error').hidden=true;$('unavailable').hidden=true;
   $('check').disabled=true;$('reveal').disabled=true;
   const image=$('question-image');
-  image.onload=()=>{if(token!==sessionToken)return;imageReady=true;image.hidden=false;$('image-loading').hidden=true;$('check').disabled=false;$('reveal').disabled=false;if(activeSettings.mode==='annotations'){finishAnswer(true);$('answer-form').hidden=true;$('feedback').innerHTML=`<h3>${escapeHTML(bird.name)}</h3><p>Inspect the annotations, then mark this photo reviewed or leave it for later.</p>`;toggleIdFeatures();}};
+  image.onload=()=>{if(token!==sessionToken)return;imageReady=true;image.hidden=false;zoom.disabled=false;$('image-loading').hidden=true;$('check').disabled=false;$('reveal').disabled=false;if(activeSettings.mode==='annotations'){finishAnswer(true);$('answer-form').hidden=true;$('feedback').innerHTML=`<h3>${escapeHTML(bird.name)}</h3><p>Inspect the annotations, then mark this photo reviewed or leave it for later.</p>`;toggleIdFeatures();}};
   image.onerror=()=>{if(token!==sessionToken)return;if(photoTry+1<bird.photos.length){photoTry++;loadPhoto();return;}$('image-loading').hidden=true;$('image-error').hidden=false;$('unavailable').hidden=false;};
   image.alt='Bird to identify';image.src=currentPhoto.url;
   $('photo-credit').innerHTML=credit(currentPhoto);
@@ -363,6 +366,15 @@ $('answer-form').addEventListener('submit',e=>{e.preventDefault();finishAnswer()
 $('next').addEventListener('click',advance);
 $('retry-audio').addEventListener('click',()=>{photoTry=(photoTry+1)%photoOrder.length;loadAudio();});
 $('retry-photo').addEventListener('click',()=>{photoTry=(photoTry+1)%queue[index].photos.length;loadPhoto();});
+$('zoom-photo').addEventListener('click',()=>{
+  const dialog=$('photo-zoom');
+  if(!imageReady||activeSettings?.medium!=='photo'||$('session').hidden||dialog.open)return;
+  const photo=$('question-image'),enlarged=$('photo-zoom-image');
+  enlarged.src=photo.src;
+  enlarged.alt=photo.alt;
+  dialog.showModal();
+  enlarged.parentElement.scrollTo(0,0);
+});
 $('unavailable').addEventListener('click',()=>{if(answered)return;answers.push({bird:queue[index],guess:'',correct:false,unavailable:true,photo:currentPhoto});advance();});
 function startOver(){if(activeSettings?.route){returnToRoute(activeSettings.route);return;}sessionToken++;$('settings').reset();$('settings-error').textContent='';updatePool();showView('setup');}
 $('exit').addEventListener('click',()=>{if(activeSettings?.route){returnToRoute(activeSettings.route);return;}sessionToken++;updatePool();showView('setup');});

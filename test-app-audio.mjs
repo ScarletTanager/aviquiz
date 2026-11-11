@@ -107,6 +107,19 @@ assert.equal($('photo-question').hidden,false);assert.equal($('audio-question').
 const photoId=$('question-image').src.match(/asset\/(\d+)/)[1],photoBird=data.birds.find(b=>b.photos.some(p=>p.id===photoId));$('question-image').onload();$('answer').value=photoBird.name;await $('answer-form').fire('submit');await $('next').fire('click');
 assert.match($('result-summary').textContent,/visual practice · 100%/);assert.equal(store.get(AUDIO_PROGRESS_KEY),audioAfter);assert.notEqual(store.get(PROGRESS_KEY),visualInitial);
 await $('new-quiz').fire('click');
+// The in-tab zoom uses the current photo and closes when the session is left.
+{
+ const dialog=$('photo-zoom'),zoom=$('zoom-photo'),enlarged=$('photo-zoom-image');
+ dialog.showModal=()=>{dialog.open=true;};dialog.close=()=>{dialog.open=false;};
+ enlarged.parentElement={scrollTo(){}};
+ $('count').value='1';await $('settings').fire('submit');
+ assert.equal(zoom.disabled,true);await zoom.fire('click');assert.ok(!dialog.open);
+ $('question-image').onload();assert.equal(zoom.disabled,false);
+ await zoom.fire('click');assert.equal(dialog.open,true);
+ assert.equal(enlarged.src,$('question-image').src);assert.equal(enlarged.alt,'Bird to identify');
+ assert.match(html,/<form method="dialog"><button type="submit" aria-label="Close zoomed photo"/);
+ await $('exit').fire('click');assert.equal(dialog.open,false);
+}
 // Experimental photo sessions retain session feedback without changing either history.
 const visualBeforeExperiment=store.get(PROGRESS_KEY);
 const statsBeforeExperiment=$('family-accuracy-list').innerHTML;
