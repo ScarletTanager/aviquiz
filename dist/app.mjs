@@ -167,10 +167,10 @@ function showView(id,{updateUrl=true}={}){
   stopAudio();
   for(const v of ['landing','setup','routes','statistics','session','results','species-page'])$(v).hidden=v!==id;
   const section=id==='landing'?'home':id==='routes'?'routes':['statistics','species-page'].includes(id)?'statistics':'practice';
-  const path=section==='home'?'/':section==='routes'?'/routes':section==='statistics'?'/statistics':'/quiz';
+  const path=section==='home'?'/':section==='routes'?'/trips':section==='statistics'?'/statistics':'/quiz';
   if(updateUrl&&location.pathname+location.search+location.hash!==path)history.pushState(null,'',path);
   for(const name of ['home','practice','routes','statistics']){const link=$('nav-'+name);if(name===section)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}
-  document.title=id==='landing'?'AviQuiz · Bird identification practice':`AviQuiz · ${section==='statistics'?'Statistics':section==='routes'?'Routes':'Practice'}`;
+  document.title=id==='landing'?'AviQuiz · Bird identification practice':`AviQuiz · ${section==='statistics'?'Statistics':section==='routes'?'Trips':'Practice'}`;
   if(id==='statistics'){readProgress('photo');readProgress('audio');renderStatistics();}
   window.scrollTo({top:0,behavior:'instant'});
 }
@@ -182,15 +182,15 @@ function openRoutePage(){
     begin({route,count:route.count,medium:'photo',mode:'regular',site:'all',family:'all',filter:'none'});
   }})).catch(error=>{routeEditor=null;throw error;});
   routeEditor.then(editor=>{if(token===navigationToken)editor.open(location.hash);}).catch(()=>{
-    if(token===navigationToken)$('route-loading').textContent='Route data could not load. Please reload to try again.';
+    if(token===navigationToken)$('route-loading').textContent='Trip data could not load. Please reload to try again.';
   });
 }
 function returnToRoute(route){
-  history.pushState(null,'','/routes'+route.hash);navigateLocation();$('routes-heading').focus({preventScroll:true});
+  history.pushState(null,'','/trips'+route.hash);navigateLocation();$('routes-heading').focus({preventScroll:true});
 }
 function navigateLocation(){
   navigationToken++;sessionToken++;
-  if(location.pathname==='/routes'||location.pathname==='/routes/'){openRoutePage();return;}
+  if(['/trips','/trips/','/routes','/routes/'].includes(location.pathname)){openRoutePage();return;}
   if(location.hash.startsWith('#species/')){if(data)navigateSpeciesHash();return;}
   const page=location.pathname.startsWith('/quiz')?'setup':location.pathname.startsWith('/statistics')?'statistics':'landing';
   showView(page,{updateUrl:false});
@@ -203,7 +203,7 @@ function navigateLocation(){
 $('skip-main').addEventListener('click',event=>{
   if(!$('routes').hidden&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();$('main-content').focus();}
 });
-for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav-routes':'/routes','nav-statistics':'/statistics','landing-practice':'/quiz','landing-statistics':'/statistics','landing-sight':'/quiz?medium=photo','landing-audio':'/quiz?medium=audio','practice-statistics':'/statistics','statistics-practice':'/quiz','species-back':'/statistics','results-statistics':'/statistics'})){
+for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav-routes':'/trips','nav-statistics':'/statistics','landing-practice':'/quiz','landing-statistics':'/statistics','landing-sight':'/quiz?medium=photo','landing-audio':'/quiz?medium=audio','practice-statistics':'/statistics','statistics-practice':'/quiz','species-back':'/statistics','results-statistics':'/statistics'})){
   $(id).addEventListener('click',event=>{
     if(event.button>0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     event.preventDefault();if(location.pathname+location.search+location.hash!==url)history.pushState(null,'',url);
@@ -230,7 +230,7 @@ async function begin(settings=formSettings()){
   index=0;answers=[];showView('session');
   const siteLabel=settings.route?settings.route.title:settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
   $('session-label').textContent=mediumName(settings.medium).toUpperCase()+' · '+(review?(settings.mistakeIds?'Review this quiz’s mistakes':'Review recent mistakes'):'Regular quiz')+' · '+siteLabel+(settings.family!=='all'?' · '+settings.family:'')+(review?'':' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[settings.filter]));
-  if(settings.route)$('session-label').textContent+=' · Route prototype · history not recorded';
+  if(settings.route)$('session-label').textContent+=' · Trip prototype · history not recorded';
   if(settings.pilotTips)$('session-label').textContent+=' · Reviewed photo sampler';
   if(settings.experimentalTips)$('session-label').textContent+=' · Experimental · history not recorded';
   if(settings.mode==='annotations')$('session-label').textContent=`ANNOTATION REVIEW · ${siteLabel} · ${settings.family==='all'?'All families':settings.family} · history not recorded`;
@@ -320,7 +320,7 @@ function finish(){
   $('result-title').textContent=`${correct} / ${scored.length} identified.`;
   $('result-summary').textContent=`${mediumName(activeSettings.medium)} practice · ${scored.length?Math.round(correct/scored.length*100)+'% correct.':'No questions could be scored.'}${answers.length>scored.length?` ${answers.length-scored.length} skipped or unavailable ${audio?'recordings':'photos'} were not scored.`:''} Review your birds below, then choose your next session.`;
   const mistakes=sessionMistakeIds(answers);
-  if(activeSettings.route)$('result-summary').textContent+=' Route prototype: saved statistics were not changed.';
+  if(activeSettings.route)$('result-summary').textContent+=' Trip prototype: saved statistics were not changed.';
   if(activeSettings.experimentalTips)$('result-summary').textContent+=' Experimental session: these answers were not added to statistics or recent mistake history.';
   if(activeSettings.mode==='annotations'){$('result-title').textContent=`${answers.filter(a=>a.personallyReviewed).length} / ${answers.length} photos marked reviewed.`;$('result-summary').textContent='Marked photos are excluded from future annotation reviews in this browser. Unmarked and unavailable photos remain eligible. No statistics or mistake history were changed.';$('review-quiz').hidden=true;}
   else $('review-quiz').hidden=false;

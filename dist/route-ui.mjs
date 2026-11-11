@@ -24,7 +24,7 @@ export async function createRouteEditor({birds,startQuiz}){
     $('route-error').textContent=problem;
     rows=[];
     const {title,stops}=current();
-    const missing=!title.trim()||!stops.length?'Enter a route name and add at least one stop.':
+    const missing=!title.trim()||!stops.length?'Enter a trip name and add at least one stop.':
       stops.some(s=>!s.place||!s.date)?'Choose a place and visit date for each stop.':'';
     let ready=false;
     if(!problem&&!missing)try{rows=routeCandidates(current(),catalog,birds);ready=true;}catch(e){$('route-error').textContent=e.message;}
@@ -108,11 +108,11 @@ export async function createRouteEditor({birds,startQuiz}){
     draft.stops.push({place:place?.id||'',date});markChanged();render(draft.stops.length-1,'place');
   });
   $('route-copy-edit').addEventListener('click',()=>{
-    draft=structuredClone(viewing);history.pushState(null,'','/routes');open('');$('route-title').focus();
+    draft=structuredClone(viewing);history.pushState(null,'','/trips');open('');$('route-title').focus();
   });
   $('route-share').addEventListener('click',()=>{
     try{
-      $('route-link-value').value=new URL('/routes'+encodeRoute(draft,catalog),location.origin).href;
+      $('route-link-value').value=new URL('/trips'+encodeRoute(draft,catalog),location.origin).href;
       $('route-link').hidden=false;$('route-link-value').focus();$('route-link-value').select();
     }catch(e){$('route-error').textContent=e.message;}
   });
@@ -126,7 +126,7 @@ export async function createRouteEditor({birds,startQuiz}){
   });
   function open(hash){
     viewing=null;linkHash='';problem='';markChanged();
-    if(hash)try{viewing=decodeRoute(hash,catalog);linkHash=hash;}catch{problem='This route link is invalid or uses an unsupported place. You can start a new route here.';}
+    if(hash)try{viewing=decodeRoute(hash,catalog);linkHash=hash;}catch{problem='This trip link is invalid or uses an unsupported place. You can start a new trip here.';}
     if(problem){const warning=problem;problem='';render();$('route-error').textContent=warning;return;}
     render();
   }

@@ -244,6 +244,8 @@ assert.equal($('route-start').disabled,false);assert.equal($('route-share').disa
 assert.match($('route-preview-status').textContent,/species.*Macaulay/);
 await $('route-add-stop').fire('click');$('route-single').checked=true;await $('route-single').fire('change');
 await $('route-share').fire('click');const routeLink=new URL($('route-link-value').value);
+assert.equal(routeLink.pathname,'/trips');
+assert.ok(routeLink.hash.startsWith('#trip='));
 const sharedRoute=decodeRoute(routeLink.hash,routeCatalog);
 assert.equal(sharedRoute.stops.length,2);assert.equal(sharedRoute.single,true);
 assert.equal(sharedRoute.stops[1].date,'2027-09-28');
@@ -256,7 +258,7 @@ assert.throws(()=>decodeRoute('#route='+encodeURIComponent(JSON.stringify({...sh
 history.pushState(null,'',routeLink.href);for(const fn of windowEvents.popstate)fn();await settle();
 assert.equal($('route-editor').hidden,true);assert.equal($('route-shared').hidden,false);
 $('route-questions').value='1';await $('route-quiz-form').fire('submit');
-assert.equal($('session').hidden,false);assert.match($('session-label').textContent,/Route prototype/);
+assert.equal($('session').hidden,false);assert.match($('session-label').textContent,/Trip prototype/);
 $('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');
 assert.equal($('results').hidden,false);assert.equal(store.get(PROGRESS_KEY),progressBeforeRoute);
 await $('new-quiz').fire('click');await settle();assert.equal(location.hash,routeLink.hash);

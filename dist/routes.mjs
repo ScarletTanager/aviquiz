@@ -35,7 +35,7 @@ export function validateRoute(value,catalog){
   if(value?.v!==1||typeof value.title!=='string'||!value.title.trim()||value.title.length>60||/[\u0000-\u001f\u007f]/.test(value.title)||
      !Array.isArray(value.stops)||value.stops.length<1||value.stops.length>MAX_ROUTE_STOPS||typeof value.single!=='boolean'||
      !Array.isArray(value.extras)||value.extras.length>CURATED_TARGETS.size||value.extras.some(key=>!CURATED_TARGETS.has(key)))
-    throw Error(`Choose a route name, one to ${MAX_ROUTE_STOPS} supported stops, and available practice targets.`);
+    throw Error(`Choose a trip name, one to ${MAX_ROUTE_STOPS} supported stops, and available practice targets.`);
   const stops=value.stops.map(stop=>{
     const place=catalog.places.find(p=>p.id===stop?.place);
     if(!place||!validDate(stop.date))throw Error('Choose a supported place and a valid visit date for each stop.');
@@ -45,10 +45,11 @@ export function validateRoute(value,catalog){
   });
   return {v:1,title:value.title.trim(),stops,single:value.single,extras:[...new Set(value.extras)]};
 }
-export function encodeRoute(value,catalog){return '#route='+encodeURIComponent(JSON.stringify(validateRoute(value,catalog)));}
+export function encodeRoute(value,catalog){return '#trip='+encodeURIComponent(JSON.stringify(validateRoute(value,catalog)));}
 export function decodeRoute(hash,catalog){
-  if(!hash.startsWith('#route=')||hash.length>6000)throw Error('This route link is invalid.');
-  return validateRoute(JSON.parse(decodeURIComponent(hash.slice(7))),catalog);
+  const prefix=/^#(?:trip|route)=/.exec(hash);
+  if(!prefix||hash.length>6000)throw Error('This trip link is invalid.');
+  return validateRoute(JSON.parse(decodeURIComponent(hash.slice(prefix[0].length))),catalog);
 }
 export function routeCandidates(value,catalog,birds){
   const route=validateRoute(value,catalog);
