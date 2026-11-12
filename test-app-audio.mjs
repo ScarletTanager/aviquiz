@@ -117,7 +117,15 @@ await $('new-quiz').fire('click');
  $('question-image').onload();assert.equal(zoom.disabled,false);
  await zoom.fire('click');assert.equal(dialog.open,true);
  assert.equal(enlarged.src,$('question-image').src);assert.equal(enlarged.alt,'Bird to identify');
+ assert.equal($('photo-zoom-title').textContent,'Zoomed photo');
+ assert.equal($('photo-zoom-credit').innerHTML,$('photo-credit').innerHTML);
+ assert.doesNotMatch($('photo-zoom-credit').innerHTML,/<a /);
  assert.match(html,/<form method="dialog"><button type="submit" aria-label="Close zoomed photo"/);
+ dialog.close();
+ await $('reveal').fire('click');await zoom.fire('click');
+ assert.equal($('photo-zoom-title').textContent,$('question-image').alt);
+ assert.notEqual($('photo-zoom-title').textContent,'Zoomed photo');
+ assert.match($('photo-zoom-credit').innerHTML,/<a [^>]+macaulaylibrary\.org/);
  await $('exit').fire('click');assert.equal(dialog.open,false);
 }
 // Experimental photo sessions retain session feedback without changing either history.

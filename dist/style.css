@@ -60,7 +60,8 @@
 #statistics .latest-quiz{border-left:1px solid var(--line);padding-left:8px}
 
 #zoom-photo{margin:8px 0 12px;padding:8px 12px;color:var(--ink)}
-#photo-zoom{width:min(94vw,1100px);max-width:none;max-height:none;padding:0;border:1px solid var(--line);border-radius:8px;background:#edf0e6;color:var(--ink)}
+#photo-zoom{width:min(94vw,1100px);max-width:none;max-height:94vh;max-height:94dvh;padding:0;border:1px solid var(--line);border-radius:8px;background:#edf0e6;color:var(--ink)}
+#photo-zoom[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto}
 #photo-zoom::backdrop{background:rgb(12 20 15 / 75%)}
 .photo-zoom-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 14px}
 .photo-zoom-header h2{font-size:20px;margin:0}
@@ -68,3 +69,5 @@
 .photo-zoom-header button{padding:0;min-width:44px;min-height:44px;font-size:26px;line-height:1}
 .photo-zoom-scroll{max-height:78vh;max-height:78dvh;overflow:auto;overscroll-behavior:contain;background:#e4e8dc}
 .photo-zoom-scroll img{display:block;width:max(100%,900px);max-width:none;height:auto}
+#photo-zoom-credit{padding:8px 14px;font-size:12px;line-height:1.45;color:var(--muted);border-top:1px solid var(--line);overflow-wrap:anywhere}
+#photo-zoom-credit a{color:var(--ink)}

@@ -236,9 +236,9 @@ async function begin(settings=formSettings()){
   if(settings.mode==='annotations')$('session-label').textContent=`ANNOTATION REVIEW · ${siteLabel} · ${settings.family==='all'?'All families':settings.family} · history not recorded`;
   nextQuestion();
 }
-function credit(photo,revealName=false){
+function credit(photo,{revealed=false,showSpecies=revealed}={}){
   const owner=photo.recordist||photo.photographer||photo.alt?.split(' - ').slice(1).join(' - ')||'Macaulay Library contributor';
-  return `${revealName?escapeHTML(queue[index].name)+' · ':''}© ${escapeHTML(owner)} · Cornell Lab of Ornithology | Macaulay Library${revealName?` · <a href="${escapeHTML(photo.source)}" target="_blank" rel="noopener noreferrer">ML${escapeHTML(photo.id)} ↗</a>`:''}`;
+  return `${showSpecies?escapeHTML(queue[index].name)+' · ':''}© ${escapeHTML(owner)} · Cornell Lab of Ornithology | Macaulay Library${revealed?` · <a href="${escapeHTML(photo.source)}" target="_blank" rel="noopener noreferrer">ML${escapeHTML(photo.id)} ↗</a>`:''}`;
 }
 function loadPhoto(){
   const bird=queue[index],token=sessionToken;
@@ -298,7 +298,7 @@ function finishAnswer(revealed=false){
   answers.push({bird,guess,correct:grade.correct,revealed,photo:currentPhoto});
   rememberAnswer(bird,grade.correct);
   $('answer').disabled=true;$('check').disabled=true;$('reveal').hidden=true;$('next').hidden=false;$('question-status').textContent=grade.correct?'IDENTIFIED':'KEEP LEARNING';
-  if(activeSettings.medium==='audio'){$('audio-credit').innerHTML=credit(currentPhoto,true)+recordingDetails(currentPhoto);$('question-audio').setAttribute('aria-label',bird.name+' recording');}else{$('photo-credit').innerHTML=credit(currentPhoto,true);$('question-image').alt=bird.name;}
+  if(activeSettings.medium==='audio'){$('audio-credit').innerHTML=credit(currentPhoto,{revealed:true})+recordingDetails(currentPhoto);$('question-audio').setAttribute('aria-label',bird.name+' recording');}else{$('photo-credit').innerHTML=credit(currentPhoto,{revealed:true});$('question-image').alt=bird.name;}
   activeTips=tipsFor(bird,currentPhoto,{enabled:activeSettings.medium!=='audio'&&Boolean(activeSettings.experimentalTips),answered:true,correct:grade.correct});
   $('show-id-features').hidden=!activeTips;
   $('show-id-features').textContent=activeTips?.kind==='general'?'Show general ID tips · experimental':'Show ID features · experimental';
@@ -349,7 +349,7 @@ function toggleIdFeatures(){
     $('id-tip-general').hidden=!general;$('id-tip-figure').hidden=general;$('id-tip-mobile-help').hidden=general;
     $('id-tip-general').innerHTML=general?`<p>These species-level features have not been checked against this photograph and may be hidden or difficult to see. No arrows are provided for this photo.</p><ul>${activeTips.tips.map(tip=>`<li>${escapeHTML(tip)}</li>`).join('')}</ul>`:'';
     $('id-tip-diagram').innerHTML=general?'':annotationSvg(activeTips.annotation,currentPhoto,queue[index].name);
-    $('id-tip-credit').innerHTML=general?'':credit(currentPhoto,true);
+    $('id-tip-credit').innerHTML=general?'':credit(currentPhoto,{revealed:true});
     $('id-tip-source').innerHTML=`Source: <a href="${escapeHTML(activeTips.source)}" target="_blank" rel="noopener noreferrer">eBird / Merlin: ${escapeHTML(queue[index].name)} ↗</a> — Cornell Lab of Ornithology. ID guidance is paraphrased from this account, not original research by this quiz. Consult the source for full context. Summaries and arrow placements are this quiz’s experimental adaptations; they have not been reviewed or endorsed by Cornell.`;
     $('id-features').scrollIntoView({behavior:'smooth',block:'start'});$('id-features').focus({preventScroll:true});
     $('mark-photo-reviewed').hidden=activeSettings.mode!=='annotations'||general;
@@ -372,6 +372,8 @@ $('zoom-photo').addEventListener('click',()=>{
   const photo=$('question-image'),enlarged=$('photo-zoom-image');
   enlarged.src=photo.src;
   enlarged.alt=photo.alt;
+  $('photo-zoom-title').textContent=answered?queue[index].name:'Zoomed photo';
+  $('photo-zoom-credit').innerHTML=credit(currentPhoto,{revealed:answered,showSpecies:false});
   dialog.showModal();
   enlarged.parentElement.scrollTo(0,0);
 });
