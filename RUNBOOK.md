@@ -200,3 +200,30 @@ On the destination hostname, open Statistics, select the JSON backup, check the 
 Import validates the entire file before writing. A temporary recovery record retains the previous values until all writes succeed. Failed writes roll back. If browser storage prevents rollback, reload to retry recovery before practicing.
 
 Shared photo-review drafts and approvals live in the backend database and require a separate database migration. Browser backups contain personal quiz progress and review marks.
+
+
+## Cognito-backed account setup
+
+After deployment, reload AviQuiz while signed in with the owner's Cognito
+account and the existing Sites owner session. The status line should show
+“AviQuiz administrator”. This first request links the stable provider identity
+to a permanent app account and performs the one-time audited administrator
+bootstrap. No AWS-console role or Cognito group becomes an AviQuiz role.
+
+If the browser reports Cognito sign-in succeeded but account setup failed,
+inspect `/api/account/enroll` in browser network tools WITHOUT copying its
+Authorization header or any tokens. 401 means the assertion could not be
+verified (check expiry, deployed issuer/audience and public-key availability);
+403 means an unverified email, disabled app account, or rejected origin; 503
+means account storage is unavailable. Check migration/deployment status before
+changing SQL. If enrollment succeeds but admin status is absent, check that
+Sites authenticated the owner, REVIEW_OWNER_EMAIL matches the verified Cognito
+email, and whether app_bootstrap was already consumed. Do not delete that
+record or grant privileges by email to work around a failure. Recovery must be
+reviewed separately. Existing browser statistics are not migrated by login.
+
+Local backend builds now require `npm ci` first, then
+`node scripts/build-worker.mjs`. Run `node test-account-api.mjs` for local
+signature, bootstrap and database tests; it makes no AWS requests. Cognito
+runtime verifies public keys via fixed issuer JWKS, without AWS management
+credentials. Each agent AWS action still requires separate user confirmation.

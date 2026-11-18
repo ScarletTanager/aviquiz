@@ -1,5 +1,5 @@
 export const GLOBAL_PERMISSIONS=Object.freeze([
-  'system.admin','experiment.id-tips','annotations.read','annotations.edit','annotations.publish'
+  'system.admin','users.invite','experiment.id-tips','annotations.read','annotations.edit','annotations.publish'
 ]);
 const routeRights={
   viewer:['route.read','route.practice'],

@@ -1,6 +1,11 @@
 # Identity and permissions foundation
 
-Implemented November 1, 2026 as server-only library code with isolated database tests. **Not activated:** the deployed Worker does not import these modules, the staged schema is outside `drizzle/`, and no customer signup, session, admin, or route endpoints exist. Current quiz behavior and the owner/agent review boundary remain unchanged. No provider has been selected and no passwords or tokens are stored by this subsystem.
+The account/identity portion is active as of November 18, 2026: Cognito sign-in
+connects to permanent AviQuiz user IDs in D1, with one-time owner administrator
+bootstrap. Guest quizzes remain available. Route collaboration services remain
+staged, and delegated invitation/review interfaces are not yet connected. No
+passwords or provider tokens are stored in D1. See the active backend section
+below for the deployed verification and bootstrap boundaries.
 
 ## Boundaries and implemented interfaces
 
@@ -28,9 +33,9 @@ The future controller resolves the actor server-side and passes the resulting in
 
 ## Global grants and features
 
-Grants are `system.admin`, `experiment.id-tips`, `annotations.read`, `annotations.edit`, and `annotations.publish`. Unknown grants/actions are rejected. These are composable capabilities, not automatic role inheritance: an annotation editor does not receive publication privileges or experimental access merely by being an editor. UI roles can later bundle the appropriate read/edit grants.
+Grants are `users.invite`, `system.admin`, `experiment.id-tips`, `annotations.read`, `annotations.edit`, and `annotations.publish`. Unknown grants/actions are rejected. These are composable capabilities, not automatic role inheritance: an annotation editor does not receive publication privileges or experimental access merely by being an editor. UI roles can later bundle the appropriate read/edit grants.
 
-`system.admin` authorizes the known privileged operations. `setGrant` requires an administrator and records the target and permission, but intentionally refuses to assign/revoke `system.admin`. Initial administrator bootstrap, last-administrator protection, stronger authentication, recovery, and privileged grant lifecycle must be designed before activation. There is no hardcoded new AviQuiz administrator or self-promotion path; SQL provisioning exists only in the isolated test fixture.
+`system.admin` authorizes the known privileged operations. `setGrant` requires an administrator and records the target and permission, but intentionally refuses to assign/revoke `system.admin`. Initial administrator bootstrap now uses the constrained one-time owner workflow described below. Additional administrator assignment, last-administrator protection, stronger authentication, recovery, and privileged grant lifecycle remain separate work; no general self-promotion endpoint exists.
 
 `canUseExperiment` requires both a trusted global enable switch and the user's grant. The implemented feature key is `id-tips`; unknown features fail closed. No feature gate has yet replaced the existing public experimental checkbox or review API authorization. Agent/service identities and narrower annotation permissions must be integrated explicitly before that change.
 
@@ -60,7 +65,7 @@ Every successful mutation in `accountService` uses `db.batch` to write its audit
 
 Audit events contain actor ID, action, resource type/ID, narrowly selected change details, and time. Registration events do not contain provider tokens or email. This is not full event sourcing or an authentication log: denied actions, login/session events, administrative recovery, retention/anonymization, and operational monitoring still require integration. The current review system is not being retroactively audited by this library.
 
-## Validation and activation path
+## Validation and remaining activation work
 
 Run with Node 24+ from the repository root:
 
@@ -70,12 +75,12 @@ node test-accounts.mjs
 
 Tests apply the existing review migration and staged schema to an in-memory database with foreign keys enabled, preserving an existing review row. They exercise forged identity headers, verification failures, unmapped identities, no email merging, duplicate signup rollback, public guest access, all route-role actions, cross-route/user isolation, publication/experiment separation, grant and membership revocation, disabled accounts, owner/admin deletion, and append-only atomic accounting.
 
-Before activation:
+For the remaining staged features:
 
-1. Choose the managed provider and verify integration with the target hosting environment. Keep staging and production identities/data separate.
+1. Cognito is the selected provider. Its browser login was tested by Sandy; test the new backend account linkage after deployment. Keep staging and production identities/data separate.
 2. Implement and adversarially test the trusted provider adapter and session/CSRF boundary; decide email changes, signup retries, account linking, MFA/assurance for privileged actions, and recovery.
 3. Define administrator bootstrap/lifecycle and scoped service identities; never accept arbitrary acting user IDs or trust application roles from client storage.
-4. Promote the staged SQL through a new reviewed migration and test migration/backup/recovery on a staging database. Do not manually apply this file to the live database as a shortcut.
+4. The account tables are promoted through drizzle/0001_accounts.sql. Route tables remain staged; use a new reviewed migration when activating them. Do not manually apply the entire staged file to the live database.
 5. Add protected HTTP controllers and connect grant checks to experimental/review operations; preserve guest quiz access. Address mutation races, access-denial logging, input/output filtering, and endpoint abuse controls at that boundary.
 6. Add route stops and collaboration UI with revision guards, then exercise owner/viewer/contributor/editor/admin flows end to end.
 
@@ -108,14 +113,71 @@ require Sandy's individual confirmation. No discovery or auth requests occur
 while disabled.
 
 The frontend uses the library's code/PKCE redirect flow and callback processing,
-with OIDC state and user data in sessionStorage. It does not render or log tokens.
+with OIDC state and user data in sessionStorage. It does not render or log tokens. It sends the ID-token identity assertion only to the same-origin account API.
 Automatic silent renewal is disabled per the library's Cognito guidance; expired
 sessions require sign-in again. Sign-out clears this tab's stored session and
 redirects to Cognito logout; this is not a global token-revocation guarantee.
 Callback parameters are cleared after processing. Quizzes remain available to
-guests. This browser account state is not authorization: the dormant server
-identity verifier and invite/account provisioning still need wiring before any
-protected capability uses Cognito, and statistics remain browser-local.
+guests. This browser account state is not authorization: the server verifies Cognito identity before account registration or administrator
+bootstrap; statistics remain browser-local. The legacy photo-review controller
+still uses its existing Sites-owner/agent authorization pending delegated review
+UI integration.
 
 Verify locally with `node test-auth.mjs`. A live sign-in round trip is pending user testing; configuration tests are not
 proof of a working AWS login.
+
+
+## Active backend account identity and administrator setup
+
+The server verifies Cognito ID-token assertions using `jose`, the fixed deployed
+issuer/app-client audience, RS256 signatures, expiry, subject and `token_use=id`.
+The only key source is that issuer's public JWKS URL, cached with timeout and
+rotation cooldown. These account endpoints accept an ID token as an identity
+assertion, not as an OAuth scope-bearing API access token. Tokens, JWT contents,
+and provider errors are never returned in errors or audit records. They are not
+stored in D1. Public keys are fetched at runtime when a signed-in visitor first
+uses the backend; no AWS management API credentials are needed.
+
+`POST /api/account/enroll` maps a provider-verified email identity's exact
+`(issuer, subject)` to a permanent generated AviQuiz UUID. It does not merge by
+email or accept request-supplied identity claims. Repeated enrollment reuses the
+mapping; disabled accounts are rejected. Email in app_users is the registration
+snapshot, not a sign-in key. `GET /api/account` reads current permissions. Guests
+remain guests and may practice without registration. POSTs require same-origin
+JSON requests. Invalid bearer assertions fail closed; guest routes do not require
+a token. Cognito token revocation/disable is not checked online on every request;
+a valid issued token can remain valid until expiry. AviQuiz account disable and
+grant revocation are loaded afresh from D1 per request.
+
+On the owner's next signed-in page load, the browser enrolls the account and
+calls `POST /api/account/bootstrap` only when the server reports eligibility.
+Eligibility requires BOTH the existing Sites-authenticated owner AND a
+cryptographically verified Cognito email matching the deployment's existing
+REVIEW_OWNER_EMAIL. This special email check authorizes initial bootstrap only;
+normal identity linkage uses issuer/subject. It does not make the first visitor
+an administrator. A singleton app_bootstrap record consumes this one-time path,
+and an atomic batch creates the system.admin grant and append-only audit record.
+Automatic setup cannot restore a removed grant after bootstrap is consumed.
+Administrator replacement/recovery requires a separately reviewed operation.
+
+This bootstrap trusts Sites-injected headers ONLY behind the current Sites
+hosting boundary. Remove it before hosting elsewhere; these headers are not
+trusted identity on a public DigitalOcean origin. Never grant admin based only
+on email, a browser role, Cognito group claims, or order of registration.
+
+`users.invite` is a separate allowed backend capability. Administrators inherit
+it, but an explicitly granted inviter gains no other privileges. No non-admin
+has been granted it and no Cognito invitation endpoint exists yet. The planned
+AviQuiz invitation form will check this grant server-side, audit invitations,
+and create ordinary invited accounts without allowing the inviter to choose
+roles. Luis Miguel can receive this grant after his verified account is linked;
+he will not need AWS console access. Adding that endpoint requires separately
+scoped AWS runtime access and abuse/cost controls, with Sandy's approval.
+
+The active migration `drizzle/0001_accounts.sql` adds account, identity, grant,
+audit, and bootstrap tables without altering existing photo reviews. The route
+portion of schema/identity-routes.sql remains staged. Account and JWT tests use
+local generated signing keys and SQLite, with no AWS requests. Run
+`node test-account-api.mjs`, `node test-accounts.mjs`, and the existing quiz/review
+regressions. Refresh a signed-in page to finish the real owner bootstrap; the
+status line should say “AviQuiz administrator”.

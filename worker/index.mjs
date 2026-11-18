@@ -1,3 +1,4 @@
+import {accountApi} from './account-api.mjs';
 // Built with embedded, unchanged quiz assets by scripts/build-worker.mjs.
 // Identity is supplied by Sites; viewers cannot write shared reviews.
 const OWNER_ID='0a42fa64-ecdd-4efa-98c5-e2c95f94320f';
@@ -77,6 +78,7 @@ export async function api(request,env){
 export default {
   async fetch(request,env){
     const path=new URL(request.url).pathname;
+    if(path==='/api/account'||path.startsWith('/api/account/'))return accountApi(request,env);
     if(path.startsWith('/api/'))return api(request,env);
     if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405});
     const name=['/auth/callback','/','/index.html','/quiz','/quiz/','/trips','/trips/','/routes','/routes/','/statistics','/statistics/'].includes(path)?'/index.html':path==='/review'||path==='/review/'?'/review.html':path;

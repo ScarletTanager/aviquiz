@@ -42,8 +42,10 @@ jobs:
         run: |
           node test-app-audio.mjs
           AUDIO_CATALOG_FAIL=1 node test-app-audio.mjs
-      - name: Check dormant account and route permissions
-        run: node test-accounts.mjs
+      - name: Check account identity, bootstrap, and route permissions
+        run: |
+          node test-accounts.mjs
+          node test-account-api.mjs
       - name: Build and check live review API authorization
         run: |
           node scripts/build-worker.mjs

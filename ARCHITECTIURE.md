@@ -158,3 +158,18 @@ Server-only `worker/identity.mjs`, `worker/permissions.mjs`, and `worker/account
 - Audit events, stronger privileged-user authentication, and optional later Turnstile integration.
 
 The current SQL binding and Sites identity integration are provider-specific. A hosting migration is more than moving static files: port the Worker/API, storage access and migrations, secrets, identity verification, data, and operating procedures; verify public guest access separately.
+
+
+### Cognito-backed application accounts
+
+The optional browser OIDC session now enrolls through the Worker account API.
+The Worker verifies identity assertions with jose against the fixed Cognito
+issuer, audience and public signing keys, then maps issuer/subject to a D1
+AviQuiz user UUID. D1 stores current grants, not credentials or tokens. A
+Sites-owner plus verified Cognito-email check permits one-time audited admin
+bootstrap. This hosting-specific bootstrap must be removed on migration.
+The esbuild development dependency bundles jose into the Worker. Public quizzes
+and browser-local statistics retain their existing behavior. `users.invite` is
+a reserved granular capability; delegated invitation UI and provider-side user
+creation are future work. See AAA.md for security boundaries and RUNBOOK.md for
+bootstrap diagnosis.

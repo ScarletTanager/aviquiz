@@ -1,3 +1,4 @@
+import {build} from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 const root=path.resolve(import.meta.dirname,'..');
@@ -8,5 +9,6 @@ const legacy=await import('../dist/id-tips.mjs');
 const core=read('dist/review-core.mjs').replace(/export /g,'');
 const worker=`const ASSETS=${JSON.stringify(assets)};\nconst CATALOG=JSON.parse(ASSETS['/data.json'].body);\nconst LEGACY_TIPS=${JSON.stringify(legacy.ID_TIPS)};\nconst LEGACY_SPECIES=${JSON.stringify(legacy.SPECIES_TIPS)};\n${core}\n${read('worker/index.mjs')}`;
 fs.mkdirSync(path.join(root,'dist/server'),{recursive:true});fs.mkdirSync(path.join(root,'dist/.openai'),{recursive:true});
-fs.writeFileSync(path.join(root,'dist/server/index.js'),worker);fs.copyFileSync(path.join(root,'.openai/hosting.json'),path.join(root,'dist/.openai/hosting.json'));
+const bundled=await build({stdin:{contents:worker,resolveDir:path.join(root,'worker'),sourcefile:'index.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false});
+fs.writeFileSync(path.join(root,'dist/server/index.js'),bundled.outputFiles[0].text);fs.copyFileSync(path.join(root,'.openai/hosting.json'),path.join(root,'dist/.openai/hosting.json'));
 console.log(`Built quiz + shared review Worker (${Buffer.byteLength(worker)} bytes).`);

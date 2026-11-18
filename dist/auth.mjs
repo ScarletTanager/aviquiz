@@ -27,6 +27,23 @@ async function initialize() {
     if (signedIn) status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}. Quiz progress is still stored in this browser.`;
   }
   render();
+  if (user && !user.expired) {
+    try {
+      const headers = {'authorization': `Bearer ${user.id_token}`, 'content-type': 'application/json'};
+      let response = await fetch('/api/account/enroll', {method:'POST', headers, body:'{}'});
+      if (!response.ok) throw Error('Account registration unavailable.');
+      let account = await response.json();
+      if (account.canBootstrap) {
+        response = await fetch('/api/account/bootstrap', {method:'POST', headers, body:'{}'});
+        if (!response.ok) throw Error('Administrator setup unavailable.');
+        account = await response.json();
+      }
+      if (account.kind !== 'user') throw Error('Account registration unavailable.');
+      status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}${account.administrator ? ' · AviQuiz administrator' : ''}. Quiz progress is still stored in this browser.`;
+    } catch {
+      status.textContent = 'Signed in to Cognito, but AviQuiz account setup could not finish. Reload to retry. Guest quizzes remain available.';
+    }
+  }
   manager.events.addAccessTokenExpired(() => { user = null; render(); status.textContent = 'Your session expired. Sign in again when needed.'; });
   button.addEventListener('click', async () => {
     button.disabled = true;

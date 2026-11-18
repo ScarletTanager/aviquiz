@@ -15,7 +15,7 @@ CREATE TABLE app_identities (
 CREATE INDEX app_identities_user_idx ON app_identities(user_id);
 CREATE TABLE app_grants (
   user_id TEXT NOT NULL REFERENCES app_users(id) ON DELETE RESTRICT,
-  permission TEXT NOT NULL CHECK(permission IN ('system.admin','experiment.id-tips','annotations.read','annotations.edit','annotations.publish')),
+  permission TEXT NOT NULL CHECK(permission IN ('system.admin','users.invite','experiment.id-tips','annotations.read','annotations.edit','annotations.publish')),
   PRIMARY KEY(user_id,permission)
 );
 CREATE TABLE routes (
