@@ -45,7 +45,9 @@ async function initialize() {
       if (account.kind !== 'user') throw Error('Account registration unavailable.');
       status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}${account.administrator ? ' · AviQuiz administrator' : ''}. Quiz progress is still stored in this browser.`;
     } catch {
-      status.textContent = `Signed in to Cognito, but ${setupStage.toLowerCase()} could not finish${setupStatus ? ' (HTTP ' + setupStatus + ')' : ' (connection unavailable)'}. ${setupStatus===401 ? 'Sign out and sign in again.' : 'Reload to retry.'} Guest quizzes remain available.`;
+      status.dataset.accountSetupStage = setupStage;
+      status.dataset.accountSetupStatus = String(setupStatus || 'network');
+      status.textContent = `Sign-in succeeded, but AviQuiz ${setupStage.toLowerCase()} could not finish. ${setupStatus===401 ? 'Sign out and sign in again.' : 'Reload to retry.'} Guest quizzes remain available.`;
     }
   }
   manager.events.addAccessTokenExpired(() => { user = null; render(); status.textContent = 'Your session expired. Sign in again when needed.'; });

@@ -234,4 +234,6 @@ must dispatch `/api/account` and its children to accountApi before the review
 controller. A 404 with “Unknown review route” means the wrong API controller
 handled the account request, rather than a Cognito login failure. Regression
 test-review.mjs checks both entry points. The account status identifies the
-registration or administrator-setup phase and its HTTP status without tokens.
+registration or administrator-setup phase in user-facing language. Technical
+HTTP status is available as data-account-setup-status on #account-status and in
+browser network tools, without displaying the provider name or tokens.
