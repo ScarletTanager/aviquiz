@@ -13,3 +13,11 @@ const logout=new URL(logoutURL(config));
 assert.equal(logout.pathname,'/logout');
 assert.equal(logout.searchParams.get('logout_uri'),'https://aviquiz.org/');
 console.log('Authentication configuration and redirect checks passed.');
+
+const {authConfig} = await import('./dist/auth-config.mjs');
+assert.ok(managerSettings(authConfig, new URL(authConfig.redirect_uri).origin));
+assert.equal(new URL(logoutURL(authConfig)).origin, authConfig.cognitoDomain);
+console.log('Staging configuration is enabled with matching callback/logout origins.');
+
+assert.equal(new URL(authConfig.redirect_uri).pathname, '/auth/callback');
+assert.equal(new URL(authConfig.post_logout_redirect_uri).pathname, '/');

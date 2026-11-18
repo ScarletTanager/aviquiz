@@ -85,7 +85,7 @@ Launch policy subsequently agreed: AviQuiz account creation will be administrato
 
 Design references: [OpenID Connect identifiers](https://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes), [OWASP authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
 
-## Cognito browser integration (prepared, inactive)
+## Cognito browser integration
 
 `oidc-client-ts` 3.5.0 is pinned in package.json/package-lock.json. Run `npm ci`
 and `npm run build:auth` to refresh the tracked browser ESM distribution and its
@@ -101,7 +101,8 @@ Before activation, set the actual Cognito managed-login domain, exact callback
 URL (recommended `/auth/callback` on the selected host), and logout return URL.
 Register those exact URLs on the public Cognito app client, enable authorization
 code grant and openid/email scopes, and confirm invite-only registration settings.
-Then set `enabled: true`. Use a separate configuration/app client for each host
+Then set `enabled: true`. The current staging configuration is enabled using the
+Cognito domain and registered URLs supplied by Sandy. Use a separate configuration/app client for each host
 if needed; return URLs are validated against the current origin. AWS changes
 require Sandy's individual confirmation. No discovery or auth requests occur
 while disabled.
@@ -116,6 +117,5 @@ guests. This browser account state is not authorization: the dormant server
 identity verifier and invite/account provisioning still need wiring before any
 protected capability uses Cognito, and statistics remain browser-local.
 
-Verify locally with `node test-auth.mjs`. A live sign-in round trip is pending
-Cognito domain and URL configuration; configuration tests are not proof of a
-working AWS login.
+Verify locally with `node test-auth.mjs`. A live sign-in round trip is pending user testing; configuration tests are not
+proof of a working AWS login.
