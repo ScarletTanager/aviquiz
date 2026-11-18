@@ -227,3 +227,11 @@ Local backend builds now require `npm ci` first, then
 signature, bootstrap and database tests; it makes no AWS requests. Cognito
 runtime verifies public keys via fixed issuer JWKS, without AWS management
 credentials. Each agent AWS action still requires separate user confirmation.
+
+
+Account API routing: both the exported `api` handler and default Worker `fetch`
+must dispatch `/api/account` and its children to accountApi before the review
+controller. A 404 with “Unknown review route” means the wrong API controller
+handled the account request, rather than a Cognito login failure. Regression
+test-review.mjs checks both entry points. The account status identifies the
+registration or administrator-setup phase and its HTTP status without tokens.

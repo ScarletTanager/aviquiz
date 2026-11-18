@@ -64,3 +64,16 @@ for(const path of ['/auth/callback','/auth.mjs','/auth-config.mjs','/oidc-client
 assert.equal((await worker.fetch(req('/unknown'),env)).status,404);
 assert.equal((await api(req('/api/reviews'),{})).status,503);
 console.log('Passed: real SQLite storage/migration, owner and agent access, viewer denial, cross-origin denial, draft isolation, approval, revision conflicts, concurrent breadth-first approvals, exhausted candidates, unpublish, idempotent pilot import, shared tips across families and withdrawal, Worker assets, storage failure.');
+
+// Sites callers must get the same account dispatch through either exported entry point.
+for(const handler of [api,worker.fetch]) {
+  const guest=await handler(req('/api/account'),env);
+  assert.equal(guest.status,200);
+  assert.equal((await guest.json()).kind,'guest');
+  for(const path of ['/api/account/enroll','/api/account/bootstrap']) {
+    const response=await handler(req(path,{}, {origin:'https://quiz.example','oai-authenticated-user-id':owner}),env);
+    assert.equal(response.status,401);
+    assert.equal((await response.json()).error,'Sign in required.');
+  }
+}
+console.log('Passed account dispatch parity through named API and default Worker fetch, without AWS requests.');

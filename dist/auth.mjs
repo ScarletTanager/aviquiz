@@ -28,20 +28,24 @@ async function initialize() {
   }
   render();
   if (user && !user.expired) {
+    let setupStage='Account registration', setupStatus=null;
     try {
       const headers = {'authorization': `Bearer ${user.id_token}`, 'content-type': 'application/json'};
       let response = await fetch('/api/account/enroll', {method:'POST', headers, body:'{}'});
+      setupStatus=response.status;
       if (!response.ok) throw Error('Account registration unavailable.');
       let account = await response.json();
       if (account.canBootstrap) {
+        setupStage='Administrator setup'; setupStatus=null;
         response = await fetch('/api/account/bootstrap', {method:'POST', headers, body:'{}'});
+        setupStatus=response.status;
         if (!response.ok) throw Error('Administrator setup unavailable.');
         account = await response.json();
       }
       if (account.kind !== 'user') throw Error('Account registration unavailable.');
       status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}${account.administrator ? ' · AviQuiz administrator' : ''}. Quiz progress is still stored in this browser.`;
     } catch {
-      status.textContent = 'Signed in to Cognito, but AviQuiz account setup could not finish. Reload to retry. Guest quizzes remain available.';
+      status.textContent = `Signed in to Cognito, but ${setupStage.toLowerCase()} could not finish${setupStatus ? ' (HTTP ' + setupStatus + ')' : ' (connection unavailable)'}. ${setupStatus===401 ? 'Sign out and sign in again.' : 'Reload to retry.'} Guest quizzes remain available.`;
     }
   }
   manager.events.addAccessTokenExpired(() => { user = null; render(); status.textContent = 'Your session expired. Sign in again when needed.'; });

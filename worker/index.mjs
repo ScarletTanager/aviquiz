@@ -18,6 +18,8 @@ async function canEdit(request,env){
 }
 export async function api(request,env){
   const url=new URL(request.url),path=url.pathname;
+  // Keep the named API entry point consistent with default.fetch.
+  if(path==='/api/account'||path.startsWith('/api/account/'))return accountApi(request,env);
   if(!env.DB)return json({error:'Shared review storage is unavailable. Please try again later.'},503);
   try{
     const editor=await canEdit(request,env);
@@ -78,7 +80,6 @@ export async function api(request,env){
 export default {
   async fetch(request,env){
     const path=new URL(request.url).pathname;
-    if(path==='/api/account'||path.startsWith('/api/account/'))return accountApi(request,env);
     if(path.startsWith('/api/'))return api(request,env);
     if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405});
     const name=['/auth/callback','/','/index.html','/quiz','/quiz/','/trips','/trips/','/routes','/routes/','/statistics','/statistics/'].includes(path)?'/index.html':path==='/review'||path==='/review/'?'/review.html':path;
