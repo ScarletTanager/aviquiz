@@ -77,3 +77,40 @@ assert.equal(chooseSiteClue(birds[2],sites),null);
 assert.equal(chooseSiteClue({sites:['unmapped']},sites),null);
 const before=JSON.stringify(birds);chooseSiteClue(birds[0],sites);assert.equal(JSON.stringify(birds),before);
 console.log('Passed context: legacy preservation; independent rolling site/species windows; Guajira/Chicaque isolation; family/all-sites exclusions; scoped reviews; linked totals/sorts; experimental exclusion; clue eligibility, random endpoints and unmapped sites.');
+
+// Backups retain both media and site context, and recover from interrupted writes.
+{
+ const {createBackup,parseBackup,importBackup,recoverImport}=await import('./dist/browser-backup.mjs');
+ const {PROGRESS_KEY,AUDIO_PROGRESS_KEY}=await import('./dist/progress.mjs');
+ const {ANNOTATION_REVIEW_KEY}=await import('./dist/annotation-review.mjs');
+ const values=new Map([[PROGRESS_KEY,JSON.stringify(latest)],[AUDIO_PROGRESS_KEY,JSON.stringify(legacy)],[ANNOTATION_REVIEW_KEY,'["123","456"]']]);
+ const storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
+ const backup=parseBackup(JSON.stringify(createBackup(storage,'https://old.example')));
+ assert.deepEqual(backup.photo,latest);assert.deepEqual(backup.audio,legacy);
+ assert.deepEqual(backup.reviewedPhotos,['123','456']);
+ assert.throws(()=>parseBackup('not JSON'),/valid JSON/);
+ assert.throws(()=>parseBackup(JSON.stringify({...backup,version:99})),/supported/);
+ assert.throws(()=>parseBackup(JSON.stringify({...backup,photo:{version:1,species:{shared:{attempts:[true,'bad']}}}})),/invalid/);
+ assert.throws(()=>parseBackup(JSON.stringify({...backup,reviewedPhotos:['bad']})),/invalid/);
+ assert.throws(()=>parseBackup(JSON.stringify({...backup,photo:{...backup.photo,latestQuizzes:{sites:{Gu:{correct:999}}}}})),/invalid/);
+ values.clear();
+ importBackup(storage,backup);
+ const firstImport=[...values];
+ importBackup(storage,backup);
+ assert.deepEqual([...values],firstImport);
+ assert.deepEqual(parseProgress(storage.getItem(PROGRESS_KEY)),latest);
+ const before=[...values];
+ let failOnce=true;
+ const failing={...storage,setItem(key,value){if(key===AUDIO_PROGRESS_KEY&&failOnce){failOnce=false;throw Error('quota');}storage.setItem(key,value);}};
+ assert.throws(()=>importBackup(failing,{...backup,photo:legacy}),/restored/);
+ assert.deepEqual([...values],before);
+ // Simulate an interruption after the first write, retaining the recovery record.
+ const interruptedSaved=new Map([[PROGRESS_KEY,JSON.stringify(legacy)],[AUDIO_PROGRESS_KEY,JSON.stringify(legacy)]]);
+ values.clear();for(const entry of interruptedSaved)values.set(...entry);
+ const persistentFailure={...storage,setItem(key,value){if(key===AUDIO_PROGRESS_KEY)throw Error('quota');storage.setItem(key,value);}};
+ assert.throws(()=>importBackup(persistentFailure,backup),/Reload/);
+ recoverImport(storage);
+ assert.deepEqual([...values], [...interruptedSaved]);
+ assert.equal(createBackup(storage,'https://new.example').reviewedPhotos.length,0);
+ console.log('Passed browser backup round-trip, legacy compatibility, validation, repeat imports, write rollback and reload recovery.');
+}

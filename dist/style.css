@@ -71,3 +71,10 @@
 .photo-zoom-scroll img{display:block;width:max(100%,900px);max-width:none;height:auto}
 #photo-zoom-credit{padding:8px 14px;font-size:12px;line-height:1.45;color:var(--muted);border-top:1px solid var(--line);overflow-wrap:anywhere}
 #photo-zoom-credit a{color:var(--ink)}
+
+.browser-backup{margin-top:36px;padding-top:24px;border-top:1px solid var(--line);max-width:800px}
+.browser-backup h2{font-size:25px}
+.browser-backup p{font-size:13px;line-height:1.7}
+.browser-backup label{display:block;margin-top:24px}
+.browser-backup input[type=file]{height:auto;max-width:100%;padding:12px}
+#backup-status{overflow-wrap:anywhere}

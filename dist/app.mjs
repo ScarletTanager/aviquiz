@@ -5,6 +5,7 @@ import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions
 import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,progressKey,emptyProgress,parseProgress,recordAttempt,recordQuizResult,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './statistics.mjs';
 import {ID_TIPS,tipsFor,annotatedBirds,annotationSvg,applySharedTips} from './id-tips.mjs';
+import {MAX_BACKUP_BYTES,createBackup,parseBackup,backupSummary,importBackup,recoverImport} from './browser-backup.mjs';
 const $=id=>document.getElementById(id);
 let routeEditor;
 let data,queue=[],index=0,answers=[],answered=false,currentPhoto=null,photoTry=0,imageReady=false,sessionToken=0,photoOrder=[];
@@ -19,6 +20,11 @@ function renderSiteClue(){
   $('site-clue').textContent=currentSiteClue?`Checklist site: ${currentSiteClue.name}`:'No named checklist site is available for this species.';
 }
 const histories={photo:emptyProgress(),audio:emptyProgress()},storageUsable={photo:true,audio:true};
+try{recoverImport(localStorage);}catch{
+  storageUsable.photo=false;storageUsable.audio=false;
+  $('storage-status').textContent='Saved data recovery could not finish. Reload AviQuiz before taking a quiz.';
+  $('backup-status').textContent='Browser storage could not be recovered. Reload before importing or taking a quiz.';
+}
 const selectedMedium=()=>$('medium').value;
 const statsMedium=()=>$('stats-medium').value;
 const mediumName=m=>m==='audio'?'audio':'visual';
@@ -390,6 +396,56 @@ $('review-quiz').addEventListener('click',()=>{
 });
 $('medium').addEventListener('change',()=>{readProgress();$('stats-medium').value=selectedMedium();updatePool();renderStatistics();});
 $('stats-medium').addEventListener('change',()=>{readProgress(statsMedium());renderStatistics();});
+let pendingBackup=null,importRead=0;
+const backupState=()=>JSON.stringify([localStorage.getItem(PROGRESS_KEY),localStorage.getItem(AUDIO_PROGRESS_KEY),localStorage.getItem(ANNOTATION_REVIEW_KEY)]);
+let previewState='';
+$('export-progress').addEventListener('click',()=>{
+  let url;
+  try{
+    const backup=createBackup(localStorage,location.origin);
+    const text=JSON.stringify(backup,null,2);
+    if(new TextEncoder().encode(text).length>MAX_BACKUP_BYTES)throw Error('This backup exceeds the 5 MB import limit.');
+    url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
+    const link=document.createElement('a');
+    link.href=url;link.download='aviquiz-backup-'+backup.exportedAt.slice(0,10)+'.json';
+    link.click();
+    $('backup-status').textContent='Export prepared. Keep the downloaded JSON file for import at aviquiz.org.';
+  }catch{$('backup-status').textContent='Export failed. Browser storage may be unavailable or contain unreadable data. Your saved data has been kept.';}
+  finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),1000);}
+});
+$('import-progress-file').addEventListener('change',async()=>{
+  const token=++importRead;
+  pendingBackup=null;$('import-progress').disabled=true;$('import-preview').hidden=true;
+  const file=$('import-progress-file').files?.[0];
+  if(!file)return;
+  try{
+    if(file.size>MAX_BACKUP_BYTES)throw Error('Choose an AviQuiz backup smaller than 5 MB.');
+    const backup=parseBackup(await file.text());
+    if(token!==importRead)return;
+    previewState=backupState();pendingBackup=backup;
+    $('import-preview').textContent=backupSummary(backup);
+    $('import-preview').hidden=false;$('import-progress').disabled=false;
+    $('backup-status').textContent='File checked. Export any history you want to keep before replacing it.';
+  }catch(error){
+    if(token===importRead)$('backup-status').textContent=error.message;
+  }
+});
+$('import-progress').addEventListener('click',()=>{
+  if(!pendingBackup)return;
+  try{
+    if(previewState!==backupState())throw Error('Your saved history changed after the preview. Select the file again to review the replacement.');
+    importBackup(localStorage,pendingBackup);
+    storageUsable.photo=true;storageUsable.audio=true;
+    readProgress('photo');readProgress('audio');readReviewedPhotos();
+    updatePool();renderStatistics();renderSpeciesList();
+    pendingBackup=null;$('import-progress').disabled=true;
+    $('import-progress-file').value='';$('import-preview').hidden=true;
+    $('backup-status').textContent='Import complete. Your statistics and photo review marks are saved in this browser.';
+  }catch(error){
+    try{recoverImport(localStorage);}catch{storageUsable.photo=false;storageUsable.audio=false;}
+    $('backup-status').textContent=error.message;
+  }
+});
 $('site-only-stats').addEventListener('change',renderStatistics);
 $('site-clue-toggle').addEventListener('change',()=>{siteClueEnabled=$('site-clue-toggle').checked;renderSiteClue();});
 document.addEventListener('play',e=>{if(e.target.tagName==='AUDIO')document.querySelectorAll('audio').forEach(a=>{if(a!==e.target)a.pause();});},true);

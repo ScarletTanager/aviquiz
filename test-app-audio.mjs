@@ -50,7 +50,7 @@ globalThis.document={getElementById:id=>{assert.ok(elements.has(id),'Missing DOM
 globalThis.window={scrollTo(){},addEventListener:(name,fn)=>(windowEvents[name]??=[]).push(fn)};
 globalThis.location={origin:'https://aviquiz.test',hash:'',pathname:'/',search:''};globalThis.history={pushState(_s,_t,url){const u=new URL(url,'https://aviquiz.test');Object.assign(location,{pathname:u.pathname,search:u.search,hash:u.hash});},replaceState(s,t,url){this.pushState(s,t,url);}};
 const existing=recordAttempt(emptyProgress(),data.birds[0].id,true),visualInitial=JSON.stringify(existing),store=new Map([[PROGRESS_KEY,visualInitial]]);
-globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)};
+globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
 globalThis.fetch=async url=>{url=url.replace(/^\//,'');return {ok:!(process.env.AUDIO_CATALOG_FAIL==='1'&&url==='audio.json'),json:async()=>url==='data.json'?data:url==='audio.json'?audio:url==='route-pilot.json'?routeCatalog:{annotations:sharedAnnotations,coverage:{covered:3,approved:6}}};};
 async function settle(){await tick();await tick();}
 assert.ok($('site').options[0],'Site option fixture');
@@ -391,4 +391,44 @@ console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, a
  $('stats-medium').value='audio';await $('stats-medium').fire('change');
  assert.match(siteRow(),/Latest quiz.*No result yet/);
  console.log('Passed latest quiz display, scoped completion, skipped media, saved progress, site-only comparison and medium isolation.');
+}
+
+// Export a browser snapshot and import it through the Statistics file controls.
+{
+ await $('nav-statistics').fire('click');
+ let exportedBlob,download;
+ const createURL=URL.createObjectURL,revokeURL=URL.revokeObjectURL;
+ URL.createObjectURL=blob=>{exportedBlob=blob;return 'blob:backup-test';};
+ URL.revokeObjectURL=()=>{};
+ Element.prototype.click=function(){download={href:this.href,name:this.download};};
+ await $('export-progress').fire('click');
+ URL.createObjectURL=createURL;URL.revokeObjectURL=revokeURL;
+ assert.match(download.name,/^aviquiz-backup-.*\.json$/);
+ const serialized=await exportedBlob.text(),backup=JSON.parse(serialized);
+ assert.equal(backup.app,'AviQuiz');
+ assert.deepEqual(backup.photo,JSON.parse(store.get(PROGRESS_KEY)));
+ assert.deepEqual(backup.audio,JSON.parse(store.get(AUDIO_PROGRESS_KEY)));
+ const beforeImport=new Map(store);
+ $('import-progress-file').files=[{size:3,text:async()=>'bad'}];
+ await $('import-progress-file').fire('change');
+ assert.equal($('import-progress').disabled,true);
+ assert.match($('backup-status').textContent,/not valid JSON/);
+ assert.deepEqual(store,beforeImport);
+ $('import-progress-file').files=[{size:serialized.length,text:async()=>serialized}];
+ await $('import-progress-file').fire('change');
+ assert.equal($('import-progress').disabled,false);
+ assert.match($('import-preview').textContent,/Visual.*saved answers.*Audio/);
+ // Changed progress invalidates the pending preview before any replacement.
+ store.set(PROGRESS_KEY,JSON.stringify(recordAttempt(backup.photo,data.birds[0].id,false)));
+ await $('import-progress').fire('click');
+ assert.match($('backup-status').textContent,/changed after the preview/);
+ await $('import-progress-file').fire('change');await $('import-progress').fire('click');
+ assert.match($('backup-status').textContent,/Import complete/);
+ assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)),backup.photo);
+ assert.deepEqual(JSON.parse(store.get(AUDIO_PROGRESS_KEY)),backup.audio);
+ assert.deepEqual(JSON.parse(store.get(ANNOTATION_REVIEW_KEY)),backup.reviewedPhotos);
+ assert.equal($('import-progress').disabled,true);
+ await $('import-progress-file').fire('change');await $('import-progress').fire('click');
+ assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)),backup.photo);
+ console.log('Passed browser export download, import preview, invalid-file rejection, stale-preview protection and repeat import.');
 }

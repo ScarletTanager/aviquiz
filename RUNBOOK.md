@@ -190,3 +190,13 @@ See [AAA.md](AAA.md). `node test-accounts.mjs` validates the server libraries an
 ## When hosting or identity changes
 
 Update this runbook alongside the change. Establish separate environment IDs, databases, secrets, authentication clients/callbacks, and access policies. Document the new runtime build/launch/shutdown, schema migration, logs, backups/restoration, guest access, rollback, and provider identity validation. The current trusted-header owner check cannot simply be exposed on a generic Azure endpoint. Independent managed authentication, per-user/per-route permissions, public guest hosting, and eBird ingestion are not implemented by these documents.
+
+## Moving browser progress to a new hostname
+
+In Statistics, use Export progress to download an AviQuiz JSON backup. The file carries visual and audio history, independent site-only attempts, latest completed quiz results, and personal annotation review marks. Each browser/device has its own history and needs its own export.
+
+On the destination hostname, open Statistics, select the JSON backup, check the preview, and choose Replace saved progress with this file. Import restores the snapshot and replaces existing browser progress. Export any destination history to keep before importing. Repeated imports restore the same snapshot. Close other AviQuiz tabs during import. History has no unique attempt IDs or timestamps suitable for a reliable merge.
+
+Import validates the entire file before writing. A temporary recovery record retains the previous values until all writes succeed. Failed writes roll back. If browser storage prevents rollback, reload to retry recovery before practicing.
+
+Shared photo-review drafts and approvals live in the backend database and require a separate database migration. Browser backups contain personal quiz progress and review marks.
