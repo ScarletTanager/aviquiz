@@ -84,3 +84,38 @@ No fake sign-in or test-provider bypass should be deployed. Turnstile is intenti
 Launch policy subsequently agreed: AviQuiz account creation will be administrator-invited only; public guest quizzes remain permanent. The dormant registration method does not yet implement invitation validation and must not be exposed until expiring, single-use, verified-email-bound invitations and limits are enforced. Route membership for existing users is separate from account invitations. Cognito Essentials is the current candidate, not a provisioned integration; self-service signup must be disabled before launch.
 
 Design references: [OpenID Connect identifiers](https://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes), [OWASP authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html).
+
+## Cognito browser integration (prepared, inactive)
+
+`oidc-client-ts` 3.5.0 is pinned in package.json/package-lock.json. Run `npm ci`
+and `npm run build:auth` to refresh the tracked browser ESM distribution and its
+license. The Worker build embeds this asset; production needs no npm runtime.
+Weekly Dependabot updates include npm dependencies.
+
+`dist/auth-config.mjs` contains public identifiers supplied from the console for
+“User pool - lfvjoz” (us-east-2). These have not been checked against AWS. The CLI
+profile's default region us-east-1 does not change the pool's region. Confirm
+that the supplied pool ID and client ID belong to this pool before enabling.
+
+Before activation, set the actual Cognito managed-login domain, exact callback
+URL (recommended `/auth/callback` on the selected host), and logout return URL.
+Register those exact URLs on the public Cognito app client, enable authorization
+code grant and openid/email scopes, and confirm invite-only registration settings.
+Then set `enabled: true`. Use a separate configuration/app client for each host
+if needed; return URLs are validated against the current origin. AWS changes
+require Sandy's individual confirmation. No discovery or auth requests occur
+while disabled.
+
+The frontend uses the library's code/PKCE redirect flow and callback processing,
+with OIDC state and user data in sessionStorage. It does not render or log tokens.
+Automatic silent renewal is disabled per the library's Cognito guidance; expired
+sessions require sign-in again. Sign-out clears this tab's stored session and
+redirects to Cognito logout; this is not a global token-revocation guarantee.
+Callback parameters are cleared after processing. Quizzes remain available to
+guests. This browser account state is not authorization: the dormant server
+identity verifier and invite/account provisioning still need wiring before any
+protected capability uses Cognito, and statistics remain browser-local.
+
+Verify locally with `node test-auth.mjs`. A live sign-in round trip is pending
+Cognito domain and URL configuration; configuration tests are not proof of a
+working AWS login.

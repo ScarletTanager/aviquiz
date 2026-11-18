@@ -4,3 +4,5 @@ __pycache__/
 dist/server/
 dist/.openai/
 .review-agent.json
+
+node_modules/
