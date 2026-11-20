@@ -28,7 +28,7 @@ class IngestTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix='aviquiz-ingest-test-')
         self.folder = Path(self.temporary.name)
-        self.paths = fixtures.PartitionTests.sources(self)
+        self.paths = fixtures.PartitionTests.sources(self, [('US', 'US-', 'United States', 'United States'), ('US', 'US-NC', 'United States', 'North Carolina')])
         self.limit_patch = patch.object(ingest.resource, 'setrlimit')
         self.limit_patch.start()
 
@@ -53,7 +53,7 @@ class IngestTests(unittest.TestCase):
         final = json.loads((output / 'manifest.json').read_text())
         self.assertEqual(final['status'], 'partitioned')
         self.assertFalse(final['serving_ready'])
-        self.assertEqual(len(final['partitions']), 7)
+        self.assertEqual(len(final['partitions']), 2)
         self.assertEqual(final['queue'][0]['region'], 'US-NC')
         for item in final['partitions']:
             for value in item['files'].values():

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Offline regional routing, priority and incomplete-source safety checks."""
+import csv
 import gzip
 import importlib.util
 import io
@@ -124,6 +125,19 @@ class PartitionTests(unittest.TestCase):
                 with gzip.open(self.folder / 'out' / file['path'], 'rt') as stream:
                     lines = stream.readlines()
                 self.assertEqual(len(lines), 3)  # one header across concatenated gzip members
+
+    def test_country_only_us_placeholder_retains_rows(self):
+        paths = self.sources([('US', 'US-', 'United States', 'United States')])
+        manifest = self.run_partition(paths)
+        self.assertEqual(manifest['status'], 'partitioned')
+        self.assertEqual(manifest['partitions'][0]['region'], 'US')
+        self.assertEqual(manifest['partitions'][0]['rows'], {'sampling': 1, 'observations': 1})
+        for value in manifest['partitions'][0]['files'].values():
+            with gzip.open(self.folder / 'out' / value['path'], 'rt') as stream:
+                row = next(csv.DictReader(stream, delimiter='\t'))
+            self.assertEqual(row['STATE CODE'], 'US-')
+        with self.assertRaises(ValueError):
+            module.region_key('US', '../bad')
 
     def test_sample_projection_still_matches_aggregate_baseline(self):
         sample = ROOT.parents[1] / 'outputs/ebd_sample'

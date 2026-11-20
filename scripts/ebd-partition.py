@@ -44,6 +44,24 @@ def checksum(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+COUNTRY_CODE = re.compile(r'[A-Z]{2}')
+US_STATE_CODE = re.compile(r'US-[A-Z0-9]{1,6}')
+
+
+def region_key(country, state):
+    if not COUNTRY_CODE.fullmatch(country):
+        raise ValueError('Invalid country code')
+    if country != 'US':
+        return country
+    # The full release uses US- for records with no assigned US state.
+    # Route these to the residual country partition, preserving raw fields.
+    if state in ('', 'US-'):
+        return 'US'
+    if not US_STATE_CODE.fullmatch(state):
+        raise ValueError('Invalid US state code')
+    return state
+
+
 def priorities(value):
     rules = [v.strip().upper() for v in value.split(',')]
     if not rules or any(not re.fullmatch(r'(?:[A-Z]{2}|US-[A-Z0-9]{1,6}|US-\*|\*)', r) for r in rules):
@@ -189,12 +207,7 @@ def partition(*, observations, sampling, output, release, first_year, last_year,
                     if not first_year <= day.year <= last_year:
                         counts['rows_outside_years'] += 1
                         continue
-                    country, state = row['COUNTRY CODE'], row['STATE CODE']
-                    if not re.fullmatch(r'[A-Z]{2}', country):
-                        raise ValueError('Invalid country code')
-                    key = state if country == 'US' and state else country
-                    if country == 'US' and state and not re.fullmatch(r'US-[A-Z0-9]{1,6}', state):
-                        raise ValueError('Invalid US state code')
+                    key = region_key(row['COUNTRY CODE'], row['STATE CODE'])
                     if not row['SAMPLING EVENT IDENTIFIER']:
                         raise ValueError('Missing sampling event identifier')
                     name = row['STATE'] if key.startswith('US-') else row['COUNTRY']

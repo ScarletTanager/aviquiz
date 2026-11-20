@@ -13,7 +13,8 @@ that matching events, years, or countries are adjacent or in the same order.
 
 `scripts/ebd-partition.py partition` reads each input once and writes compressed
 regional projections: one partition per US state, and one per other country.
-US records with no state have a residual `US` partition. Rows outside the explicit
+US records with no state (including the release’s `US-` placeholder) have a
+residual `US` partition. The original state-code field remains unchanged. Rows outside the explicit
 observation-year range are counted and excluded. This step does not filter taxa,
 deduplicate outings, or calculate reporting rates.
 

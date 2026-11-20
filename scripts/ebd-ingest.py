@@ -6,7 +6,6 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import re
 import resource
 import shutil
 import signal
@@ -50,7 +49,6 @@ def consume(config):
     result = {'kind': kind, 'status': 'incomplete', 'rows_read': 0, 'partitions': {},
               'source_complete': False, 'gzip_checksum_verified': False, 'serving_ready': False}
     started = last = time.monotonic()
-    country_pattern, state_pattern = re.compile(r'[A-Z]{2}'), re.compile(r'US-[A-Z0-9]{1,6}')
     def stopping(signum, frame):
         raise InterruptedError('Stopped by supervisor')
     signal.signal(signal.SIGTERM, stopping)
@@ -63,10 +61,7 @@ def consume(config):
             if not set(p.PROJECTION[kind]) <= set(header):
                 raise ValueError('Required projection fields are missing')
             for row in b.records(stream, header, started + config['seconds']):
-                country, state = row['COUNTRY CODE'], row['STATE CODE']
-                if not country_pattern.fullmatch(country) or (country == 'US' and state and not state_pattern.fullmatch(state)):
-                    raise ValueError('Invalid geographic code')
-                key = state if country == 'US' and state else country
+                key = p.region_key(row['COUNTRY CODE'], row['STATE CODE'])
                 day = row['OBSERVATION DATE']
                 if date.fromisoformat(day).isoformat() != day or not row['SAMPLING EVENT IDENTIFIER']:
                     raise ValueError('Invalid date or missing sampling event identifier')

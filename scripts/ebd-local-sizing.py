@@ -6,7 +6,6 @@ import importlib.util
 import json
 from pathlib import Path
 import resource
-import re
 import shutil
 import sys
 import time
@@ -31,9 +30,7 @@ def profile(config):
             raise ValueError('Required projection fields are missing')
         try:
             for row in bench.records(stream, header, deadline):
-                key = row['STATE CODE'] if row['COUNTRY CODE'] == 'US' and row['STATE CODE'] else row['COUNTRY CODE']
-                if not re.fullmatch(r'(?:[A-Z]{2}|US-[A-Z0-9]{1,6})', key):
-                    raise ValueError('Invalid geographic key')
+                key = partitioner.region_key(row['COUNTRY CODE'], row['STATE CODE'])
                 if key not in counts and len(counts) >= 1024:
                     raise ValueError('Regional partition limit reached')
                 content = ('\t'.join(row[field] for field in partitioner.PROJECTION[kind]) + '\n').encode()
