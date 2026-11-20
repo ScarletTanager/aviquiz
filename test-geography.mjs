@@ -19,7 +19,7 @@ assert.equal(geographyPool({scope,nodes:seed.nodes,catalog,birds:data.birds,star
 assert.throws(()=>geographySelection(new URLSearchParams('geo=CO&from=2027-02-01&to=2027-02-28&questions=-1')));
 export async function runLocationCacheTests(db){
  let calls=0,clock=Date.now(),fail=false,release=null,pause=false;
- const fetcher=async(url,options)=>{calls++;if(pause)await new Promise(resolve=>{release=resolve;});assert.equal(new URL(url).host,'api.ebird.org');assert.equal(options.headers['x-ebirdapitoken'],'test-key');if(fail)return new Response('',{status:429,headers:{'retry-after':'120'}});return Response.json([{code:'CO-CAL',name:'Caldas'}]);};
+ const fetcher=async(url,options)=>{calls++;if(pause)await new Promise(resolve=>{release=resolve;});assert.equal(new URL(url).host,'api.ebird.org');assert.equal(options.headers['x-ebirdapitoken'],'test-key');assert.equal(options.redirect,'manual');if(fail)return new Response('',{status:429,headers:{'retry-after':'120'}});return Response.json([{code:'CO-CAL',name:'Caldas'}]);};
  const store=locationCache(db),parent={id:'CO',kind:'country'};
  let provider=createEbirdLocations({apiKey:'test-key',fetcher,store,now:()=>clock});
  const first=await provider.read('regions',parent);assert.equal(first.rows[0].id,'CO-CAL');assert.equal(calls,1);
@@ -32,6 +32,12 @@ export async function runLocationCacheTests(db){
  await assert.rejects(()=>provider.read('regions',parent,{refresh:true}));assert.equal(calls,3); // respect rate-limit backoff
  await assert.rejects(()=>provider.read('regions',{id:'https://evil.test',kind:'country'}));
  const serialized=(await db.prepare("SELECT body_json FROM location_metadata_cache WHERE cache_key='regions:CO'").first()).body_json;assert.ok(!serialized.includes('test-key'));
+ // A redirect must neither be followed nor replace last-good metadata. This
+ // mode is supported by Workers, which rejects redirect:'error' before I/O.
+ let redirects=0;
+ const redirectProvider=createEbirdLocations({apiKey:'test-key',store,fetcher:async(url,options)=>{redirects++;assert.equal(options.redirect,'manual');return new Response(null,{status:302,headers:{location:'https://untrusted.example'}});}});
+ await assert.rejects(()=>redirectProvider.read('regions',parent,{refresh:true}));assert.equal(redirects,1);
+ assert.equal((await redirectProvider.read('regions',parent)).rows[0].name,'Caldas');
  console.log(`Passed ${db.dialect}: persistent metadata cache across restart/age, explicit refresh, retained last-good data, 429 backoff, fixed endpoint validation and no cached key.`);
 }
 if(import.meta.main){
@@ -68,27 +74,49 @@ if(import.meta.main){
  const ids=[...((await fs.readFile('dist/explore.html','utf8')).matchAll(/id="([^"]+)"/g))].map(m=>m[1]),elements=Object.fromEntries(ids.map(id=>[id,new Element()]));
  elements['geo-family'].value='all';elements['geo-count'].value='20';
  let assigned='';const location={search:'?from=2027-02-01&to=2027-02-28',assign(url){assigned=url;}};
- const apiRequest=[];
+ const apiRequest=[];let holdParent=null;const releaseHeld=[];
  const fetcher=async url=>{
   if(url==='/geography-seed.json')return {ok:true,json:async()=>seed};if(url==='/route-pilot.json')return {ok:true,json:async()=>catalog};if(url==='/data.json')return {ok:true,json:async()=>data};
   if(url==='/api/account')return {ok:true,json:async()=>({kind:'guest'})};
   const u=new URL(url,'https://quiz.example'),id=u.searchParams.get('parent'),type=u.searchParams.get('type'),parent=seed.nodes.find(n=>n.id===id);apiRequest.push(id);
+  if(id===holdParent)await new Promise(resolve=>releaseHeld.push(resolve));
   const ancestors=[];let n=parent;while(n){ancestors.unshift(n);n=seed.nodes.find(x=>x.id===n.parent);}
   return {ok:true,json:async()=>({parent,ancestors,children:seed.nodes.filter(n=>n.parent===id&&(type==='hotspots'?['hotspot','site'].includes(n.kind):!['hotspot','site'].includes(n.kind))),notice:'Pilot directory',fetchedAt:null})};
  };
  const document={getElementById:id=>elements[id],createElement:()=>new Element(),createDocumentFragment:()=>new Element(),createTextNode:text=>({textContent:text})};
  const history={pushState(a,b,url){location.search=new URL(url,'https://quiz.example').search;}};
- const context=vm.createContext({document,location,history,fetch:fetcher,accountFetch:fetcher,URLSearchParams,Intl,Date,console,window:{addEventListener(){}},familyName:(await import('./dist/quiz.mjs')).familyName,geographyPool,monthRange,seasonRange});
+ const windowEvents={};
+ const context=vm.createContext({document,location,history,fetch:fetcher,accountFetch:fetcher,URLSearchParams,Intl,Date,console,window:{addEventListener(name,fn){windowEvents[name]=fn;}},familyName:(await import('./dist/quiz.mjs')).familyName,geographyPool,monthRange,seasonRange});
  const source=(await fs.readFile('dist/geography-ui.mjs','utf8')).replace(/^import .*;\n/gm,'');
  await vm.runInContext('(async()=>{'+source+'})()',context);
  const leaves=e=>e.children.flatMap(n=>n instanceof Element?[n,...leaves(n)]:[]);
- async function choose(name){const button=leaves(elements['geo-children']).find(e=>e.textContent===name+' →');assert.ok(button,name);await button.listeners.click();}
- await choose('South America');await choose('Colombia');await choose('Caldas');
+ const lists=()=>leaves(elements['geo-children']).filter(e=>e.listeners.change);
+ async function choose(name){const select=lists().find(e=>leaves(e).some(o=>o.textContent===name));assert.ok(select,name);select.value=leaves(select).find(o=>o.textContent===name).value;await select.listeners.change();}
+ assert.equal(lists().length,1);assert.equal(lists()[0].size,seed.nodes.filter(n=>n.parent==='world').length);
+ await choose('South America');assert.equal(lists().length,2);assert.equal(lists()[1].size,20);
+ await choose('Colombia');assert.equal(lists().length,3);await choose('Caldas');assert.equal(lists().length,4);
+ assert.equal(lists()[0].value,'continent:South America');assert.equal(lists()[1].value,'CO');assert.equal(lists()[2].value,'CO-CAL');
+ assert.ok(lists().slice(1).every(e=>e.size===20));
+ // Caldas has no further administrative level, but still reveals its sites.
+ assert.ok(leaves(lists()[3]).some(e=>e.label==='Hotspots / pilot sites'));
+ const firstSite=seed.nodes.find(n=>n.parent==='CO-CAL'&&['hotspot','site'].includes(n.kind));
+ await choose(firstSite.name);assert.equal(lists().length,4); // no empty leaf column
+ await choose('Caldas');
  assert.equal(elements['geo-start-quiz'].disabled,true);
  elements['geo-sample'].checked=true;elements['geo-sample'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,false);
  elements['geo-start-quiz'].listeners.click();assert.match(assigned,/geo=CO-CAL/);assert.match(assigned,/from=2027-02-01/);
  elements['geo-start'].value='2027-06-01';elements['geo-end'].value='2027-06-30';elements['geo-end'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,true);
  elements['geo-year'].value='2028';elements['geo-month'].value='2';elements['geo-apply-month'].listeners.click();assert.equal(elements['geo-end'].value,'2028-02-29');
+ await choose('North America');assert.equal(lists().length,2);assert.equal(lists()[1].value,'');assert.equal(elements['geo-configuration'].hidden,true);
+ assert.ok(leaves(lists()[0]).some(e=>e.textContent==='South America')); // continents always available
+ const search=leaves(elements['geo-children']).find(e=>e.type==='search');search.value='united';search.listeners.input();assert.ok(leaves(lists()[1]).some(e=>e.value==='US'));
+ // Restore a deep linked leaf, rebuilding all its ancestor lists.
+ location.search='?geo='+firstSite.id+'&from=2027-02-01&to=2027-02-28&trail='+encodeURIComponent('world,continent:South America,CO,CO-CAL,'+firstSite.id);
+ await windowEvents.popstate();assert.equal(lists().length,4);assert.equal(lists()[3].value,firstSite.id);assert.equal(lists()[0].value,'continent:South America');
+ // A slow response from the previous branch cannot append a stale column.
+ holdParent='CO';const oldSelection=choose('Colombia');await new Promise(resolve=>setImmediate(resolve));
+ await choose('North America');holdParent=null;releaseHeld.forEach(resolve=>resolve());await oldSelection;
+ assert.equal(lists().length,2);assert.equal(lists()[0].value,'continent:North America');assert.equal(elements['geo-configuration'].hidden,true);
  assert.equal(elements['geo-refresh'].hidden,true);assert.equal(elements['account-trip-options'].hidden,true);
  console.log('Passed actual launcher UI: World/continent/country/department drilldown, sample consent, date handoff, unsupported-season disable, leap-month shortcut, and guest/admin control visibility.');
 }

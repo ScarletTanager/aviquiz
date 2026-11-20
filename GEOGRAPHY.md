@@ -85,3 +85,18 @@ Validation: `node test-geography.mjs`, `node test-app-audio.mjs`, and
 refresh behavior, SQLite/PostgreSQL, dates, supported-range selection, the actual
 launcher DOM flow, geography/session handoff, and unchanged legacy statistics.
 No screen recording or browser automation is used.
+
+## Location browser and staging compatibility
+
+The launcher uses cascading listboxes from left to right. Continents remain
+visible, including when the row scrolls horizontally on a narrow screen. Other
+lists show 20 rows and scroll internally; each has a local search field. Selecting
+a different branch removes deeper lists. A new column appears only when there
+are children, with subregions and hotspots grouped separately. Country and
+subregion selections remain quiz scopes even when more detailed places exist.
+
+eBird requests use `redirect: manual`, supported by both Node and Workers.
+Redirect responses are rejected as non-successful responses, preserving the
+previous cache and never forwarding the API key to the redirect destination.
+Workers does not support `redirect: error` and throws before network I/O.
+See https://developers.cloudflare.com/workers/runtime-apis/request/.

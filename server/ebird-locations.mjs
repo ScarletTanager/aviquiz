@@ -20,7 +20,9 @@ export function createEbirdLocations({apiKey,fetcher=fetch,now=Date.now,store}={
     const promise=(async()=>{
       const path=countries?'ref/region/list/country/world':kind==='regions'?`ref/region/list/${type}/${parent.id}`:`ref/hotspot/${parent.id}`;
       stage='upstream-fetch';
-      const response=await fetcher('https://api.ebird.org/v2/'+path+'?fmt=json',{headers:{'x-ebirdapitoken':apiKey},redirect:'error',signal:AbortSignal.timeout(8000)});
+      // Workers does not implement redirect:'error'. Manual mode also keeps the
+      // API key on this fixed host; non-2xx responses below are never followed.
+      const response=await fetcher('https://api.ebird.org/v2/'+path+'?fmt=json',{headers:{'x-ebirdapitoken':apiKey},redirect:'manual',signal:AbortSignal.timeout(8000)});
       httpStatus=response.status;stage='upstream-response';
       if(response.status===429){const header=response.headers.get('retry-after');const retry=header?Number(header):NaN;const delay=Number.isFinite(retry)?retry*1000:Number.isFinite(Date.parse(header))?Date.parse(header)-now():60000;cooldown=now()+Math.max(30000,delay);throw Error('Location service is resting. Try again later.');}
       if(!response.ok)throw Error('Location directory unavailable.');
