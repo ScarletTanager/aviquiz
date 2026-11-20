@@ -7,7 +7,7 @@
 <section aria-labelledby="season-heading"><h2 id="season-heading">When are you visiting?</h2><div class="season-fields"><label>Start date<input id="geo-start" type="date" required></label><label>End date<input id="geo-end" type="date" required></label></div>
 <details><summary>Choose a whole month instead</summary><div class="season-fields"><label>Year<input id="geo-year" type="number" min="1900" max="9999"></label><label>Month<select id="geo-month"></select></label><button id="geo-apply-month" type="button">Use this month</button></div></details><p class="field-help">Both dates are included. Lists use seasonal evidence across available years, not a forecast for the selected year. Maximum range: 366 days.</p></section>
 <section aria-labelledby="location-heading"><h2 id="location-heading">Where?</h2><nav id="geo-breadcrumbs" aria-label="Location breadcrumb"></nav><p id="geo-source" class="field-help"></p><p id="geo-updated" class="field-help"></p><button id="geo-refresh" type="button" class="text-button" hidden>Refresh this directory · administrator</button><p id="geo-loading" role="status"></p>
-<p class="field-help">Choose from left to right. Each list shows up to 20 locations before scrolling; selecting a place reveals its subregions and hotspots when available.</p>
+<p class="field-help">Choose from left to right. Each list shows up to 20 locations before scrolling; selecting a place reveals its subregions. Hotspots appear only when there are no further subregions.</p>
 <div id="geo-children" class="location-browser" aria-label="Location lists"></div>
 </section>
 <section id="geo-configuration" aria-labelledby="geo-selected-heading" hidden><h2 id="geo-selected-heading"></h2><p id="geo-coverage" role="status"></p>

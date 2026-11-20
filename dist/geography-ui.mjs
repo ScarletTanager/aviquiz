@@ -54,22 +54,26 @@ function breadcrumbs(){
  for(const [index,node] of trail.entries()){if(index)fragment.append(document.createTextNode(' / '));const button=make('button',node.name);button.type='button';button.className='text-button';button.addEventListener('click',()=>index===0?openWorld():choose(node,index-1));fragment.append(button);}
  $('geo-breadcrumbs').replaceChildren(fragment);return trail;
 }
-async function directory(node,refresh=false){
- const types=['country','subnational1','subnational2'].includes(node.kind)?['regions','hotspots']:['regions'];
+async function directory(node,refresh=false,isCurrent=()=>true){
  if(['hotspot','site'].includes(node.kind))return [];
- return Promise.all(types.map(async type=>{
+ async function read(type){
   const query=new URLSearchParams({parent:node.id,type});
   const response=refresh?await accountFetch('/api/geography/refresh?'+query,{method:'POST',headers:{'content-type':'application/json'},body:'{}'}):await fetch('/api/geography?'+query);
   if(!response.ok)throw Error(refresh?'Refresh failed. The previous location lists are still available.':'Locations could not load. Select this place again to retry.');
   return response.json();
- }));
+ }
+ const regions=await read('regions');
+ // Only descend to hotspots when this region has no finer administrative level.
+ // Do not even request a potentially huge country-wide hotspot directory.
+ if(regions.children.length||!['country','subnational1','subnational2'].includes(node.kind)||!isCurrent())return [regions];
+ return [regions,await read('hotspots')];
 }
 async function load(node,depth,{refresh=false,navigate=true}={}){
  const token=++request;selected=node;$('geo-loading').textContent='Loading locations…';$('geo-sample').checked=false;updatePreview();
  const prior=columns;
  if(!refresh){columns=columns.slice(0,depth+1);if(depth>=0)columns[depth].selectedId=node.id;renderColumns();breadcrumbs();}
  try{
-  const values=await directory(node,refresh);if(token!==request)return;
+  const values=await directory(node,refresh,()=>token===request);if(token!==request)return;
   const map=new Map(nodes.map(n=>[n.id,n])),items=new Map();
   for(const value of values){for(const n of [...value.ancestors,...value.children])map.set(n.id,{...map.get(n.id),...n});for(const n of value.children)items.set(n.id,n);}
   nodes=[...map.values()];

@@ -74,14 +74,15 @@ if(import.meta.main){
  const ids=[...((await fs.readFile('dist/explore.html','utf8')).matchAll(/id="([^"]+)"/g))].map(m=>m[1]),elements=Object.fromEntries(ids.map(id=>[id,new Element()]));
  elements['geo-family'].value='all';elements['geo-count'].value='20';
  let assigned='';const location={search:'?from=2027-02-01&to=2027-02-28',assign(url){assigned=url;}};
+ const browserNodes=[...seed.nodes,{id:'EC-P',name:'Pichincha',kind:'subnational1',parent:'EC'},{id:'L9999999999',name:'Ecuador test hotspot',kind:'hotspot',parent:'EC-P'}];
  const apiRequest=[];let holdParent=null;const releaseHeld=[];
  const fetcher=async url=>{
   if(url==='/geography-seed.json')return {ok:true,json:async()=>seed};if(url==='/route-pilot.json')return {ok:true,json:async()=>catalog};if(url==='/data.json')return {ok:true,json:async()=>data};
   if(url==='/api/account')return {ok:true,json:async()=>({kind:'guest'})};
-  const u=new URL(url,'https://quiz.example'),id=u.searchParams.get('parent'),type=u.searchParams.get('type'),parent=seed.nodes.find(n=>n.id===id);apiRequest.push(id);
+  const u=new URL(url,'https://quiz.example'),id=u.searchParams.get('parent'),type=u.searchParams.get('type'),parent=browserNodes.find(n=>n.id===id);apiRequest.push(id+':'+type);
   if(id===holdParent)await new Promise(resolve=>releaseHeld.push(resolve));
-  const ancestors=[];let n=parent;while(n){ancestors.unshift(n);n=seed.nodes.find(x=>x.id===n.parent);}
-  return {ok:true,json:async()=>({parent,ancestors,children:seed.nodes.filter(n=>n.parent===id&&(type==='hotspots'?['hotspot','site'].includes(n.kind):!['hotspot','site'].includes(n.kind))),notice:'Pilot directory',fetchedAt:null})};
+  const ancestors=[];let n=parent;while(n){ancestors.unshift(n);n=browserNodes.find(x=>x.id===n.parent);}
+  return {ok:true,json:async()=>({parent,ancestors,children:browserNodes.filter(n=>n.parent===id&&(type==='hotspots'?['hotspot','site'].includes(n.kind):!['hotspot','site'].includes(n.kind))),notice:'Pilot directory',fetchedAt:null})};
  };
  const document={getElementById:id=>elements[id],createElement:()=>new Element(),createDocumentFragment:()=>new Element(),createTextNode:text=>({textContent:text})};
  const history={pushState(a,b,url){location.search=new URL(url,'https://quiz.example').search;}};
@@ -94,7 +95,7 @@ if(import.meta.main){
  async function choose(name){const select=lists().find(e=>leaves(e).some(o=>o.textContent===name));assert.ok(select,name);select.value=leaves(select).find(o=>o.textContent===name).value;await select.listeners.change();}
  assert.equal(lists().length,1);assert.equal(lists()[0].size,seed.nodes.filter(n=>n.parent==='world').length);
  await choose('South America');assert.equal(lists().length,2);assert.equal(lists()[1].size,20);
- await choose('Colombia');assert.equal(lists().length,3);await choose('Caldas');assert.equal(lists().length,4);
+ await choose('Colombia');assert.equal(lists().length,3);assert.ok(!apiRequest.includes('CO:hotspots'));await choose('Caldas');assert.ok(apiRequest.includes('CO-CAL:hotspots'));assert.equal(lists().length,4);
  assert.equal(lists()[0].value,'continent:South America');assert.equal(lists()[1].value,'CO');assert.equal(lists()[2].value,'CO-CAL');
  assert.ok(lists().slice(1).every(e=>e.size===20));
  // Caldas has no further administrative level, but still reveals its sites.
@@ -110,6 +111,14 @@ if(import.meta.main){
  await choose('North America');assert.equal(lists().length,2);assert.equal(lists()[1].value,'');assert.equal(elements['geo-configuration'].hidden,true);
  assert.ok(leaves(lists()[0]).some(e=>e.textContent==='South America')); // continents always available
  const search=leaves(elements['geo-children']).find(e=>e.type==='search');search.value='united';search.listeners.input();assert.ok(leaves(lists()[1]).some(e=>e.value==='US'));
+ // Countries with provinces reveal only provinces, with no country-wide
+ // hotspot request; the lowest region then reveals its hotspots.
+ await choose('South America');await choose('Ecuador');
+ assert.equal(lists().length,3);assert.ok(leaves(lists()[2]).some(e=>e.value==='EC-P'));
+ assert.ok(!apiRequest.includes('EC:hotspots'));
+ assert.ok(!leaves(lists()[2]).some(e=>e.label==='Hotspots / pilot sites'));
+ await choose('Pichincha');assert.equal(lists().length,4);assert.ok(apiRequest.includes('EC-P:hotspots'));
+ assert.ok(leaves(lists()[3]).some(e=>e.value==='L9999999999'));
  // Restore a deep linked leaf, rebuilding all its ancestor lists.
  location.search='?geo='+firstSite.id+'&from=2027-02-01&to=2027-02-28&trail='+encodeURIComponent('world,continent:South America,CO,CO-CAL,'+firstSite.id);
  await windowEvents.popstate();assert.equal(lists().length,4);assert.equal(lists()[3].value,firstSite.id);assert.equal(lists()[0].value,'continent:South America');

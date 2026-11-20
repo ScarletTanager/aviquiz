@@ -92,7 +92,8 @@ The launcher uses cascading listboxes from left to right. Continents remain
 visible, including when the row scrolls horizontally on a narrow screen. Other
 lists show 20 rows and scroll internally; each has a local search field. Selecting
 a different branch removes deeper lists. A new column appears only when there
-are children, with subregions and hotspots grouped separately. Country and
+are children. If a region has subregions, only those subregions appear; hotspots
+are requested and displayed only when no finer subregion is available. Country and
 subregion selections remain quiz scopes even when more detailed places exist.
 
 eBird requests use `redirect: manual`, supported by both Node and Workers.
