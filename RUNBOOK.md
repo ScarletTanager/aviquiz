@@ -380,3 +380,11 @@ Release promotion uses dev -> staging deployment -> Sandy verification -> main
 -> production deployment. A staging branch is optional and is not used by default.
 Production packaging rejects branches other than main. A GitHub push alone does
 not authorize production deployment; obtain the user staging sign-off first.
+
+## Prepare regional EBD work
+
+See [EBD-PROCESSING.md](EBD-PROCESSING.md) for `ebd-partition.py partition` and
+`plan`. Run outside the repository with an explicit release/year range and a new
+output directory. Incomplete manifests are blocked; `partitioned` still requires
+aggregation and validation before serving. Do not run a full worldwide preparation
+on the 1 GiB application Droplet or treat the local 500 MiB cap as cloud sizing.

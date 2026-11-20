@@ -108,9 +108,16 @@ Root enables Caddy only after successful loopback app checks and correct DNS.
 
 ## Active release and migration
 
-Active release: `aviquiz-6b23bf6bd925365b`, built outside the Droplet with Node
-24.22.3. Archive SHA-256:
-`4ff438f4193b749196933f9e29e0a9ac3276a45dc1f5c0bfbece500a24bcd62e`.
+Active release: `aviquiz-809e8823048a163f`, promoted November 20 after staging
+approval, from GitHub main commit `1a9780b92e42393da3af0989852445693a226f9e`.
+Built outside the Droplet with Node 24.22.3. Archive SHA-256:
+`2229f6661bcab5a6112a4134146f7dd980cddf7988f1ab19318a2bb883938d9f`.
+The release metadata records the source commit and branch. The prior release
+`aviquiz-1c505af041f6e40b` remains available for code rollback. Production-only
+dependencies were copied from that release after both package manifests matched
+byte-for-byte. No migration was needed. Health, geography metadata, original quiz,
+statistics, guest invitation denial, and the unchanged 126 public annotations
+were verified after restart.
 The service uses `server/http.mjs`, the bundled Worker, and production-only npm
 dependencies. Its entrypoint is tested through a release symlink. Production
 strips Sites identity headers and verifies account permissions independently.

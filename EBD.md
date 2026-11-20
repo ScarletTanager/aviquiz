@@ -67,3 +67,10 @@ This validates the initial harness, not worldwide sizing or DuckDB/Parquet
 performance. The long-term storage plan is full private archives at DigitalOcean
 and small, reproducible paired extracts for local development; no upload or
 archive deletion has taken place.
+
+## Regional preparation and priorities
+
+See [EBD-PROCESSING.md](EBD-PROCESSING.md) for the initial bounded streaming
+partitioner and reorderable regional work list. Default priorities are NC, other
+US states, Colombia, then remaining countries by name. Preparation is offline;
+no worldwide import or new serving coverage has been published.
