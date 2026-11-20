@@ -56,3 +56,14 @@ A share link contains a validated snapshot in the URL fragment, which the browse
 
 
 For Brazil trip report 412397, the seven public hotspots use September 2017–2026 EBD and sampling event records, including a multi-year pool for REGUA. Eleven other stops use only the supplied report checklists, including incomplete checklists as presence-only evidence. The route preview labels those stops and does not treat them as recurring or calculate rates. The builder reads their catalog from the output of `scripts/ebd-trip-stops.py`, with public-facing labels for roadside stops. Exact personal locality and checklist IDs, coordinates, and observer fields are not included in the browser catalog. All 18 stops fit on one share link; the editor supports up to 24 stops.
+
+## Bounded ingestion benchmark
+
+See [EBD-BENCHMARK.md](EBD-BENCHMARK.md) for the November 18 local benchmark,
+resource limits, measured results, commands, failure behavior, and next steps.
+The new disk-backed SQLite baseline matches all 119 sample taxa from the
+original in-memory runner. Two 10-second archive scans retain no source rows.
+This validates the initial harness, not worldwide sizing or DuckDB/Parquet
+performance. The long-term storage plan is full private archives at DigitalOcean
+and small, reproducible paired extracts for local development; no upload or
+archive deletion has taken place.

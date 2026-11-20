@@ -1,6 +1,6 @@
 # AviQuiz architecture
 
-Status: current implementation, updated November 4, 2026. Proposed capabilities are identified separately below. This file retains the filename requested for the architecture document.
+Status: current implementation, updated November 18, 2026; standalone PostgreSQL/SQLite adapters are locally tested and not yet deployed. Proposed capabilities are identified separately below. This file retains the filename requested for the architecture document.
 
 ## System context
 
@@ -60,7 +60,7 @@ flowchart TB
 
 | Component | Source / technology | Responsibility and reason |
 | --- | --- | --- |
-| Quiz shell and presentation | `dist/index.html`, `dist/style.css`; HTML/CSS | Responsive setup, quiz, statistics, results, and annotation views without a framework or application dependency installation. |
+| Quiz shell and presentation | `dist/index.html`, `dist/style.css`; HTML/CSS | Responsive setup, quiz, statistics, results, and annotation views without a UI framework. |
 | Browser orchestration | `dist/app.mjs`; JavaScript ES modules | Loads catalogs and shared tips; coordinates filters, media events, sessions, and views. |
 | Selection and grading | `dist/quiz.mjs` | Pure selection and common/scientific-name matching, including punctuation normalization and limited, unambiguous typo tolerance. |
 | Progress and statistics | `dist/progress.mjs`, `dist/statistics.mjs`; localStorage | Separate photo/audio rolling histories and weighted summaries without requiring an AviQuiz account or backend personal-data storage. |
@@ -173,3 +173,80 @@ and browser-local statistics retain their existing behavior. `users.invite` is
 a reserved granular capability; delegated invitation UI and provider-side user
 creation are future work. See AAA.md for security boundaries and RUNBOOK.md for
 bootstrap diagnosis.
+
+### Configurable database adapters (production and staging)
+
+The application resolves a small runtime-neutral database interface through
+`worker/database.mjs`. Sites defaults to its existing D1 binding. The Node-only
+`server/database/index.mjs` startup factory supports explicit standalone SQLite
+or PostgreSQL selection; PostgreSQL connections use the maintained `pg` driver
+with a bounded pool and verified TLS. Node imports and connection configuration
+are excluded from the Cloudflare Worker bundle. Native PostgreSQL migrations
+are separate from the existing immutable SQLite/D1 migration history.
+
+```mermaid
+flowchart LR
+    sites[Sites deployment] --> d1[D1 platform binding]
+    startup[Standalone Node startup] --> config[DB_DRIVER configuration]
+    config --> sqlite[SQLite file adapter]
+    config --> pg[PostgreSQL pooled adapter]
+    api[Account and review controllers] --> contract[Shared database contract]
+    contract --> d1
+    contract --> sqlite
+    contract --> pg
+```
+
+PostgreSQL transaction batches keep mutations and audit events on one connection.
+A transaction-scoped review lock preserves breadth-first approval invariants
+across concurrent writers. Standalone environments reject Sites owner headers
+and the Sites-only bootstrap mechanism. This wiring was verified against local
+SQLite and real PostgreSQL 17 and 18. DigitalOcean production now runs Node
+24.22.3 behind Caddy with managed PostgreSQL 18.7; Sites staging retains D1 and
+its existing access gate. See DATABASES.md and DO-PRODUCTION.md for configuration,
+migration boundaries and deployment details. Bulk eBird processing
+remains a separate offline workload, not part of this application database.
+
+### DigitalOcean runtime (November 19, 2026)
+
+```mermaid
+flowchart LR
+    guest[Guest or signed-in browser] -->|HTTPS aviquiz.org| caddy[Caddy TLS and reverse proxy]
+    caddy -->|Loopback HTTP| node[Node 24 HTTP adapter]
+    node --> worker[Bundled Worker application]
+    worker --> db[Shared database interface]
+    db -->|Verified TLS over VPC| pg[Managed PostgreSQL 18]
+    browser[Signed-in browser] --> auth[Existing Cognito pool/client]
+    worker -->|JWT public-key verification| auth
+    staging[ChatGPT access gate and Sites Worker] --> d1[Separate staging D1]
+```
+
+The Node adapter provides canonical-origin routing, bounded requests, health
+checks, graceful shutdown, and public environment-specific authentication
+configuration. It strips hosting identity headers before reaching the Worker.
+Caddy terminates and renews TLS; systemd runs the app as a restricted service
+account. PostgreSQL uses a five-connection pool with a separate migration role.
+These choices keep the small host focused on request serving and permit SQLite
+for local development without maintaining a second application implementation.
+
+Production preserves the existing account UUID/identity mapping, administrator
+grant, audit/bootstrap history, and 126 reviews. Staging remains an independent
+copy. The existing managed identity pool and client serve both callback origins
+for now; a separate staging pool can be reconsidered as the user base grows.
+Statistics remain browser-local and need export/import across origins. Production
+guest quizzes are publicly accessible; review data/mutations require granular
+application permissions. No AWS management credentials are required by the app.
+
+## Single-recipient invitations (production)
+
+See [INVITATIONS.md](INVITATIONS.md) for the locally implemented invitation
+screen, audited account creation, permission boundary, quotas, partial-failure
+recovery, and activation checklist. Production release aviquiz-513b4f8eb3a4e29d now includes this feature with
+certificate-based sender authentication and migration 0002 applied. Staging is unchanged.
+
+Certificate-based sender preparation now lives in [deploy/roles-anywhere/README.md](deploy/roles-anywhere/README.md). It includes the offline CA/CSR/signing workflow, a disabled-by-default CloudFormation stack, SDK credential-process configuration, expiry checks, and recovery instructions. The deployed resource state and authentication probe are recorded there.
+
+## Geography launcher and directory cache
+
+See [GEOGRAPHY.md](GEOGRAPHY.md) for `/explore`, persistent region/hotspot
+metadata, administrator refresh behavior, season selection, pilot coverage
+limits, and preservation of the original Colombia quiz through December 18.

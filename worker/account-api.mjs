@@ -1,10 +1,12 @@
-import {verifyCognito} from './cognito.mjs';
+import {databaseForEnvironment,usesSitesIdentity} from './database.mjs';
+import {verifierForEnvironment} from './cognito.mjs';
 import {accountService} from './accounts.mjs';
 import {principalForUser} from './identity.mjs';
 import {hasPermission} from './permissions.mjs';
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const OWNER_ID='0a42fa64-ecdd-4efa-98c5-e2c95f94320f';
 export function trustedSiteOwner(request,env){
+  if(!usesSitesIdentity(env))return false;
   const id=request.headers.get('oai-authenticated-user-id');
   const email=request.headers.get('oai-authenticated-user-email')?.trim().toLowerCase();
   return Boolean(id&&(id===OWNER_ID||(env.REVIEW_OWNER_EMAIL&&email===env.REVIEW_OWNER_EMAIL.trim().toLowerCase())));
@@ -15,19 +17,19 @@ function bootstrapOwner(request,env,identity){
   return trustedSiteOwner(request,env)&&identity.emailVerified&&typeof env.REVIEW_OWNER_EMAIL==='string'&&
     identity.email?.toLowerCase()===env.REVIEW_OWNER_EMAIL.trim().toLowerCase();
 }
-export async function accountApi(request,env,{verifyIdentity=verifyCognito}={}){
+export async function accountApi(request,env,{verifyIdentity}={}){
   const url=new URL(request.url),path=url.pathname;
   if(!['/api/account','/api/account/enroll','/api/account/bootstrap'].includes(path))return json({error:'Not found.'},404);
   const write=path!=='/api/account';
   if(request.method!==(write?'POST':'GET'))return json({error:'Method not allowed.'},405);
   if(write&&(request.headers.get('origin')!==url.origin||request.headers.get('content-type')!=='application/json'))return json({error:'Use account controls on this site.'},403);
-  if(!env.DB)return json({error:'Account storage unavailable.'},503);
+  let db;
+  try{db=databaseForEnvironment(env);}catch{return json({error:'Account storage unavailable.'},503);}
   let identity;
-  try{identity=await verifyIdentity(request);}catch{return json({error:'Sign in again to verify your account.'},401);}
+  try{identity=await (verifyIdentity||verifierForEnvironment(env))(request);}catch{return json({error:'Sign in again to verify your account.'},401);}
   if(!identity)return path==='/api/account'?json({kind:'guest',permissions:[]}):json({error:'Sign in required.'},401);
   if(path==='/api/account/enroll'&&!identity.emailVerified)return json({error:'A verified email is required.'},403);
   try{
-    const db=env.DB;
     let mapping=await db.prepare('SELECT user_id FROM app_identities WHERE issuer=? AND subject=?').bind(identity.issuer,identity.subject).first();
     if(!mapping&&path==='/api/account/enroll'){
       try{await accountService(db).registerVerifiedUser(identity);}catch(error){

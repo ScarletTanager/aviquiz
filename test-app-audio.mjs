@@ -432,3 +432,19 @@ console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, a
  assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)),backup.photo);
  console.log('Passed browser export download, import preview, invalid-file rejection, stale-preview protection and repeat import.');
 }
+
+// The new geography handoff reuses the existing photo session without scoring
+// against the original Colombia statistics or replacing its settings page.
+const originalGeographyFetch=globalThis.fetch;
+const geographySeed=JSON.parse(fs.readFileSync('dist/geography-seed.json'));
+globalThis.fetch=async url=>url==='/geography-seed.json'?{ok:true,json:async()=>geographySeed}:originalGeographyFetch(url);
+const beforeGeoHistory=store.get(PROGRESS_KEY);
+history.pushState(null,'','/quiz?geo=CO-CAL&from=2027-02-01&to=2027-02-28&questions=1&single=true');
+for(const fn of windowEvents.popstate||[])await fn();
+for(let n=0;n<10&&$('session').hidden;n++)await settle();
+assert.equal($('session').hidden,false);assert.match($('session-label').textContent,/Caldas/);assert.match($('session-label').textContent,/Geography pilot/);
+$('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');
+assert.equal(store.get(PROGRESS_KEY),beforeGeoHistory);assert.match($('result-summary').textContent,/Geography pilot/);
+globalThis.location.assign=url=>{globalThis.__geoReturn=url;};await $('new-quiz').fire('click');assert.match(globalThis.__geoReturn,/^\/explore\?/);
+globalThis.fetch=originalGeographyFetch;
+console.log('Passed geography-to-photo-session handoff, preserved legacy statistics, and return to location launcher.');

@@ -181,3 +181,10 @@ local generated signing keys and SQLite, with no AWS requests. Run
 `node test-account-api.mjs`, `node test-accounts.mjs`, and the existing quiz/review
 regressions. Refresh a signed-in page to finish the real owner bootstrap; the
 status line should say “AviQuiz administrator”.
+# Invitation screen implementation (November 19, 2026)
+
+Single-recipient invitation UI, audited account provisioning, and the server-only
+provider adapter are deployed in DigitalOcean production with certificate-based
+sender authentication. See [INVITATIONS.md](INVITATIONS.md) for the current design,
+limits, failure recovery and deployment checklist. New users receive no grants;
+only active administrators or explicit `users.invite` holders can send invitations.

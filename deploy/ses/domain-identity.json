@@ -1,0 +1,92 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AviQuiz SES domain identity for invitation email. DNS remains at Porkbun; no messages or Cognito settings are changed.",
+  "Metadata": {
+    "AWSToolsMetrics": {
+      "AWSAgentToolkit": "aws-cloudformation@3"
+    }
+  },
+  "Parameters": {
+    "SendingDomain": {
+      "Type": "String",
+      "Default": "aviquiz.org",
+      "AllowedValues": [
+        "aviquiz.org"
+      ]
+    }
+  },
+  "Resources": {
+    "SendingIdentity": {
+      "Type": "AWS::SES::EmailIdentity",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Authenticate invitation mail independently of Porkbun inbound forwarding.",
+          "must": [
+            "Preserve all existing DNS and forwarding records.",
+            "Do not switch Cognito sender before authentication and production access are ready."
+          ]
+        }
+      },
+      "Properties": {
+        "EmailIdentity": {
+          "Ref": "SendingDomain"
+        },
+        "DkimSigningAttributes": {
+          "NextSigningKeyLength": "RSA_2048_BIT"
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "DkimName1": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SendingIdentity",
+          "DkimDNSTokenName1"
+        ]
+      }
+    },
+    "DkimValue1": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SendingIdentity",
+          "DkimDNSTokenValue1"
+        ]
+      }
+    },
+    "DkimName2": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SendingIdentity",
+          "DkimDNSTokenName2"
+        ]
+      }
+    },
+    "DkimValue2": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SendingIdentity",
+          "DkimDNSTokenValue2"
+        ]
+      }
+    },
+    "DkimName3": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SendingIdentity",
+          "DkimDNSTokenName3"
+        ]
+      }
+    },
+    "DkimValue3": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SendingIdentity",
+          "DkimDNSTokenValue3"
+        ]
+      }
+    }
+  }
+}

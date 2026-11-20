@@ -1,14 +1,12 @@
 import {authConfig} from './auth-config.mjs';
 import {managerSettings, logoutURL} from './auth-core.mjs';
+import {getUserManager} from './auth-session.mjs';
 const button = document.getElementById('account-action');
 const status = document.getElementById('account-status');
 async function initialize() {
   const settings = managerSettings(authConfig, location.origin);
   if (!settings) return; // No discovery or AWS requests before explicit activation.
-  const {UserManager, WebStorageStateStore} = await import('./oidc-client-ts.mjs');
-  const manager = new UserManager({...settings,
-    userStore: new WebStorageStateStore({store: sessionStorage}),
-    stateStore: new WebStorageStateStore({store: sessionStorage})});
+  const manager = await getUserManager();
   let user;
   const callback = location.pathname === new URL(settings.redirect_uri).pathname;
   try {
@@ -23,6 +21,7 @@ async function initialize() {
   button.hidden = false;
   function render() {
     const signedIn = user && !user.expired;
+    if(!signedIn){const link=document.getElementById('invite-link');if(link)link.hidden=true;}
     button.textContent = signedIn ? 'Sign out' : 'Sign in';
     if (signedIn) status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}. Quiz progress is still stored in this browser.`;
   }
@@ -43,6 +42,8 @@ async function initialize() {
         account = await response.json();
       }
       if (account.kind !== 'user') throw Error('Account registration unavailable.');
+      const inviteLink=document.getElementById('invite-link');
+      if(inviteLink)inviteLink.hidden=!(account.administrator||account.permissions?.includes('users.invite'));
       status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}${account.administrator ? ' · AviQuiz administrator' : ''}. Quiz progress is still stored in this browser.`;
     } catch {
       status.dataset.accountSetupStage = setupStage;

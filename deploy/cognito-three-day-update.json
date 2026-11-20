@@ -1,0 +1,73 @@
+{
+  "UserPoolId": "us-east-2_PeMNWojig",
+  "PoolName": "User pool - lfvjoz",
+  "Policies": {
+    "PasswordPolicy": {
+      "MinimumLength": 8,
+      "RequireUppercase": true,
+      "RequireLowercase": true,
+      "RequireNumbers": true,
+      "RequireSymbols": true,
+      "TemporaryPasswordValidityDays": 3
+    },
+    "SignInPolicy": {
+      "AllowedFirstAuthFactors": [
+        "PASSWORD"
+      ]
+    }
+  },
+  "DeletionProtection": "ACTIVE",
+  "LambdaConfig": {},
+  "AutoVerifiedAttributes": [
+    "email"
+  ],
+  "VerificationMessageTemplate": {
+    "DefaultEmailOption": "CONFIRM_WITH_CODE"
+  },
+  "UserAttributeUpdateSettings": {
+    "AttributesRequireVerificationBeforeUpdate": [
+      "email"
+    ]
+  },
+  "MfaConfiguration": "OFF",
+  "EmailConfiguration": {
+    "EmailSendingAccount": "COGNITO_DEFAULT"
+  },
+  "UserPoolTags": {},
+  "AdminCreateUserConfig": {
+    "AllowAdminCreateUserOnly": true
+  },
+  "AccountRecoverySetting": {
+    "RecoveryMechanisms": [
+      {
+        "Priority": 1,
+        "Name": "verified_email"
+      },
+      {
+        "Priority": 2,
+        "Name": "verified_phone_number"
+      }
+    ]
+  },
+  "UserPoolTier": "ESSENTIALS",
+  "KeyConfiguration": {
+    "KeyType": "AWS_OWNED_KEY"
+  },
+  "IssuerConfiguration": {
+    "Type": "ORIGINAL"
+  },
+  "AcrConfiguration": {
+    "Level1": {
+      "AcrValue": "urn:cognito:loa:1"
+    },
+    "Level2": {
+      "AcrValue": "urn:cognito:loa:2"
+    },
+    "Level3": {
+      "AcrValue": "urn:cognito:loa:3"
+    },
+    "Level4": {
+      "AcrValue": "urn:cognito:loa:4"
+    }
+  }
+}

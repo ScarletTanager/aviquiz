@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {verifyReleaseSource} from './scripts/release-source.mjs';
+const sha='a'.repeat(40);
+const git=(dirty='',remote=sha)=>args=>args[0]==='status'?dirty:args[0]==='rev-parse'?sha:args[0]==='branch'?'main':remote+'\trefs/heads/main';
+assert.throws(()=>verifyReleaseSource('.', {git:git(' M dist/app.mjs')}),/commit and push/);
+assert.throws(()=>verifyReleaseSource('.', {git:git('', 'b'.repeat(40))}),/GitHub does not have/);
+assert.deepEqual(verifyReleaseSource('.', {git:git()}),{commit:sha,branch:'main'});
+assert.throws(()=>verifyReleaseSource('.', {git:()=>{throw Error('unreachable');}}),/unreachable/);
+assert.throws(()=>verifyReleaseSource('.', {git:args=>args[0]==='status'?'':args[0]==='rev-parse'?sha:args[0]==='branch'?'dev':sha}),/requires main/);
+console.log('Passed production source guard: dirty/unpushed/unverifiable source refused; exact pushed revision recorded. No network calls.');

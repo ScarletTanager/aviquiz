@@ -1,0 +1,237 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AviQuiz production invitation sender using an offline private CA and IAM Roles Anywhere. No IAM users, access keys, or paid private CA.",
+  "Metadata": {
+    "AWSToolsMetrics": {
+      "AWSAgentToolkit": "aws-cloudformation@3"
+    }
+  },
+  "Parameters": {
+    "CaCertificatePem": {
+      "Type": "String",
+      "Description": "PUBLIC PEM CA certificate only. Never provide a private key.",
+      "MinLength": 100,
+      "MaxLength": 4096,
+      "AllowedPattern": "-----BEGIN CERTIFICATE-----[\\s\\S]+-----END CERTIFICATE-----\\s*"
+    },
+    "UserPoolId": {
+      "Type": "String",
+      "Default": "us-east-2_PeMNWojig",
+      "AllowedValues": [
+        "us-east-2_PeMNWojig"
+      ],
+      "Description": "Existing AviQuiz pool. This stack must be deployed in us-east-2."
+    },
+    "Enabled": {
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "true",
+        "false"
+      ],
+      "Description": "Keep disabled until certificates and server configuration have been reviewed."
+    }
+  },
+  "Rules": {
+    "PoolRegion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Equals": [
+              {
+                "Ref": "AWS::Region"
+              },
+              "us-east-2"
+            ]
+          },
+          "AssertDescription": "Deploy this stack in us-east-2, alongside the existing pool."
+        }
+      ]
+    }
+  },
+  "Conditions": {
+    "EnableSender": {
+      "Fn::Equals": [
+        {
+          "Ref": "Enabled"
+        },
+        "true"
+      ]
+    }
+  },
+  "Resources": {
+    "TrustAnchor": {
+      "Type": "AWS::RolesAnywhere::TrustAnchor",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Trust only the dedicated offline AviQuiz CA.",
+          "must": [
+            "Public certificate only; no CA private key in AWS."
+          ]
+        }
+      },
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-ca"
+        },
+        "Enabled": {
+          "Fn::If": [
+            "EnableSender",
+            true,
+            false
+          ]
+        },
+        "Source": {
+          "SourceType": "CERTIFICATE_BUNDLE",
+          "SourceData": {
+            "X509CertificateData": {
+              "Ref": "CaCertificatePem"
+            }
+          }
+        }
+      }
+    },
+    "InvitationRole": {
+      "Type": "AWS::IAM::Role",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Only the production certificate can obtain invitation-sender sessions.",
+          "must": [
+            "Restrict source anchor, account, subject and organization.",
+            "No administrative Cognito permissions beyond AdminCreateUser on one pool."
+          ]
+        }
+      },
+      "Properties": {
+        "Description": "AviQuiz production invitation sender via certificate authentication",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "rolesanywhere.amazonaws.com"
+              },
+              "Action": [
+                "sts:AssumeRole",
+                "sts:TagSession",
+                "sts:SetSourceIdentity"
+              ],
+              "Condition": {
+                "ArnEquals": {
+                  "aws:SourceArn": {
+                    "Fn::GetAtt": [
+                      "TrustAnchor",
+                      "TrustAnchorArn"
+                    ]
+                  }
+                },
+                "StringEquals": {
+                  "aws:SourceAccount": {
+                    "Ref": "AWS::AccountId"
+                  },
+                  "aws:PrincipalTag/x509Subject/CN": "aviquiz-production-inviter",
+                  "aws:PrincipalTag/x509Subject/OU": "production",
+                  "aws:PrincipalTag/x509Subject/O": "AviQuiz"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "InviteToExistingPoolOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "cognito-idp:AdminCreateUser",
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPoolId}"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "InvitationProfile": {
+      "Type": "AWS::RolesAnywhere::Profile",
+      "Metadata": {
+        "com.aws.cloudformation.Context": {
+          "why": "Expose only the dedicated sender role; issue 15-minute sessions.",
+          "must": [
+            "Keep all subject tags used by the role trust policy mapped."
+          ]
+        }
+      },
+      "Properties": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-sender"
+        },
+        "Enabled": {
+          "Fn::If": [
+            "EnableSender",
+            true,
+            false
+          ]
+        },
+        "DurationSeconds": 900,
+        "AcceptRoleSessionName": false,
+        "RoleArns": [
+          {
+            "Fn::GetAtt": [
+              "InvitationRole",
+              "Arn"
+            ]
+          }
+        ],
+        "AttributeMappings": [
+          {
+            "CertificateField": "x509Subject",
+            "MappingRules": [
+              {
+                "Specifier": "CN"
+              },
+              {
+                "Specifier": "OU"
+              },
+              {
+                "Specifier": "O"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "TrustAnchorArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "TrustAnchor",
+          "TrustAnchorArn"
+        ]
+      }
+    },
+    "ProfileArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "InvitationProfile",
+          "ProfileArn"
+        ]
+      }
+    },
+    "RoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "InvitationRole",
+          "Arn"
+        ]
+      }
+    }
+  }
+}

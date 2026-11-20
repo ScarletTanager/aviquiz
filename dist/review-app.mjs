@@ -1,8 +1,14 @@
+import {accountFetch} from './auth-session.mjs';
 import {reviewCoverage,reviewQueue,validateReview} from './review-core.mjs';
 import {annotationSvg} from './id-tips.mjs';
 const $=id=>document.getElementById(id),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let catalog,rows=[],bird,photo,documentValue,revision=0,placing=-1,dirty=false,busy=false,imageLoaded=false;
-async function request(path,body){const r=await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(15000),...(body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{})});const result=await r.json();if(!r.ok)throw Error(result.error||'Shared reviews unavailable.');return result;}
+let permissions={edit:true,publish:true};
+function permissionControls(){
+  for(const id of ['save-draft','approve-review','skip-review','unpublish-review'])$(id).disabled=!permissions.edit;
+  if(!permissions.publish)for(const id of ['approve-review','unpublish-review'])$(id).disabled=true;
+}
+async function request(path,body){const r=await accountFetch(path,{cache:'no-store',signal:AbortSignal.timeout(15000),...(body?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}:{})});const result=await r.json();if(!r.ok)throw Error(result.error||'Shared reviews unavailable.');return result;}
 const rowFor=id=>rows.find(r=>r.photoId===String(id));
 function renderQueue(){
   const c=reviewCoverage(catalog.birds,rows);
@@ -40,7 +46,7 @@ function openPhoto(speciesId,photoId){
   $('unpublish-review').hidden=!row?.approved;$('save-message').textContent='';$('review-image-error').hidden=true;
   $('review-image').onload=()=>{imageLoaded=true;documentValue.width=$('review-image').naturalWidth;documentValue.height=$('review-image').naturalHeight;refreshPreview();};
   $('review-image').onerror=()=>{imageLoaded=false;$('review-image-error').hidden=false;};$('review-image').src=photo.url;
-  $('placement-help').textContent='Select “Place arrow” below, then click the photograph.';renderQueue();refreshPreview();
+  $('placement-help').textContent='Select “Place arrow” below, then click the photograph.';renderQueue();refreshPreview();permissionControls();
 }
 async function save(action){
   if(busy)return;
@@ -53,7 +59,7 @@ async function save(action){
     rows=rows.filter(r=>r.photoId!==result.row.photoId);rows.push(result.row);revision=result.row.revision;documentValue=result.row.document;dirty=false;
     busy=false;openPhoto(bird.id,photo.id);
     $('save-message').textContent=action==='approve'?'Approved and available in the quiz.':action==='unpublish'?'Removed from the quiz; draft retained.':action==='skip'?'Candidate skipped. Choose the next species from the queue.':'Draft saved to shared storage.';
-  }catch(error){$('save-message').textContent=error.message;}finally{busy=false;$('review-form').inert=false;document.querySelectorAll('.review-actions button').forEach(b=>b.disabled=false);}
+  }catch(error){$('save-message').textContent=error.message;}finally{busy=false;$('review-form').inert=false;document.querySelectorAll('.review-actions button').forEach(b=>b.disabled=false);permissionControls();}
 }
 $('review-form').addEventListener('submit',e=>{e.preventDefault();save('draft');});
 $('approve-review').addEventListener('click',()=>save('approve'));$('skip-review').addEventListener('click',()=>save('skip'));$('unpublish-review').addEventListener('click',()=>save('unpublish'));
@@ -76,7 +82,9 @@ $('export-reviews').addEventListener('click',()=>{const blob=new Blob([JSON.stri
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 try{
   const response=await fetch('/data.json');if(!response.ok)throw Error('Checklist unavailable.');catalog=await response.json();
-  const result=await request('/api/reviews');rows=result.rows;
+  const result=await request('/api/reviews');rows=result.rows;permissions={edit:result.canEdit!==false,publish:result.canPublish!==false};permissionControls();
+  if(result.canEdit===false)for(const id of ['save-draft','approve-review','skip-review','unpublish-review'])$(id).disabled=true;
+  if(result.canPublish===false)for(const id of ['approve-review','unpublish-review'])$(id).hidden=true;
   for(const family of new Set(catalog.birds.map(b=>b.family.replace(/\s*\(\d+\)\s*$/,''))))$('review-family').add(new Option(family,family));
   for(const site of catalog.sites)$('review-site').add(new Option(site.name,site.code));
   for(const b of catalog.birds)$('review-species').add(new Option(b.name,b.id));

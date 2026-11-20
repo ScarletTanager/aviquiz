@@ -28,7 +28,7 @@ const issuer='https://identity.example/pool',clientId='test-client';
 const verifyIdentity=identityVerifier({issuer,clientId,keySet:createLocalJWKSet({keys:[jwk]})});
 const token=async(subject,extra={},options={})=>new SignJWT({token_use:'id',email:'owner@example.org',email_verified:true,...extra}).setProtectedHeader({alg:'RS256',kid:'local-test'}).setIssuer(options.issuer||issuer).setAudience(options.audience||clientId).setSubject(subject).setIssuedAt().setExpirationTime(options.exp||'5m').sign(privateKey);
 const env={DB,REVIEW_OWNER_EMAIL:'owner@example.org'};
-const ownerHeaders={'oai-authenticated-user-id':'0a42fa64-ecdd-4efa-98c5-e2c95f94320f'};
+const ownerHeaders={'oai-authenticated-user-id':'0a42fa64-ecdd-4efa-98c5-e2c95f94320f'}; // gitleaks:allow -- Public client/hosting identifier; not a credential.
 const call=async(path,bearer,headers={},method=path==='/api/account'?'GET':'POST')=>{
  const response=await accountApi(new Request('https://quiz.example'+path,{method,headers:{...(bearer?{authorization:`Bearer ${bearer}`} : {}),...(method==='POST'?{'content-type':'application/json',origin:'https://quiz.example'}:{}),...headers},...(method==='POST'?{body:'{}'}:{})}),env,{verifyIdentity});
  return {status:response.status,body:await response.json()};
@@ -54,7 +54,7 @@ assert.equal(sql.prepare("SELECT COUNT(*) n FROM audit_events WHERE action='admi
 assert.equal((await call('/api/account/enroll',ownerToken,ownerHeaders)).body.userId,ownerId);
 assert.equal((await call('/api/account/enroll',await token('owner',{email:'changed@example.org'}))).body.userId,ownerId);
 const spoof=await token('another-sub');result=await call('/api/account/enroll',spoof,ownerHeaders);assert.notEqual(result.body.userId,ownerId);assert.equal(result.body.administrator,false);
-// Only admins and an explicitly granted inviter can invite. No invitation endpoint exists yet.
+// Only admins and an explicitly granted inviter can invite. The invitation endpoint is covered in test-invitations.mjs.
 const otherId=result.body.userId;
 assert.equal(hasPermission(await principalForUser(DB,otherId),'users.invite'),false);
 sql.prepare("INSERT INTO app_grants VALUES (?,'users.invite')").run(otherId);

@@ -1,0 +1,25 @@
+{
+  "stackName": "aviquiz-invitation-sender",
+  "region": "us-east-2",
+  "statusVerified": "UPDATE_COMPLETE",
+  "enabledParameter": "true",
+  "trustAnchorArn": "arn:aws:rolesanywhere:us-east-2:244250883284:trust-anchor/d053de97-87dd-400f-89b8-0bbb9d4f743b",
+  "profileArn": "arn:aws:rolesanywhere:us-east-2:244250883284:profile/f081d7a8-0e84-495e-9881-790a1e7c99ea",
+  "roleArn": "arn:aws:iam::244250883284:role/aviquiz-invitation-sender-InvitationRole-L83hi22Wxpsh",
+  "certificateInstalled": true,
+  "certificateExpires": "2027-02-17T13:28:08Z",
+  "helperVersion": "1.8.6",
+  "helperSha256": "3553fdc515e5682541a9ebdd37031ec7f461169aa13ccbb6fbd5b7259644113d",
+  "expiryTimerEnabled": true,
+  "certificateSessionTested": true,
+  "serviceRestartPending": false,
+  "certificateSessionTest": {
+    "authenticated": true,
+    "expiresAt": "2026-11-19T14:01:48+00:00",
+    "runAs": "aviquiz",
+    "credentialsPrinted": false
+  },
+  "invitationRelease": "aviquiz-513b4f8eb3a4e29d",
+  "invitationEnabled": true,
+  "deliveryTested": false
+}

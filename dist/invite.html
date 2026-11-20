@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invite a birder · AviQuiz</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header class="site-header"><a class="wordmark" href="/">AviQuiz</a><nav class="site-nav" aria-label="Main navigation"><a href="/quiz">Practice</a><a href="/trips">Trips</a><a href="/statistics">Statistics</a><button id="account-action" class="text-button" type="button" hidden>Sign in</button></nav></header>
+<p id="account-status" class="field-help" role="status"></p>
+<main style="max-width:42rem;margin:3rem auto;padding:0 1.5rem">
+<p class="eyebrow">BIRDING IS BETTER TOGETHER</p><h1>Invite a birder</h1>
+<div id="invite-introduction"><p>Send one person an invitation to AviQuiz. They’ll receive an email with sign-in instructions and a temporary password, and choose their own password when they sign in.</p>
+<p>Invited accounts have ordinary user access. Inviting someone does not give them permission to invite others, review photos, or administer AviQuiz. Guest quizzes remain open to everyone.</p></div>
+<p id="invite-access" role="status">Checking invitation access…</p>
+<form id="invite-form" hidden>
+<label for="invite-email">Email address</label>
+<input id="invite-email" name="email" type="email" autocomplete="email" maxlength="254" required style="display:block;width:100%;box-sizing:border-box;margin:.5rem 0 1rem">
+<button id="invite-send" type="submit">Send invitation</button>
+<p class="field-help">One address at a time. Up to 5 invitations per person and 20 across AviQuiz in any 24 hours. Check the address carefully before sending.</p>
+</form>
+<p id="invite-result" role="status" aria-live="polite"></p><p id="invite-reference" class="field-help" hidden></p><a href="/">Back to home</a>
+</main><script type="module" src="/auth.mjs"></script><script type="module" src="/invite.mjs"></script>
+</body></html>

@@ -13,6 +13,17 @@ export function identityVerifier({issuer,clientId,keySet}) {
     return {issuer:payload.iss,subject:payload.sub,email:payload.email,emailVerified:payload.email_verified===true};
   };
 }
-const issuer=authConfig.authority;
-export const verifyCognito=identityVerifier({issuer,clientId:authConfig.client_id,
-  keySet:createRemoteJWKSet(new URL(issuer+'/.well-known/jwks.json'),{timeoutDuration:5000,cooldownDuration:30000,cacheMaxAge:600000})});
+const verifiers=new Map();
+export function verifierForEnvironment(env={}){
+  const issuer=env.AUTH_ISSUER||authConfig.authority,clientId=env.AUTH_CLIENT_ID||authConfig.client_id;
+  const key=issuer+'|'+clientId;
+  if(!verifiers.has(key)){
+    const url=new URL(issuer);
+    if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error('Invalid configured identity issuer.');
+    if(verifiers.size>=8)verifiers.clear();
+    verifiers.set(key,identityVerifier({issuer,clientId,
+      keySet:createRemoteJWKSet(new URL(issuer+'/.well-known/jwks.json'),{timeoutDuration:5000,cooldownDuration:30000,cacheMaxAge:600000})}));
+  }
+  return verifiers.get(key);
+}
+export const verifyCognito=verifierForEnvironment();

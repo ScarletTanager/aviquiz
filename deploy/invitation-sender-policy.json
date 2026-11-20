@@ -1,0 +1,9 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "InviteToAviQuizPoolOnly",
+    "Effect": "Allow",
+    "Action": "cognito-idp:AdminCreateUser",
+    "Resource": "arn:aws:cognito-idp:us-east-2:REPLACE_WITH_AWS_ACCOUNT_ID:userpool/us-east-2_PeMNWojig"
+  }]
+}

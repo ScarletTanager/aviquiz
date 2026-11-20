@@ -1,6 +1,6 @@
 # AviQuiz runbook
 
-Updated November 4, 2026 for the current Sites-hosted Worker and D1 deployment. Azure and independent AviQuiz authentication are proposals, not operating environments. Commands below run from the repository root unless stated otherwise.
+Updated November 19, 2026. Production runs at https://aviquiz.org on DigitalOcean with PostgreSQL; ChatGPT staging remains on Sites/D1 behind its existing access control. Commands below run from the repository root unless stated otherwise.
 
 ## Identify the system before changing it
 
@@ -27,7 +27,7 @@ After deployment, check `/` (landing), `/quiz` (configuration), `/statistics` (a
 
 See [SECURITY.md](SECURITY.md) for GitHub scans, pinned tools, local audit commands, and repository settings. Workflow changes do not deploy the site. Review CodeQL alerts as well as job conclusions; successful scanning does not mean no findings. Keep built-in secret scanning/push protection distinct from the post-push Gitleaks CI check.
 
-- Node 24+ for ES-module tooling, `import.meta.dirname`, and SQLite-backed tests; Python 3 for the optional static preview. No npm installation is currently required.
+- Node 24+ for ES-module tooling, `import.meta.dirname`, and SQLite-backed tests; Python 3 for the optional static preview. Run npm ci for build and authentication/database dependencies.
 - Git and authorized source-repository access for publishing. GitHub `origin` and the source repository returned by Sites may differ; verify both rather than assuming a push to one updates the other.
 - Access to the Sites tools and installed Sites workflow helper for hosted deployment. The helper is supplied by the plugin, not checked into this repository.
 - Owner sign-in for browser review operations, or the local ignored `.review-agent.json` plus runtime-matching agent key and supported Site service access for batch operations.
@@ -46,7 +46,7 @@ Open <http://127.0.0.1:8000/>. Stop it with Ctrl-C in the terminal that launched
 
 This serves quiz assets only. `/api/annotations` is absent, so the browser reports shared reviews unavailable and falls back to built-in guidance. `/review` is not an equivalent local API-backed workspace; even opening `/review.html` does not provide a backend. This preview does not emulate Sites identities, D1, hosted access checks, or deployment behavior. Localhost also has a different browser-storage origin from the hosted site.
 
-No complete local Worker/D1 server command is maintained. `test-review.mjs` exercises the API against in-memory SQLite; it is a test, not a running development server. Do not expose a development server that accepts untrusted identity headers as production.
+For a local API-backed server, build the Worker, then run `DB_DRIVER=sqlite SQLITE_PATH=/absolute/local.sqlite PUBLIC_ORIGIN=http://localhost:3000 AUTH_ENABLED=false node server/http.mjs` after applying migrations. No complete local Worker/D1 emulator command is maintained. `test-review.mjs` exercises the API against in-memory SQLite; it is a test, not a running development server. Do not expose a development server that accepts untrusted identity headers as production.
 
 Browser/screen-capture automation is not part of this runbook. It has been disabled at the owner's request; use automated logic/API checks and voluntary manual browser checks.
 
@@ -237,3 +237,146 @@ test-review.mjs checks both entry points. The account status identifies the
 registration or administrator-setup phase in user-facing language. Technical
 HTTP status is available as data-account-setup-status on #account-status and in
 browser network tools, without displaying the provider name or tokens.
+
+## Offline bounded EBD benchmark
+
+Use `python3 -B scripts/ebd-benchmark.py --output /absolute/new/output/directory`
+with the existing paired sample and source archives. Outputs must remain outside
+the source/deployment checkout. The default local run caps new output at 500 MiB,
+monitors a 256 MiB worker RSS ceiling, and streams each worldwide archive for
+only 10 seconds. Use `--skip-scans` to run just the small sample. It makes no
+network calls or production changes. Read EBD-BENCHMARK.md for exact input paths,
+limits, caveats, tests and restart procedure. Never substitute the in-memory
+pilot as evidence that a worldwide ingestion fits those resource limits.
+
+## Standalone database selection and migrations
+
+See [DATABASES.md](DATABASES.md) for the implemented local PostgreSQL/SQLite
+adapters. Sites keeps its platform D1 binding and existing migration flow.
+Standalone startup requires `DB_DRIVER=postgres` plus secure `DATABASE_URL`, or
+`DB_DRIVER=sqlite` plus `SQLITE_PATH`; it does not fall back on connection failure.
+PostgreSQL defaults to verified TLS and a five-connection pool.
+
+Run `npm ci`, load private deployment settings, then run `npm run db:migrate`
+explicitly before standalone startup. This command creates schema only; it does
+not transfer current D1 records or bootstrap a new administrator. Migration
+history is transactional and checksum-checked. Keep existing migration files
+immutable and back up the destination before applying future changes.
+
+Run `npm run test:database` for temporary local PostgreSQL plus SQLite tests.
+The wrapper starts and stops its own loopback-only PostgreSQL cluster and cleans
+up test data. It does not start the Homebrew default cluster or a permanent
+service. Production uses the PostgreSQL adapter; see DO-PRODUCTION.md for the completed deployment and migration.
+
+## DigitalOcean host preparation
+
+See [DO-PRODUCTION.md](DO-PRODUCTION.md) for the prepared NYC1 host, reserved IP,
+service accounts, systemd/Caddy templates, firewall, validation, and remaining
+launch requirements. Server setup is complete but the app/proxy are inactive;
+protected PostgreSQL credentials and the empty application schema are now
+installed, but staging application data has not been transferred. OS updates
+require a pre-launch reboot, which has not been performed. The supplied database
+private hostname now resolves and its TLS endpoint is reachable; installing the
+DO project CA certificate is complete, and a TLS 1.3 handshake with certificate
+and hostname verification passed. Dedicated runtime authentication is now verified through systemd as the service
+user. See DO-PRODUCTION.md for role permissions and credential file paths.
+
+
+The production PostgreSQL schema is owned by aviquiz_migrator; runtime grants
+are narrower and do not include audit mutation or schema changes. The applied
+PostgreSQL migration file must remain immutable. `/etc/aviquiz/aviquiz.env` and
+`/etc/aviquiz/migration.env` are root-only 0600 files; never display them in logs
+or chat. The temporary doadmin handoff file was removed after successful setup.
+The read-only service-user health probe is `/srv/aviquiz/support/db-check.cjs`.
+Run it via a transient systemd unit with User/Group=aviquiz and the application
+EnvironmentFile; do not make the environment file world/group readable to run it.
+
+## DigitalOcean production operations
+
+See [DO-PRODUCTION.md](DO-PRODUCTION.md) for inventory, protected paths, release
+identity, and migration evidence. Production and staging share one managed
+identity pool/client for now, but have separate app databases. Do not change
+staging access controls or publish a staging update as part of a DO deployment.
+
+Build on a development machine, not the 1 GiB Droplet:
+
+```sh
+npm ci --ignore-scripts
+node scripts/build-worker.mjs
+node test-http.mjs
+node test-review-permissions.mjs
+node scripts/package-do.mjs
+```
+
+The packager prints a `/private/tmp/aviquiz-<digest>` directory. Install locked
+production-only dependencies there with `npm ci --omit=dev --ignore-scripts`,
+archive its contents without macOS extended attributes, and record the archive
+SHA-256. Upload as `deploy` to `/srv/aviquiz/releases`, verify the checksum,
+extract to a new immutable release directory, and atomically replace `current`
+with a symlink to that release. Never upload source exports, secrets, or EBD
+archives. For schema changes, back up first, then run the migration CLI with
+`/etc/aviquiz/migration.env` as root before switching compatible code. Do not
+run migrations with runtime credentials or edit an applied migration.
+
+The deploy account may run exactly:
+
+```sh
+sudo /usr/bin/systemctl restart aviquiz.service
+sudo /usr/bin/systemctl stop aviquiz.service
+sudo /usr/bin/systemctl start aviquiz.service
+sudo /usr/bin/systemctl is-active aviquiz.service
+```
+
+Verify `curl -f http://127.0.0.1:3000/healthz` on the Droplet, then
+`curl -f https://aviquiz.org/healthz` externally. Other loopback requests must
+include `Host: aviquiz.org`; a 421 otherwise is intentional. Check `/`, `/quiz`,
+`/statistics`, `/review`, public `/api/annotations`, and private API denial to
+guests. The review HTML is public; its data and mutations require authorization.
+Use a normal browser for sign-in/sign-out and review permission verification;
+never copy tokens or token-bearing callback URLs into logs or chat.
+
+Root diagnosis: `systemctl status aviquiz caddy`,
+`journalctl -u aviquiz.service -n 100`, and `journalctl -u caddy -n 100`.
+A 502 suggests the app is not listening; check app startup/DB connectivity.
+A 503 health response suggests DB failure. A 401/403 on account APIs calls for
+checking the configured issuer/client, account status, and app grants. Runtime
+logs deliberately omit request credentials and query strings. Do not print
+protected environment files. Root can run the bundled database health probe
+through a transient systemd service using the runtime EnvironmentFile.
+
+For code rollback, atomically point `current` at the previous compatible release
+and restart; schema/data rollback is separate and must not overwrite post-launch
+changes. Root controls Caddy start/stop/reload; stopping it removes public access.
+Caddy renews HTTPS certificates automatically. Both services are enabled at boot.
+Protect and test managed PostgreSQL backups: redeploying a Droplet restores code,
+not user data. The initial import receipt is not a continuing backup policy.
+
+## Single-recipient invitations (production)
+
+See [INVITATIONS.md](INVITATIONS.md) for the locally implemented invitation
+screen, audited account creation, permission boundary, quotas, partial-failure
+recovery, and activation checklist. Production release aviquiz-513b4f8eb3a4e29d now includes this feature with
+certificate-based sender authentication and migration 0002 applied. Staging is unchanged.
+
+Certificate-based sender preparation now lives in [deploy/roles-anywhere/README.md](deploy/roles-anywhere/README.md). It includes the offline CA/CSR/signing workflow, a disabled-by-default CloudFormation stack, SDK credential-process configuration, expiry checks, and recovery instructions. The deployed resource state and authentication probe are recorded there.
+
+## Geography launcher and directory cache
+
+See [GEOGRAPHY.md](GEOGRAPHY.md) for `/explore`, persistent region/hotspot
+metadata, administrator refresh behavior, season selection, pilot coverage
+limits, and preservation of the original Colombia quiz through December 18.
+
+## Required source checkpoint before production
+
+Commit and push the exact source to GitHub before production packaging.
+`package-do.mjs` refuses dirty trees or a local HEAD that differs from the
+current branch on origin, builds the Worker only after that check, and records
+Git SHA/branch in release.json. Deploy the artifact from that revision only.
+Never copy a dirty working tree to production. Run the redacted secret scan
+and verify private files are ignored before committing. Public client IDs and
+resource ARNs may be tracked; actual API keys and private keys must not be.
+
+Release promotion uses dev -> staging deployment -> Sandy verification -> main
+-> production deployment. A staging branch is optional and is not used by default.
+Production packaging rejects branches other than main. A GitHub push alone does
+not authorize production deployment; obtain the user staging sign-off first.

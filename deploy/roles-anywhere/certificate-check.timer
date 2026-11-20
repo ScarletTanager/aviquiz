@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily AviQuiz certificate expiry check
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=15m
+Unit=aviquiz-certificate-check.service
+
+[Install]
+WantedBy=timers.target

@@ -50,6 +50,48 @@ jobs:
         run: |
           node scripts/build-worker.mjs
           node test-review.mjs
+          node test-review-permissions.mjs
+          node test-http.mjs
+          node test-invitations.mjs
+          node test-geography.mjs
+          node test-release-source.mjs
+
+  database:
+    strategy:
+      matrix:
+        postgres: [17, 18]
+    name: SQLite and PostgreSQL ${{ matrix.postgres }} integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_USER: aviquiz_test
+          POSTGRES_DB: aviquiz_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 127.0.0.1:5432:5432
+        options: >-
+          --health-cmd "pg_isready -U aviquiz_test -d aviquiz_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Install and build Worker
+        run: |
+          npm ci --ignore-scripts
+          node scripts/build-worker.mjs
+      - name: Run cross-provider integration checks
+        env:
+          TEST_DATABASE_URL: postgresql://aviquiz_test@127.0.0.1:5432/aviquiz_test
+        run: node test-database.mjs
 
   secrets:
     name: Gitleaks full-history scan

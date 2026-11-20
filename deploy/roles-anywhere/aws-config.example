@@ -1,0 +1,5 @@
+# Public ARNs below come from the approved CloudFormation stack outputs.
+# No credentials or private key contents belong in this configuration file.
+[profile aviquiz-invitations]
+region = us-east-2
+credential_process = /usr/local/bin/aws_signing_helper credential-process --certificate /etc/aviquiz/roles-anywhere/server.cert.pem --private-key /etc/aviquiz/roles-anywhere/server.key.pem --trust-anchor-arn REPLACE_TRUST_ANCHOR_ARN --profile-arn REPLACE_PROFILE_ARN --role-arn REPLACE_ROLE_ARN --session-duration 900

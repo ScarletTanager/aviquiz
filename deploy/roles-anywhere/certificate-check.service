@@ -1,0 +1,14 @@
+[Unit]
+Description=Check AviQuiz AWS authentication certificate expiry
+
+[Service]
+Type=oneshot
+User=aviquiz
+Group=aviquiz
+SupplementaryGroups=aviquiz-auth
+ExecStart=/usr/bin/openssl verify -CAfile /etc/aviquiz/roles-anywhere/ca.cert.pem /etc/aviquiz/roles-anywhere/server.cert.pem
+ExecStart=/usr/bin/openssl x509 -in /etc/aviquiz/roles-anywhere/server.cert.pem -noout -checkend 2592000
+ExecStart=/usr/bin/openssl x509 -in /etc/aviquiz/roles-anywhere/ca.cert.pem -noout -checkend 7776000
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true

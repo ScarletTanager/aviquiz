@@ -192,11 +192,28 @@ function openRoutePage(){
   });
 }
 function returnToRoute(route){
+  if(route.geography){location.assign(route.returnUrl);return;}
   history.pushState(null,'','/trips'+route.hash);navigateLocation();$('routes-heading').focus({preventScroll:true});
+}
+async function openGeographyQuiz(token){
+  showView('setup',{updateUrl:false});
+  try{
+    const {geographySelection,geographyPool}=await import('./geography-core.mjs');
+    const query=new URLSearchParams(location.search),selection=geographySelection(query);
+    const responses=await Promise.all(['/geography-seed.json','/route-pilot.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error('Geography pilot data is unavailable.');
+    const [seed,catalog]=await Promise.all(responses.map(r=>r.json()));if(token!==navigationToken)return;
+    const scope=seed.nodes.find(n=>n.id===selection.id);if(!scope||['world','continent'].includes(scope.kind))throw Error('Select a supported country, region, or site in the geography launcher.');
+    const candidates=geographyPool({scope,nodes:seed.nodes,catalog,birds:data.birds,...selection});
+    const pool=candidates.pool.filter(b=>selection.family==='all'||familyName(b.family)===selection.family);
+    if(!pool.length)throw Error('No pilot species with photos match this location, date range, and family. Return to Take a quiz to choose another scope.');
+    const route={geography:true,title:scope.name+' · '+selection.start+' to '+selection.end,pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:scope.id,from:selection.start,to:selection.end})};
+    begin({route,count:selection.count,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});
+  }catch(error){if(token===navigationToken)$('settings-error').textContent=error.message;}
 }
 function navigateLocation(){
   navigationToken++;sessionToken++;
   if(['/trips','/trips/','/routes','/routes/'].includes(location.pathname)){openRoutePage();return;}
+  if(data&&location.pathname.startsWith('/quiz')&&new URLSearchParams(location.search).has('geo')){openGeographyQuiz(navigationToken);return;}
   if(location.hash.startsWith('#species/')){if(data)navigateSpeciesHash();return;}
   const page=location.pathname.startsWith('/quiz')?'setup':location.pathname.startsWith('/statistics')?'statistics':'landing';
   showView(page,{updateUrl:false});
@@ -236,7 +253,7 @@ async function begin(settings=formSettings()){
   index=0;answers=[];showView('session');
   const siteLabel=settings.route?settings.route.title:settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
   $('session-label').textContent=mediumName(settings.medium).toUpperCase()+' · '+(review?(settings.mistakeIds?'Review this quiz’s mistakes':'Review recent mistakes'):'Regular quiz')+' · '+siteLabel+(settings.family!=='all'?' · '+settings.family:'')+(review?'':' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[settings.filter]));
-  if(settings.route)$('session-label').textContent+=' · Trip prototype · history not recorded';
+  if(settings.route)$('session-label').textContent+=settings.route.geography?' · Geography pilot · history not recorded':' · Trip prototype · history not recorded';
   if(settings.pilotTips)$('session-label').textContent+=' · Reviewed photo sampler';
   if(settings.experimentalTips)$('session-label').textContent+=' · Experimental · history not recorded';
   if(settings.mode==='annotations')$('session-label').textContent=`ANNOTATION REVIEW · ${siteLabel} · ${settings.family==='all'?'All families':settings.family} · history not recorded`;
@@ -326,7 +343,7 @@ function finish(){
   $('result-title').textContent=`${correct} / ${scored.length} identified.`;
   $('result-summary').textContent=`${mediumName(activeSettings.medium)} practice · ${scored.length?Math.round(correct/scored.length*100)+'% correct.':'No questions could be scored.'}${answers.length>scored.length?` ${answers.length-scored.length} skipped or unavailable ${audio?'recordings':'photos'} were not scored.`:''} Review your birds below, then choose your next session.`;
   const mistakes=sessionMistakeIds(answers);
-  if(activeSettings.route)$('result-summary').textContent+=' Trip prototype: saved statistics were not changed.';
+  if(activeSettings.route)$('result-summary').textContent+=activeSettings.route.geography?' Geography pilot: saved statistics were not changed.':' Trip prototype: saved statistics were not changed.';
   if(activeSettings.experimentalTips)$('result-summary').textContent+=' Experimental session: these answers were not added to statistics or recent mistake history.';
   if(activeSettings.mode==='annotations'){$('result-title').textContent=`${answers.filter(a=>a.personallyReviewed).length} / ${answers.length} photos marked reviewed.`;$('result-summary').textContent='Marked photos are excluded from future annotation reviews in this browser. Unmarked and unavailable photos remain eligible. No statistics or mistake history were changed.';$('review-quiz').hidden=true;}
   else $('review-quiz').hidden=false;
