@@ -49,6 +49,10 @@ if(import.meta.main){
   const refreshed=await geographyApi(request('CO',true),env,{verifyIdentity});assert.equal(refreshed.status,200);assert.equal(upstream,1);
   assert.equal((await db.prepare("SELECT COUNT(*) n FROM audit_events WHERE action='geography.refresh'").first()).n,1);
   assert.equal((await geographyApi(request('CO-ANT'),env)).status,200);
+  // Cloudflare/D1 startup has no Node-injected provider. It must use the same
+  // persistent cache without fetching or exposing its runtime key.
+  const d1={...db,dialect:undefined};const d1Env={DB:d1,EBIRD_API_KEY:'private-test-key'};
+  const d1Response=await geographyApi(request('CO'),d1Env);assert.equal(d1Response.status,200);const cachedBody=await d1Response.json();assert.equal(cachedBody.source,'ebird-cache');assert.ok(!JSON.stringify(cachedBody).includes('private-test-key'));
  }finally{await db?.close();await fs.rm(folder,{recursive:true,force:true});}
  console.log('Passed geography seasons/leap years/range coverage, media pool, bounded inputs, public browsing, admin-only refresh and audit. No live eBird or AWS calls.');
 }
