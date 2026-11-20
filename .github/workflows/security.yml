@@ -68,7 +68,10 @@ jobs:
         with:
           python-version: '3.13'
       - name: Check regional routing, priorities, and incomplete-source safety
-        run: python -B scripts/test-ebd-partition.py
+        run: |
+          python -B scripts/test-ebd-partition.py
+          python -B scripts/test-ebd-local-sizing.py
+          python -B scripts/test-ebd-ingest.py
 
   database:
     strategy:

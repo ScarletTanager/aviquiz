@@ -4,7 +4,7 @@ import argparse
 from collections import OrderedDict
 from datetime import date, datetime, timezone
 import fnmatch
-import gzip
+import zlib
 import hashlib
 import importlib.util
 import json
@@ -70,42 +70,72 @@ def save_manifest(folder, value):
 
 
 class Writers:
-    """Limit open gzip streams; concatenated members are valid streaming gzip."""
-    def __init__(self, folder, cap):
+    """Eight open files, up to 256 retained compression states, bounded output."""
+    def __init__(self, folder, cap, actual_cap=None):
         self.folder, self.cap, self.reserved = folder, cap, 0
-        self.handles = OrderedDict()
+        self.actual_cap, self.written = actual_cap, 0
+        self.handles, self.compressors = OrderedDict(), OrderedDict()
+
+    def emit(self, pair, content):
+        if not content:
+            return
+        if self.actual_cap is not None and self.written + len(content) > self.actual_cap:
+            raise benchmark.LimitReached('Compressed output budget reached')
+        self.written += len(content)
+        if pair not in self.handles:
+            if len(self.handles) >= 8:
+                _, old = self.handles.popitem(last=False)
+                old.close()
+            key, kind = pair
+            self.handles[pair] = (self.folder / key / (kind + '.partial.tsv.gz')).open('ab')
+        handle = self.handles.pop(pair)
+        self.handles[pair] = handle
+        handle.write(content)
 
     def write(self, key, kind, content):
         pair = (key, kind)
-        new_member = pair not in self.handles
-        # Raw projected bytes plus a conservative per-member compression reserve
-        # bound output independently of source size and compression ratio.
+        new_member = pair not in self.compressors
         cost = len(content) + (len(content) // 16384 + 1) * 16 + (1024 if new_member else 0)
         if self.reserved + cost > self.cap:
             raise benchmark.LimitReached('Projected output budget reached')
         self.reserved += cost
         if new_member:
-            if len(self.handles) >= 8:
-                _, old = self.handles.popitem(last=False)
-                old.close()
+            if len(self.compressors) >= 256:
+                old_pair, old = self.compressors.popitem(last=False)
+                self.emit(old_pair, old.flush())
             target = self.folder / key
             target.mkdir(exist_ok=True)
             path = target / (kind + '.partial.tsv.gz')
-            header = ('\t'.join(PROJECTION[kind]) + '\n').encode()
+            # A compressor can be opened long before it emits its first bytes.
+            # Existing file presence marks a previous, finalized gzip member.
             if not path.exists():
+                header = ('\t'.join(PROJECTION[kind]) + '\n').encode()
                 if self.reserved + len(header) > self.cap:
                     raise benchmark.LimitReached('Projected header budget reached')
                 self.reserved += len(header)
                 content = header + content
-            self.handles[pair] = gzip.open(path, 'ab', compresslevel=1)
-        handle = self.handles.pop(pair)
-        self.handles[pair] = handle
-        handle.write(content)
+            self.compressors[pair] = zlib.compressobj(level=1, wbits=31)
+        compressor = self.compressors.pop(pair)
+        self.compressors[pair] = compressor
+        self.emit(pair, compressor.compress(content))
 
     def close(self):
-        for handle in self.handles.values():
-            handle.close()
-        self.handles.clear()
+        error = None
+        try:
+            while self.compressors:
+                pair, compressor = self.compressors.popitem(last=False)
+                try:
+                    self.emit(pair, compressor.flush())
+                except Exception as failure:
+                    error = failure
+                    self.compressors.clear()
+                    break
+        finally:
+            for handle in self.handles.values():
+                handle.close()
+            self.handles.clear()
+        if error:
+            raise error
 
 
 def partition(*, observations, sampling, output, release, first_year, last_year,

@@ -294,11 +294,17 @@ def rss_for(pid):
             return 0
     else:
         result = subprocess.run(['ps', '-o', 'rss=', '-p', str(pid)], capture_output=True, text=True)
+        if result.returncode:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                return 0
+            raise RuntimeError('RSS monitor unavailable')
         return int(result.stdout.strip() or '0') * 1024
     return 0
 
 
-def supervise(config, root, budget):
+def supervise(config, root, budget, worker_program=None):
     config['max_file_bytes'] = max(4096, (budget - directory_bytes(root) - RESERVE) // 4 // 4096 * 4096)
     result_path = Path(config['directory']) / 'worker-result.json'
     error_path = Path(config['directory']) / 'worker-stderr.txt'
@@ -307,7 +313,7 @@ def supervise(config, root, budget):
     peak_memory = 0
     stop_reason = None
     with result_path.open('wb') as output, error_path.open('wb') as errors:
-        child = subprocess.Popen([sys.executable, __file__, '--worker'], stdin=subprocess.PIPE,
+        child = subprocess.Popen([sys.executable, str(worker_program or __file__), '--worker'], stdin=subprocess.PIPE,
                                  stdout=output, stderr=errors, env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
         child.stdin.write((json.dumps(config) + '\n').encode())
         child.stdin.close()

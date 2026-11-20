@@ -1,7 +1,8 @@
 # Regional EBD processing
 
-Initial implementation: November 20, 2026. Offline preparation only. No worldwide
-scan, cloud upload, processing server, or production species-list import has run.
+Initial implementation: November 20, 2026. Offline preparation only. No cloud
+upload, processing Droplet, or production species-list import has run. Full local
+preparation requires the separately authorized limits described below.
 
 ## Reading order and processing priorities
 
@@ -78,9 +79,11 @@ python3 -B scripts/ebd-partition.py partition \
 Output must be outside the repository. The local output limit is 1–500 MiB,
 defaulting to 500 MiB, with a manifest reserve and conservative compression
 overhead accounting. At least the output budget plus 2 GiB free disk is required;
-the reserve is rechecked periodically. At most eight gzip writers are open,
-with at most 1,024 region keys and a 1 MiB input-line buffer. Reopening a regional
-writer appends a valid concatenated gzip member, without another TSV header.
+the reserve is rechecked periodically. At most eight output files are open, with up to 256 retained compression states,
+1,024 region keys and a 1 MiB input-line buffer. Compression states survive file
+closure so geographically interleaved records do not force a fresh gzip member
+on every file reopen. Evicting a compression state finalizes its gzip member;
+reopening that state appends a valid member without another TSV header.
 The default cooperative deadline is 60 seconds. `--max-rows` is a per-source
 diagnostic bound; hitting it labels the result incomplete. These are preparation
 guards, not strict OS memory limits or cloud-job supervision.
@@ -120,3 +123,57 @@ implement a deletion-aware delta feed or gzip checkpoint resume. See [EBD.md](EB
 for reconciliation requirements and [EBD-BENCHMARK.md](EBD-BENCHMARK.md) for the
 earlier sizing measurements. Bulk analytical data stays separate from AviQuiz's
 production account/trip database and the small application Droplet.
+
+## Supervised full local preparation
+
+On November 20 Sandy authorized local processing provided the machine stays
+responsive and free disk does not fall below 50 GiB. The separate full-run
+supervisor `scripts/ebd-ingest.py` has stricter controls than the small direct
+partitioner: two low-priority processes (nice increment 10), 256 MiB monitored
+RSS per worker by default, an independent hard cap on compressed bytes emitted
+by each writer, and a 60 GiB free-space stop threshold. Initial free space must
+cover the complete chosen output cap plus that reserve. The maximum configured
+output cap is 350 GiB, including a 4 MiB metadata reserve; sampling receives
+1/14 and observations 13/14 of the compressed-data allowance. If a source exceeds
+its allowance the whole run is incomplete rather than expanding automatically.
+
+```sh
+python3 -B scripts/ebd-ingest.py \
+  --observations /Users/sandy/col_birding/ebd_relSep-2026.tar \
+  --sampling /Users/sandy/col_birding/ebd_sampling_relSep-2026.tar \
+  --output /Users/sandy/col_birding/outputs/ebd_ingestion/relSep2026-20261120 \
+  --release relSep-2026 --output-gib 350 --reserve-free-gib 60 \
+  --memory-mib 256 --max-hours 24
+```
+
+The supervisor checks disk and worker RSS every second and terminates the workers
+on a limit, monitor failure, worker failure, or interruption. Each worker also
+checks free disk and supervisor liveness every 2,000 rows. A 10 GiB disk margin
+allows time to stop, but no process can prevent unrelated software from filling
+the filesystem. Total ingestion worker RAM is bounded to 512 MiB monitored RSS,
+plus the small supervisor and normal OS/process overhead; monitor limits can
+transiently overshoot. Linux workers additionally have an address-space limit.
+The parent remains alive for the run and does not depend on a browser session.
+On macOS, run through `caffeinate -i` to prevent idle system sleep while it runs;
+closing the lid or deliberately sleeping/shutting down the machine can interrupt
+or pause processing.
+
+This full preparation retains all valid source observation dates rather than
+silently imposing a lookback window. Temporal selection, completed-season rules,
+and cross-year handling belong in the later aggregation/serving policy. The two
+files are **not** joined by row position. No uncompressed worldwide text is
+created and neither original archive is modified or deleted.
+
+`status.json` contains counts, archive progress, memory peaks and free disk;
+`manifest.json` records the Git commit and script hashes, limits and provenance.
+To stop deliberately, send SIGINT to the supervisor PID in the manifest. A stopped
+run remains incomplete and is not resumable mid-gzip. Completed source projections
+are kept private; only after both scans finish are files finalized and hashed and
+the manifest marked `partitioned`. It still has `serving_ready: false`: this is
+preparation, not production publication or validated species frequencies.
+
+Tests: `scripts/test-ebd-ingest.py`, `scripts/test-ebd-local-sizing.py`, and
+`scripts/test-ebd-partition.py`. The full supervisor test uses tiny fixtures but
+retains the real 60 GiB reserve; CI explicitly skips that one test when free space
+is insufficient. The other control, routing, privacy and incomplete-source checks
+run with synthetic data.
