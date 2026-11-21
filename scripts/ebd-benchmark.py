@@ -311,6 +311,8 @@ def supervise(config, root, budget, worker_program=None):
     started = time.monotonic()
     peak_disk = directory_bytes(root)
     peak_memory = 0
+    minimum_free = shutil.disk_usage(root).free
+    initial_free = minimum_free
     stop_reason = None
     with result_path.open('wb') as output, error_path.open('wb') as errors:
         child = subprocess.Popen([sys.executable, str(worker_program or __file__), '--worker'], stdin=subprocess.PIPE,
@@ -321,8 +323,11 @@ def supervise(config, root, budget, worker_program=None):
             while child.poll() is None:
                 peak_disk = max(peak_disk, directory_bytes(root))
                 peak_memory = max(peak_memory, rss_for(child.pid))
-                if peak_disk > budget - RESERVE:
+                minimum_free = min(minimum_free, shutil.disk_usage(root).free)
+                if peak_disk > budget - RESERVE or (config.get('monitor_filesystem_growth') and initial_free - minimum_free > budget - RESERVE):
                     stop_reason = 'workspace_disk_limit'
+                elif config.get('reserve_free_bytes') and minimum_free < config['reserve_free_bytes']:
+                    stop_reason = 'free_disk_reserve'
                 elif peak_memory > config['memory_bytes']:
                     stop_reason = 'monitored_rss_limit'
                 elif time.monotonic() - started > config['seconds'] + (2 if config['mode'] == 'scan' else 0):
@@ -334,7 +339,7 @@ def supervise(config, root, budget, worker_program=None):
                     except subprocess.TimeoutExpired:
                         child.kill(); child.wait()
                     break
-                time.sleep(.05)
+                time.sleep(config.get('monitor_interval_seconds', .05))
         except KeyboardInterrupt:
             child.kill(); child.wait()
             stop_reason = 'interrupted'
@@ -351,6 +356,8 @@ def supervise(config, root, budget, worker_program=None):
     if result['status'] == 'incomplete':
         (Path(config['directory']) / 'aggregate.sqlite').unlink(missing_ok=True)
     result.update(monitored_peak_workspace_bytes=peak_disk, monitored_peak_rss_bytes=peak_memory,
+                  minimum_monitored_free_bytes=minimum_free,
+                  max_monitored_filesystem_growth_bytes=max(0, initial_free-minimum_free),
                   per_database_file_limit_bytes=config['max_file_bytes'])
     return result
 

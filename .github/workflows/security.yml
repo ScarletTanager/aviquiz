@@ -72,6 +72,7 @@ jobs:
           python -B scripts/test-ebd-partition.py
           python -B scripts/test-ebd-local-sizing.py
           python -B scripts/test-ebd-ingest.py
+          python -B scripts/test-ebd-aggregate-region.py
 
   database:
     strategy:
