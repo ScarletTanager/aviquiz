@@ -221,5 +221,5 @@ Private artifacts (outside Git):
 `manifest.json`, `verification.json`, `status.json`, and the two regional trees.
 The queue begins with NC, followed by the remaining US states, Colombia and
 other countries alphabetically. The manifest remains `serving_ready: false`;
-no new quiz coverage was published. Next is North Carolina aggregation and
-reconciliation, starting with the Chatham County rarity test.
+no new quiz coverage was published. North Carolina aggregation and the Chatham County rarity validation are now
+complete locally; see [EBD-NC.md](EBD-NC.md) for results and remaining serving work.

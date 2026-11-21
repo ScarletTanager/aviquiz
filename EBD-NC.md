@@ -99,3 +99,86 @@ retain that discrepancy in the private audit without blocking unrelated valid
 outings. It is not a per-record exception: the same rule applies only to groups
 already proven unusable by shared-group validation. The original records are
 unchanged, and date/geography mismatches in usable outings still fail closed.
+
+## Completed NC run - November 21, 2026
+
+The successful run used source commit `2d5cbe4` and completed in 710.97 seconds
+(about 11 minutes 51 seconds). Input files and production were unchanged. Source
+and output validation passed, including SQLite integrity, foreign keys and the
+check that detections never exceed eligible effort. An independent post-run
+comparison reproduced the earlier Chatham Kirtland's Warbler counts and rates.
+
+| Measurement | Result |
+| --- | ---: |
+| NC sampling / observation rows reconciled | 2,545,248 / 35,141,068 |
+| Eligible submissions / independent outings | 1,967,669 / 1,694,551 |
+| Conflicting local / cross-region outings excluded | 1,682 / 23 |
+| Outside-NC sampling rows checked | 174,053,615 |
+| Independent outing-species detections | 26,706,921 |
+| NC statewide / counties / public hotspots | 1 / 100 / 2,837 |
+| Daily effort / detection rows | 810,626 / 21,928,842 |
+| Species with qualifying NC detections, all source years | 484 |
+| Daily database | 3,601,432,576 bytes (about 3.35 GiB) |
+| Peak monitored working-directory size | 4.56 GiB |
+| Peak monitored worker RSS | 495.81 MiB |
+| Minimum monitored free disk | 403.69 GiB |
+
+The daily facts cover qualifying outings from 1941–2026. Reference windows below
+use 2017–2025, excluding the partial 2026 autumn. This is not an official complete
+NC bird list: sensitive-data omissions, eligibility rules and available effort
+limit the evidence. Taxonomy metadata covers 515 source-native species parents;
+only qualifying approved detections enter the 484-species empirical result.
+
+### Kirtland's Warbler checks
+
+| Scope / season | Reporting outings / effort | Raw rate | Day-balanced rate | Reporting seasons / sampled seasons | Raw / day-balanced / recurrence-first rank |
+| --- | --- | --- | --- | --- | --- |
+| NC, September | 216 / 93,892 | 0.23% | 0.32% | 4 / 9 | 202 / 191 / 191 of 350 |
+| Chatham, Sept 20–Oct 10 | 107 / 2,411 | 4.44% | 1.44% | 1 / 9 | 70 / 98 / 176 of 209 |
+| Chatham, Sept 27–30 | 107 / 573 | 18.67% | 7.58% | 1 / 9 | 35 / 59 / 130 of 158 |
+| Jordan Lake dam, Sept 20–Oct 10 | 99 / 172 | 57.56% | 7.22% | 1 / 9 | 8 / 56 / 84 of 110 |
+
+The wider Chatham and dam results exactly reproduce the previous pilot, including
+the one-season classification. The narrow-window raw rank changes from 34 to 35
+because identifiable-group rollups can increase another species' rate. Chatham's
+all-year eligible effort for 2017–2025 is now 36,212 versus 36,216 under the old
+county-only grouping rules; the autumn denominator remains 2,411.
+
+Statewide Kirtland's appears in four sampled seasons and is classified recurring,
+although its frequency remains low. Recurrence and day balancing are useful
+signals, not a universal rarity classifier or encounter-probability model.
+Evidence tiers must stay geography- and season-specific. Day balancing can also
+increase a species' frequency, as the statewide result demonstrates.
+
+### Audit and exclusions
+
+All observation outcomes sum to the full 35,141,068 input rows. Counts include
+31,281,482 accepted species-level rows; 550,216 ISSF, 28,464 form and two intergrade
+rows folded into species; 2,857,889 rows from ineligible submissions; 106,613 rows
+from conflicting outings plus the one audited metadata mismatch; and 443
+non-approved rows. Excluded ambiguous/domestic categories are 138,309 domestic,
+48,222 slash, 125,677 spuh and 3,750 hybrid rows. These are policy exclusions,
+not unreported parser failures or destroyed source data.
+
+No observation was missing its sampling event. The one date disagreement was
+inside an already-quarantined group, and no disagreement in a usable outing was
+accepted. The private audit retains the conflicting group and record reference;
+the group contributes to neither numerator nor denominator. Regression tests
+also verify that a date mismatch in a usable outing still blocks promotion.
+
+There are 6,402 eligible submissions with no observation rows and 6,745 valid
+independent outings without approved identifiable species detections. They remain
+in effort totals; these counts alone cannot establish whether a visit truly had
+zero birds or whether observations were omitted/filtered. Six valid outings have
+no usable county code; they contribute to NC and their public hotspot if present,
+without inventing a county assignment. Private locations never become hotspot
+catalog entries. The initial failed attempt is isolated and not part of the final
+aggregate.
+
+Private artifacts are under
+`/Users/sandy/col_birding/outputs/ebd_aggregation/nc-20261121-r2/`:
+`daily.sqlite`, `analysis-report.json`, `supervisor-report.json`, `verification.json`,
+reference ranking CSVs, and the separate `reconciliation.private.sqlite` audit.
+They remain outside Git; no new quiz coverage has been deployed. The next step is
+reviewing the selection/ranking policy and building compact serving lists for the
+launcher, rather than uploading the full event staging database to production.

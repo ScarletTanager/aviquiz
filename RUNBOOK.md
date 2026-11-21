@@ -388,3 +388,10 @@ See [EBD-PROCESSING.md](EBD-PROCESSING.md) for `ebd-partition.py partition` and
 output directory. Incomplete manifests are blocked; `partitioned` still requires
 aggregation and validation before serving. Do not run a full worldwide preparation
 on the 1 GiB application Droplet or treat the local 500 MiB cap as cloud sizing.
+
+## NC analytical aggregation
+
+See [EBD-NC.md](EBD-NC.md) for the regional aggregation command, resource limits,
+source-native taxonomy mapping, audit rules, completed NC results, and artifact
+paths. These daily facts are local analytical output, not a production database
+migration or a new live quiz list. Keep the reconciliation database private.
