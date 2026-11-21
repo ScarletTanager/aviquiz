@@ -69,7 +69,7 @@ if(import.meta.main){
  class Element{
   constructor(){this.value='';this.hidden=false;this.disabled=false;this.checked=false;this.children=[];this.listeners={};this.attributes={};this.textContent='';}
   append(...children){this.children.push(...children);}replaceChildren(...children){this.children=children;}
-  addEventListener(name,fn){this.listeners[name]=fn;}setAttribute(k,v){this.attributes[k]=v;}
+  closest(){return this;}addEventListener(name,fn){this.listeners[name]=fn;}setAttribute(k,v){this.attributes[k]=v;}
  }
  const ids=[...((await fs.readFile('dist/explore.html','utf8')).matchAll(/id="([^"]+)"/g))].map(m=>m[1]),elements=Object.fromEntries(ids.map(id=>[id,new Element()]));
  elements['geo-family'].value='all';elements['geo-count'].value='20';
@@ -77,6 +77,7 @@ if(import.meta.main){
  const browserNodes=[...seed.nodes,{id:'EC-P',name:'Pichincha',kind:'subnational1',parent:'EC'},{id:'L9999999999',name:'Ecuador test hotspot',kind:'hotspot',parent:'EC-P'}];
  const apiRequest=[];let holdParent=null;const releaseHeld=[];
  const fetcher=async url=>{
+  if(url==='/nc-birds.json')return {ok:true,json:async()=>({birds:[]})};if(url.startsWith('/api/nc/quiz'))return {status:404,ok:false};
   if(url==='/geography-seed.json')return {ok:true,json:async()=>seed};if(url==='/route-pilot.json')return {ok:true,json:async()=>catalog};if(url==='/data.json')return {ok:true,json:async()=>data};
   if(url==='/api/account')return {ok:true,json:async()=>({kind:'guest'})};
   const u=new URL(url,'https://quiz.example'),id=u.searchParams.get('parent'),type=u.searchParams.get('type'),parent=browserNodes.find(n=>n.id===id);apiRequest.push(id+':'+type);
@@ -92,7 +93,7 @@ if(import.meta.main){
  await vm.runInContext('(async()=>{'+source+'})()',context);
  const leaves=e=>e.children.flatMap(n=>n instanceof Element?[n,...leaves(n)]:[]);
  const lists=()=>leaves(elements['geo-children']).filter(e=>e.listeners.change);
- async function choose(name){const select=lists().find(e=>leaves(e).some(o=>o.textContent===name));assert.ok(select,name);select.value=leaves(select).find(o=>o.textContent===name).value;await select.listeners.change();}
+ async function choose(name){const select=lists().find(e=>leaves(e).some(o=>o.textContent===name));assert.ok(select,name);select.value=leaves(select).find(o=>o.textContent===name).value;await select.listeners.change();await new Promise(resolve=>setImmediate(resolve));}
  assert.equal(lists().length,1);assert.equal(lists()[0].size,seed.nodes.filter(n=>n.parent==='world').length);
  await choose('South America');assert.equal(lists().length,2);assert.equal(lists()[1].size,20);
  await choose('Colombia');assert.equal(lists().length,3);assert.ok(!apiRequest.includes('CO:hotspots'));await choose('Caldas');assert.ok(apiRequest.includes('CO-CAL:hotspots'));assert.equal(lists().length,4);
@@ -104,7 +105,7 @@ if(import.meta.main){
  await choose(firstSite.name);assert.equal(lists().length,4); // no empty leaf column
  await choose('Caldas');
  assert.equal(elements['geo-start-quiz'].disabled,true);
- elements['geo-sample'].checked=true;elements['geo-sample'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,false);
+ elements['geo-sample'].checked=true;await elements['geo-sample'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,false);
  elements['geo-start-quiz'].listeners.click();assert.match(assigned,/geo=CO-CAL/);assert.match(assigned,/from=2027-02-01/);
  elements['geo-start'].value='2027-06-01';elements['geo-end'].value='2027-06-30';elements['geo-end'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,true);
  elements['geo-year'].value='2028';elements['geo-month'].value='2';elements['geo-apply-month'].listeners.click();assert.equal(elements['geo-end'].value,'2028-02-29');

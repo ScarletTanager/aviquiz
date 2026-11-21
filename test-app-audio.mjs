@@ -437,7 +437,7 @@ console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, a
 // against the original Colombia statistics or replacing its settings page.
 const originalGeographyFetch=globalThis.fetch;
 const geographySeed=JSON.parse(fs.readFileSync('dist/geography-seed.json'));
-globalThis.fetch=async url=>url==='/geography-seed.json'?{ok:true,json:async()=>geographySeed}:originalGeographyFetch(url);
+globalThis.fetch=async url=>url.startsWith('/api/nc/quiz')?{status:404,ok:false}:url==='/geography-seed.json'?{ok:true,json:async()=>geographySeed}:originalGeographyFetch(url);
 const beforeGeoHistory=store.get(PROGRESS_KEY);
 history.pushState(null,'','/quiz?geo=CO-CAL&from=2027-02-01&to=2027-02-28&questions=1&single=true');
 for(const fn of windowEvents.popstate||[])await fn();
@@ -446,5 +446,15 @@ assert.equal($('session').hidden,false);assert.match($('session-label').textCont
 $('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');
 assert.equal(store.get(PROGRESS_KEY),beforeGeoHistory);assert.match($('result-summary').textContent,/Geography pilot/);
 globalThis.location.assign=url=>{globalThis.__geoReturn=url;};await $('new-quiz').fire('click');assert.match(globalThis.__geoReturn,/^\/explore\?/);
+const ncBirds=JSON.parse(fs.readFileSync('dist/nc-birds.json')).birds.filter(b=>b.photos.length);
+globalThis.fetch=async url=>url.startsWith('/api/nc/quiz')?{ok:true,status:200,json:async()=>({pool:ncBirds.slice(0,2)})}:url==='/nc-locations.json'?{ok:true,json:async()=>JSON.parse(fs.readFileSync('dist/nc-locations.json'))}:originalGeographyFetch(url);
+history.pushState(null,'','/quiz?geo=US-NC-037&from=2026-09-20&to=2026-10-10&questions=1&trail=world,continent:North%20America,US,US-NC,US-NC-037');
+for(const fn of windowEvents.popstate||[])await fn();
+for(let n=0;n<20&&$('session').hidden;n++)await settle();
+assert.equal($('session').hidden,false);assert.match($('session-label').textContent,/Chatham/);
+$('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');
+assert.equal(store.get(PROGRESS_KEY),beforeGeoHistory);
+await $('new-quiz').fire('click');assert.match(globalThis.__geoReturn,/trail=/);
+console.log('Passed NC catalog-to-session handoff, scoped title, deep return trail, and unchanged saved history.');
 globalThis.fetch=originalGeographyFetch;
 console.log('Passed geography-to-photo-session handoff, preserved legacy statistics, and return to location launcher.');

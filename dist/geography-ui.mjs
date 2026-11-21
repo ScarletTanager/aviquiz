@@ -6,19 +6,30 @@ const fallback=monthRange(today.getFullYear(),today.getMonth()+1);
 $('geo-start').value=params.get('from')||fallback.start;$('geo-end').value=params.get('to')||fallback.end;$('geo-year').value=today.getFullYear();
 for(let m=1;m<=12;m++){const option=document.createElement('option');option.value=m;option.textContent=new Intl.DateTimeFormat('en',{month:'long',timeZone:'UTC'}).format(new Date(Date.UTC(2024,m-1,1)));$('geo-month').append(option);}
 $('geo-month').value=String(today.getMonth()+1);
-let nodes=[],catalog,birds=[],selected=null,columns=[],request=0,preview={pool:[],places:[]};
+let nodes=[],catalog,birds=[],selected=null,columns=[],request=0,previewRequest=0,preview={pool:[],places:[]};
 const make=(tag,text)=>{const e=document.createElement(tag);e.textContent=text;return e;};
-function updatePreview(){
+async function updatePreview(){
+ const previewToken=++previewRequest;
  $('geo-error').textContent='';$('geo-start-quiz').disabled=true;
  if(!selected||['world','continent'].includes(selected.kind)){$('geo-configuration').hidden=true;return;}
  $('geo-configuration').hidden=false;$('geo-selected-heading').textContent='Quiz scope: '+selected.name;
  try{
   seasonRange($('geo-start').value,$('geo-end').value);
+  const ncResponse=await fetch('/api/nc/quiz?'+new URLSearchParams({place:selected.id,from:$('geo-start').value,to:$('geo-end').value,single:String($('geo-single').checked),family:$('geo-family').value}));
+  if(previewToken!==previewRequest)return;
+  if(ncResponse.status!==404){
+   const nc=await ncResponse.json();if(!ncResponse.ok)throw Error(nc.error);
+   preview={pool:nc.pool,places:[selected]};$('geo-sample').closest('label').hidden=true;
+   $('geo-coverage').textContent=`${nc.species.length} seasonal species after filters; ${nc.pool.length} with verified photos; ${nc.sampledSeasons} sampled seasons. ${nc.notice}`;
+   const list=$('geo-species-list');list.replaceChildren();for(const b of nc.species){list.append(make('li',`${b.name} · ${b.family} · reported in ${b.reportingSeasons} season(s)${b.photos.length?'':' · photo pending'}`));}
+   $('geo-species-details').hidden=false;$('geo-start-quiz').disabled=!nc.pool.length;return;
+  }
+  $('geo-sample').closest('label').hidden=false;$('geo-species-details').hidden=true;
   preview=geographyPool({scope:selected,nodes,catalog,birds,start:$('geo-start').value,end:$('geo-end').value,single:$('geo-single').checked});
   const family=$('geo-family').value,available=preview.pool.filter(b=>family==='all'||familyName(b.family)===family);
   $('geo-coverage').textContent=preview.places.length?`Limited pilot coverage: ${preview.places.length} supported place(s) for these dates; ${available.length} species with photos after filters. This is not a complete seasonal list for ${selected.name}.`:`No supported seasonal species list yet for ${selected.name} across these dates. Browsing locations is available; quiz generation awaits coverage. Try a pilot site within its documented season.`;
   $('geo-start-quiz').disabled=!available.length||!$('geo-sample').checked;
- }catch(error){$('geo-error').textContent=error.message;}
+ }catch(error){if(previewToken===previewRequest)$('geo-error').textContent=error.message;}
 }
 const normalize=text=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 function renderColumns(){
@@ -94,9 +105,9 @@ for(const id of ['geo-start','geo-end','geo-family','geo-single','geo-sample'])$
 $('geo-apply-month').addEventListener('click',()=>{try{const range=monthRange(Number($('geo-year').value),Number($('geo-month').value));$('geo-start').value=range.start;$('geo-end').value=range.end;updatePreview();}catch(error){$('geo-error').textContent=error.message;}});
 $('geo-refresh').addEventListener('click',()=>load(selected||nodes.find(n=>n.id==='world'),Math.max(-1,columns.findIndex(c=>c.selectedId===selected?.id)),{refresh:true}));
 $('geo-start-quiz').addEventListener('click',()=>{
- updatePreview();if($('geo-start-quiz').disabled)return;
+ if($('geo-start-quiz').disabled)return;
  const count=Number($('geo-count').value);if(!Number.isInteger(count)||count<1||count>10000){$('geo-error').textContent='Choose 1–10,000 questions.';return;}
- const query=new URLSearchParams({geo:selected.id,from:$('geo-start').value,to:$('geo-end').value,questions:String(count),family:$('geo-family').value,single:String($('geo-single').checked)});
+ const query=new URLSearchParams({geo:selected.id,from:$('geo-start').value,to:$('geo-end').value,questions:String(count),family:$('geo-family').value,single:String($('geo-single').checked),trail:new URLSearchParams(location.search).get('trail')||''});
  location.assign('/quiz?'+query);
 });
 async function restoreLocation(){
@@ -108,9 +119,9 @@ async function restoreLocation(){
 }
 window.addEventListener('popstate',()=>{const query=new URLSearchParams(location.search);$('geo-start').value=query.get('from')||fallback.start;$('geo-end').value=query.get('to')||fallback.end;return restoreLocation();});
 try{
- const responses=await Promise.all(['/geography-seed.json','/route-pilot.json','/data.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error();
- const [seed,pilot,data]=await Promise.all(responses.map(r=>r.json()));nodes=seed.nodes;catalog=pilot;birds=data.birds;
- for(const family of new Set(birds.map(b=>familyName(b.family)))){const option=make('option',family);option.value=family;$('geo-family').append(option);}
+ const responses=await Promise.all(['/geography-seed.json','/route-pilot.json','/data.json','/nc-birds.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error();
+ const [seed,pilot,data,nc]=await Promise.all(responses.map(r=>r.json()));nodes=seed.nodes;catalog=pilot;birds=data.birds;
+ for(const family of [...new Set([...birds,...nc.birds].map(b=>familyName(b.family)))].sort((a,b)=>(nc.familyOrder?.[a]??1e9)-(nc.familyOrder?.[b]??1e9))){const option=make('option',family);option.value=family;$('geo-family').append(option);}
  await restoreLocation();
 }catch{$('geo-loading').textContent='The pilot catalogs could not load. Please reload, or use the original Colombia quiz.';}
 try{const response=await accountFetch('/api/account');if(response.ok){const account=await response.json();$('account-trip-options').hidden=account.kind!=='user';$('geo-refresh').hidden=account.administrator!==true;}}catch{}

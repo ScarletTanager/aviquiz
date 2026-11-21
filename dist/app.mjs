@@ -200,6 +200,16 @@ async function openGeographyQuiz(token){
   try{
     const {geographySelection,geographyPool}=await import('./geography-core.mjs');
     const query=new URLSearchParams(location.search),selection=geographySelection(query);
+    const ncResponse=await fetch('/api/nc/quiz?'+new URLSearchParams({place:selection.id,from:selection.start,to:selection.end,single:String(selection.single),family:selection.family}));
+    if(token!==navigationToken)return;
+    if(ncResponse.status!==404){
+      const nc=await ncResponse.json();if(!ncResponse.ok)throw Error(nc.error);
+      if(!nc.pool.length)throw Error('No species with verified photos match this NC location, season, and family. Return to Take a quiz to adjust your selection.');
+      const locations=await (await fetch('/nc-locations.json')).json();if(token!==navigationToken)return;
+      const scope=locations.nodes.find(n=>n.id===selection.id);
+      const route={geography:true,title:(scope?.name||selection.id)+' · '+selection.start+' to '+selection.end,pool:nc.pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:selection.id,from:selection.start,to:selection.end,trail:query.get('trail')||''})};
+      begin({route,count:selection.count,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});return;
+    }
     const responses=await Promise.all(['/geography-seed.json','/route-pilot.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error('Geography pilot data is unavailable.');
     const [seed,catalog]=await Promise.all(responses.map(r=>r.json()));if(token!==navigationToken)return;
     const scope=seed.nodes.find(n=>n.id===selection.id);if(!scope||['world','continent'].includes(scope.kind))throw Error('Select a supported country, region, or site in the geography launcher.');

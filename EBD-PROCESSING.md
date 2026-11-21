@@ -4,6 +4,28 @@ Initial implementation: November 20, 2026. Offline preparation only. No cloud
 upload, processing Droplet, or production species-list import has run. Full local
 preparation requires the separately authorized limits described below.
 
+## Planned cloud storage and private networking
+
+Retain the original EBD archives in private DigitalOcean Spaces Cold Storage.
+Keep actively used derived partitions, analytical facts, and serving artifacts in
+Standard Storage. Local originals must remain until cloud copies are verified
+and deletion is separately authorized.
+
+All Droplet-to-Spaces transfers must use DigitalOcean's internal network. Configure
+the Droplet with its VPC-local DNS resolver as the exclusive resolver, including
+any container or processing service that performs transfers. Select a compatible
+Spaces region: DigitalOcean supports internal traffic within a region and across
+datacenters in the NYC region group. Use the Spaces origin endpoint, not a CDN.
+
+Before enabling transfers, verify the effective resolver, the actual bucket
+hostname's DNS response, and the route selected for each resolved address from
+the process's network environment. Treat public routing or an unverifiable path
+as a failed preflight; do not silently fall back to a public transfer. These are
+deployment requirements, not a claim that the current Droplet has been checked.
+
+References: [VPC-local resolver](https://docs.digitalocean.com/products/networking/vpc/how-to/use-local-dns-resolver/)
+and [Spaces private networking](https://docs.digitalocean.com/products/spaces/).
+
 ## Reading order and processing priorities
 
 The original archives each contain one gzip-compressed text member. Reading

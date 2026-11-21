@@ -11,8 +11,9 @@
 <div id="geo-children" class="location-browser" aria-label="Location lists"></div>
 </section>
 <section id="geo-configuration" aria-labelledby="geo-selected-heading" hidden><h2 id="geo-selected-heading"></h2><p id="geo-coverage" role="status"></p>
+<details id="geo-species-details" hidden><summary>Seasonal species and photo coverage</summary><ol id="geo-species-list"></ol></details>
 <label class="geo-check"><input id="geo-sample" type="checkbox">Use the available pilot list, accepting that it is incomplete</label>
 <label class="geo-check"><input id="geo-single" type="checkbox">Include species reported in only one season, including possible rarities or one-time occurrences</label>
-<div class="season-fields"><label>Bird family<select id="geo-family"><option value="all">All families</option></select></label><label>Questions<input id="geo-count" type="number" min="1" max="10000" value="20"></label></div><p class="field-help">Photo quizzes are available for this first version. Geography-aware audio selection will need its own coverage checks. Pilot quiz answers do not change your saved statistics.</p>
+<div class="season-fields"><label>Bird family<select id="geo-family"><option value="all">All families</option></select></label><label>Questions<input id="geo-count" type="number" min="1" max="10000" value="20"></label></div><p class="field-help">Photo quizzes are available for this first version. Geography-aware audio selection will need its own coverage checks. Geography quiz answers do not change your saved statistics. Seasonal NC lists use the eBird Basic Dataset, provided by the Cornell Lab of Ornithology.</p>
 <button id="geo-start-quiz" type="button" disabled>Start quiz</button><p id="geo-error" role="alert"></p></section>
 </main><script type="module" src="/auth.mjs"></script><script type="module" src="/geography-ui.mjs"></script></body></html>

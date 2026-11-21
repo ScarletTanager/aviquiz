@@ -395,3 +395,27 @@ See [EBD-NC.md](EBD-NC.md) for the regional aggregation command, resource limits
 source-native taxonomy mapping, audit rules, completed NC results, and artifact
 paths. These daily facts are local analytical output, not a production database
 migration or a new live quiz list. Keep the reconciliation database private.
+
+### NC seasonal data build and staging upload
+
+Run `scripts/ebd-export-quiz.py` with `--database` pointing to the validated
+`daily.sqlite`, `--taxonomy` to the public eBird species taxonomy JSON, `--regions`
+and `--hotspots` to cached NC geography API responses, and `--output` to a private
+artifact directory outside Git. Review the photo coverage report and queue before
+publication. Commit the generated NC metadata and content-hash index with the
+application source; never commit the analytical database or binary data packs.
+
+Sites provisions `EBD_BUCKET` through the hosting manifest. After deploying the
+exact pushed/tested commit, POST each binary pack to `/api/nc/import?chunk=N`.
+This is an immutable content publication endpoint: the compiled index fixes the
+only accepted bytes, SHA-256, and object name. It accepts neither arbitrary data
+nor object paths nor remote URLs, and an existing object is never overwritten.
+There is no general-purpose storage upload capability or new upload credential.
+A new data release requires a reviewed source commit with new approved hashes.
+The bucket has no public read endpoint. Quiz reads fetch only one bounded place
+range, verify its digest, and decompress it. Keep hosting access controls intact.
+
+Run `node test-nc.mjs` against the exported artifacts, plus geography, app-session,
+and shared-review regression tests. Test Chatham with/without single-season
+species, a county/hotspot cold reload, a family filter, leap day, and a window
+crossing New Year. NC quizzes currently leave saved statistics unchanged.

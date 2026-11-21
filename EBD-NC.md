@@ -182,3 +182,35 @@ reference ranking CSVs, and the separate `reconciliation.private.sqlite` audit.
 They remain outside Git; no new quiz coverage has been deployed. The next step is
 reviewing the selection/ranking policy and building compact serving lists for the
 launcher, rather than uploading the full event staging database to production.
+
+## Seasonal quiz serving prototype (November 21)
+
+The staging export uses complete calendar years 2017–2025: 457 species and 2,891
+places with eligible effort (state, counties, public hotspots). Each place stores
+month/day occurrence masks across those nine years, not individual records.
+Arbitrary inclusive seasonal windows and leap days are preserved. Windows across
+New Year use only complete season pairs, excluding January 2017 and December
+2025. The serving copy supports presence and recurrence; it deliberately does
+not claim to expose encounter-rate estimates. The analytical SQLite database
+retains the underlying counts for later likelihood work.
+
+A species needs reports in at least two sampled seasons by default when two or
+more seasons have effort. The rarity checkbox includes one-season reports.
+One sampled season is insufficient evidence to classify a species as exceptional.
+Chatham September 20–October 10 produces 175 species by default and 209 with the
+checkbox enabled; Kirtland's Warbler occurs only in the latter (one season).
+
+Photo-catalog reconciliation is part of `scripts/ebd-export-quiz.py`: preserve
+verified Macaulay references, map source scientific names to the eBird taxonomy,
+write the separate `dist/nc-birds.json`, and produce `photo-coverage.json` with the
+unresolved species queue. Winter Wren's source name Troglodytes hiemalis maps
+explicitly to Nannus hiemalis. There are initially 86 species with photos and
+371 pending. Existing persistent automated-access challenges prevent further
+photo lookups under the owner's backoff policy. No photos are downloaded or
+rehosted. Missing-media species remain visible in seasonal coverage but never
+become photo questions. `dist/data.json` and original statistics are unchanged.
+
+The compact serving artifacts total 16,042,075 compressed bytes. Private staging
+R2 stores this derived copy; planned canonical retention is in `aviquiz-data`
+(NYC3 Standard), with originals in `aviquiz-archive` (NYC3 Cold Storage). No
+DigitalOcean data uploads are implied by a staging release.
