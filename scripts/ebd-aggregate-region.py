@@ -223,7 +223,7 @@ def aggregate(config):
                 if not event:
                     reason='missing_sampling_event'
                 elif (event[1],event[2],event[3],event[4]) != (row['OBSERVATION DATE'],row['COUNTY CODE'],row['LOCALITY ID'],row['LOCALITY TYPE']) or p.region_key(row['COUNTRY CODE'],row['STATE CODE'])!=region:
-                    reason='date_or_geography_mismatch'
+                    reason='conflicting_shared_outing:metadata_mismatch' if event[5] and event[6] is None else 'date_or_geography_mismatch'
                 elif not event[5]:
                     reason='ineligible_submission'
                 elif event[6] is None:
@@ -246,7 +246,7 @@ def aggregate(config):
                             (event[6],mapping[key],int(row['CATEGORY']=='species')))
                         reason='accepted_species' if row['CATEGORY']=='species' else 'accepted_rollup:'+row['CATEGORY']
                 outcomes[reason]+=1
-                if reason in ('missing_sampling_event','date_or_geography_mismatch'):
+                if reason in ('missing_sampling_event','date_or_geography_mismatch','conflicting_shared_outing:metadata_mismatch'):
                     if outcomes[reason]<=100:
                         db.execute('INSERT INTO audit VALUES (?,?,?)',('observation',row['SAMPLING EVENT IDENTIFIER'],reason))
                 if metrics['observation_rows']%50000==0:

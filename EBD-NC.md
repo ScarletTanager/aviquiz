@@ -16,7 +16,9 @@ The NC input contains 2,545,248 sampling rows and 35,141,068 observation rows.
   Other regional sampling files are checked for conflicting shared groups and
   duplicate event IDs involving NC, not merely ignored at the state boundary.
 - Every observation must join its sampling record and agree on geography/date.
-  Missing matches or mismatches prevent promotion. Sample audit references stay
+  Missing matches or mismatches in usable outings prevent promotion. A mismatch
+  in an already-quarantined conflicting shared group remains an audited exclusion;
+  no member of that group can enter either numerator or denominator. Sample audit references stay
   in a separate private staging database; no observer identities are retained.
 - Approved positive species detections (`X` or positive integer) are counted once
   per outing/species. Explicit zero counts are not detections. Non-approved rows,
@@ -88,3 +90,12 @@ Tests: `python3 -B scripts/test-ebd-aggregate-region.py` independently checks ex
 daily totals, shared-copy/species-rollup deduplication, conflicts across state
 boundaries, zero-observation effort, private-site exclusion, county-less outings,
 seasonal rankings, taxonomy ambiguity, and failure without database promotion.
+
+The first NC reconciliation pass found one date disagreement: an American Crow
+observation dated February 22, 2024 joined a sampling copy dated February 21.
+The shared group itself had eligible sampling copies on both dates and was
+already excluded for conflicting local metadata. The validator was adjusted to
+retain that discrepancy in the private audit without blocking unrelated valid
+outings. It is not a per-record exception: the same rule applies only to groups
+already proven unusable by shared-group validation. The original records are
+unchanged, and date/geography mismatches in usable outings still fail closed.

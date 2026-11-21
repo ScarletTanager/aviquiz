@@ -24,7 +24,7 @@ class AggregateTests(unittest.TestCase):
     def tearDown(self):
         self.limits.stop();self.nice.stop();self.temp.cleanup()
 
-    def inputs(self, mismatch=False):
+    def inputs(self, mismatch=False, quarantined_mismatch=False, valid_date_mismatch=False):
         sampling=[]
         def event(code,group,day,loc='L651593',kind='H',county='US-NC-037',protocol='P21',state='US-NC'):
             row=dict.fromkeys(a.p.PROJECTION['sampling'],'')
@@ -52,6 +52,10 @@ class AggregateTests(unittest.TestCase):
         detection(s9,'T1');detection(s1,'T3',sci='Setophaga kirtlandii',common="Kirtland's Warbler")
         detection(s3,'T4','slash',sci='Avis test/other',common='Uncertain bird')
         if mismatch: observations[0]['SAMPLING EVENT IDENTIFIER']='MISSING'
+        if valid_date_mismatch:
+            observations[0]['OBSERVATION DATE']='2017-09-28'
+        if quarantined_mismatch:
+            next(row for row in observations if row['SAMPLING EVENT IDENTIFIER']=='S5')['OBSERVATION DATE']='2018-09-28'
         manifest={'schema':'aviquiz-ebd-partitions-v1','status':'partitioned','release':'test','partitions':[]}
         nc_sampling=[r for r in sampling if r['STATE CODE']=='US-NC']
         for region,rows in [('US-NC',nc_sampling),('US-VA',[external])]:
@@ -101,6 +105,20 @@ class AggregateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'reconciliation failed'):a.aggregate(config)
         self.assertFalse((Path(config['directory'])/'daily.sqlite').exists())
         self.assertTrue((Path(config['directory'])/'reconciliation-failures.json').exists())
+
+    def test_mismatch_in_already_quarantined_group_is_audited_not_counted(self):
+        config=self.inputs(quarantined_mismatch=True);report=a.aggregate(config)
+        self.assertEqual(report['status'],'aggregated')
+        self.assertEqual(report['observation_outcomes']['conflicting_shared_outing:metadata_mismatch'],1)
+        self.assertEqual(report['metrics']['eligible_independent_outings'],5)
+        db=sqlite3.connect(Path(config['directory'])/'reconciliation.private.sqlite')
+        self.assertEqual(db.execute("SELECT COUNT(*) FROM audit WHERE reason='conflicting_shared_outing:metadata_mismatch'").fetchone()[0],1)
+        db.close()
+
+    def test_date_mismatch_in_usable_outing_still_blocks_promotion(self):
+        config=self.inputs(valid_date_mismatch=True)
+        with self.assertRaisesRegex(ValueError,'reconciliation failed'):a.aggregate(config)
+        self.assertFalse((Path(config['directory'])/'daily.sqlite').exists())
 
     def test_taxonomy_requires_verified_species_parent(self):
         with self.assertRaisesRegex(ValueError,'source-native parent'):
