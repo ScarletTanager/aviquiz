@@ -178,3 +178,48 @@ Tests: `scripts/test-ebd-ingest.py`, `scripts/test-ebd-local-sizing.py`, and
 retains the real 60 GiB reserve; CI explicitly skips that one test when free space
 is insufficient. The other control, routing, privacy and incomplete-source checks
 run with synthetic data.
+
+## Completed September 2026 preparation
+
+The full supervised local run finished November 20, 2026 at 9:19 p.m. Eastern,
+using source commit `83dc6115734a3c095f8e209eb4b64a3197fbb334`. Both original
+archives were read completely and their gzip checksums verified. Their file
+size/mtime identities remained unchanged. The scan plus finalization took
+304.41 minutes (about 5 hours 4 minutes).
+
+| Measurement | Result |
+| --- | ---: |
+| Observation rows retained | 2,329,179,451 |
+| Sampling-event rows retained | 176,598,863 |
+| Regional partitions / compressed files | 304 / 608 |
+| Compressed projected data | 116,797,606,110 bytes (108.78 GiB) |
+| Minimum monitored free space | 411.46 GiB |
+| Peak monitored sampling / observation worker RSS | 92.77 / 93.08 MiB |
+| North Carolina observation / sampling rows | 35,141,068 / 2,545,248 |
+
+The only validation adjustment was to recognize the release's country-only
+`US-` state placeholder as the residual `US` partition. The successful run
+retained all 43 sampling rows and 44 observation rows with that placeholder,
+leaving the original state-code field unchanged. No rows were discarded and
+none of those rows were assigned to a specific state. The earlier attempt
+stopped on that unsupported placeholder; its partial outputs remain marked
+incomplete and are excluded from the successful manifest. No further validation
+failures occurred after the fix. Unexpected format, geography, date, missing-ID,
+checksum, or resource failures still stop a run rather than silently dropping
+records or publishing incomplete data.
+
+The agent checked state hourly and watched for terminal errors. Both source
+counts reconcile exactly to the sum of their regional partition counts. Every
+output size matches its manifest, every file has a recorded SHA-256 hash, and
+no `.partial.tsv.gz` files remain in the successful run. The residual-US outputs
+were independently read back through gzip/CSV to verify their row counts and
+preserved state codes. Full per-region join and taxonomy/effort validation
+remain part of aggregation, not this preparation step.
+
+Private artifacts (outside Git):
+`/Users/sandy/col_birding/outputs/ebd_ingestion/relSep2026-20261120-r2/` contains
+`manifest.json`, `verification.json`, `status.json`, and the two regional trees.
+The queue begins with NC, followed by the remaining US states, Colombia and
+other countries alphabetically. The manifest remains `serving_ready: false`;
+no new quiz coverage was published. Next is North Carolina aggregation and
+reconciliation, starting with the Chatham County rarity test.
