@@ -10,7 +10,10 @@ def ingest(c,records):
   ident=match[1];row=c.execute('select bird,photos from species where id=?',(ident,)).fetchone()
   if row is None:raise ValueError('Species must first be enqueued')
   bird=json.loads(row['bird'])
-  if not bird.get('scientificName') or bird['scientificName'] not in record.get('heading','') or record.get('title')!=bird['name']+' - eBird':raise ValueError('Species page identity mismatch')
+  scientific=bird.get('scientificName')
+  # Explicit genus rename verified against the eBird taxonomy used by the NC export.
+  names={scientific,{'Troglodytes hiemalis':'Nannus hiemalis'}.get(scientific)}-{None}
+  if not names or record.get('heading') not in {bird['name']+' '+name for name in names} or record.get('title')!=bird['name']+' - eBird':raise ValueError('Species page identity mismatch')
   text='<meta property="og:image" content="'+html.escape(record.get('url',''),quote=True)+'"><meta property="og:image:alt" content="'+html.escape(record.get('alt',''),quote=True)+'">'
   photo=worker.parse_photo(text,bird)
   if photo is None:raise ValueError('Missing or inconsistent image metadata')

@@ -214,3 +214,28 @@ The compact serving artifacts total 16,042,075 compressed bytes. Private staging
 R2 stores this derived copy; planned canonical retention is in `aviquiz-data`
 (NYC3 Standard), with originals in `aviquiz-archive` (NYC3 Cold Storage). No
 DigitalOcean data uploads are implied by a staging release.
+
+## Completed NC photo coverage (November 22)
+
+All 457 species in the 2017–2025 serving catalog now have validated photo
+references: 715 photos total. The 371 previously uncovered species received one
+reference each, in breadth-first browser batches of 10, 50, and 311. The sustained
+serial browser sessions showed no visible access challenges. Direct HTTP access
+remains separately blocked under the owner's retry policy. No browser session
+credentials were extracted or transferred to the HTTP workers.
+
+The browser records confirm the species-page title, scientific name, Cornell
+asset URL, and photographer attribution. The source-native Winter Wren name
+Troglodytes hiemalis is explicitly matched to the verified current genus name
+Nannus hiemalis. Existing parenthesized subspecies/form labels are retained.
+Browser records, queue state, and completion reports remain in the private local
+`outputs/photo_metadata/` directory; the published source contains reference
+metadata only. These references are not reviewed ID-tip annotations.
+
+Use `scripts/reconcile-photo-catalog.py` to attach verified references to an
+existing serving catalog without regenerating analytical data. The
+`--require-complete` gate refuses to publish an incomplete catalog. Chatham's
+September 20–October 10 scope now has 175/175 default species photo-ready, or
+209/209 when single-season records are included. The historical window,
+recurrence rules, serving data-pack hashes, original Colombia catalog, and saved
+statistics keys are unchanged by this metadata release.

@@ -11,4 +11,11 @@ class ImportTests(unittest.TestCase):
    self.assertEqual(c.execute('select state from species').fetchone()[0],'pending')
    m.ingest(c,[record]);m.ingest(c,[record]);self.assertEqual(len(json.loads(c.execute('select photos from species').fetchone()[0])),1)
    self.assertEqual(c.execute('select state from hosts').fetchone()[0],'blocked')
+ def test_verified_winter_wren_genus_rename(self):
+  with tempfile.TemporaryDirectory() as d:
+   c=m.worker.connect(pathlib.Path(d)/'q.sqlite');bird=dict(id='winwre3',name='Winter Wren',scientificName='Troglodytes hiemalis',photos=[])
+   c.execute('insert into species(id,bird,state,updated) values(?,?,?,0)',('winwre3',json.dumps(bird),'pending'));c.commit()
+   record=dict(page='https://ebird.org/species/winwre3',title='Winter Wren - eBird',heading='Winter Wren Nannus hiemalis',alt='Winter Wren - A Birder',url='https://cdn.download.ams.birds.cornell.edu/api/v2/asset/123/900')
+   m.ingest(c,[record]);self.assertEqual(c.execute('select state from species').fetchone()[0],'ready')
+   with self.assertRaises(ValueError):m.ingest(c,[{**record,'heading':'Winter Wren Other genus'}])
 unittest.main()

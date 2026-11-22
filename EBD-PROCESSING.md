@@ -7,9 +7,15 @@ preparation requires the separately authorized limits described below.
 ## Planned cloud storage and private networking
 
 Retain the original EBD archives in private DigitalOcean Spaces Cold Storage.
-Keep actively used derived partitions, analytical facts, and serving artifacts in
-Standard Storage. Local originals must remain until cloud copies are verified
-and deletion is separately authorized.
+Keep validated analytical facts, quiz-serving artifacts, manifests, taxonomy
+profiles, and validation reports in Standard Storage (`aviquiz-data`). Geographic
+observation/sampling partitions are temporary processing inputs, not retained
+cloud datasets: do not upload them to Spaces. The owner prefers the cost of
+repartitioning the original EBD when a rebuild is needed over paying to retain
+duplicate data. Keep local partitions while jobs depend on them; remove them only
+after validated outputs are safely retained and deletion is authorized. Local
+originals must remain until cloud copies are verified and deletion is separately
+authorized. This retention policy was clarified on November 22, 2026.
 
 All Droplet-to-Spaces transfers must use DigitalOcean's internal network. Configure
 the Droplet with its VPC-local DNS resolver as the exclusive resolver, including

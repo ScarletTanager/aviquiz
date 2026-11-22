@@ -485,3 +485,19 @@ queue species while a browser retrieves and local validators prepare results.
 Do not multiply retrieval traffic by launching several browser sessions. Test a
 larger serial batch before considering bounded concurrent retrieval. Preserve the
 30-minute challenge backoff and stop after the permitted retry.
+
+### Publish verified references without rerunning EBD aggregation
+
+Run `python3 scripts/reconcile-photo-catalog.py --catalog dist/nc-birds.json
+--verified /path/to/verified-photos.json --report /private/path/coverage.json
+--require-complete`. It validates numeric asset IDs, Cornell origin URLs,
+matching common-name attribution (including explicit parenthesized forms), and
+credits before atomically replacing the catalog. It preserves existing references.
+The NC production gate is complete coverage of the current serving catalog.
+
+Commit and push the resulting source to dev, run the metadata importer/worker,
+NC seasonal, geography, application-session, and shared-review checks, then
+package/deploy that exact revision to staging. A reference-only change does not
+require re-uploading unchanged seasonal data packs. Verify live scope/photo
+counts and preserve review annotations and hosting access. Wait for owner
+approval before production promotion.

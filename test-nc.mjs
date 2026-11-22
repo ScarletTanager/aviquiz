@@ -17,11 +17,12 @@ const get=(q,env={EBD_BUCKET:bucket})=>ncApi(new Request('https://test/api/nc/qu
 const q='place=US-NC-037&from=2026-09-20&to=2026-10-10';
 const normal=await (await get(q)).json(),rare=await (await get(q+'&single=true')).json();
 assert.equal(normal.sampledSeasons,9);assert.ok(!normal.species.some(b=>b.name==="Kirtland's Warbler"));assert.equal(rare.species.find(b=>b.name==="Kirtland's Warbler").reportingSeasons,1);
-assert.ok(normal.pool.length>0);assert.ok(normal.pool.every(b=>b.photos.length));assert.equal((await get(q+'&evil=true')).status,400);assert.equal((await get('place=https://evil')).status,404);assert.equal((await get(q,{})).status,503);
+assert.equal(normal.pool.length,normal.species.length);assert.equal(rare.pool.length,rare.species.length);assert.ok(normal.pool.every(b=>b.photos.length));assert.equal((await get(q+'&evil=true')).status,400);assert.equal((await get('place=https://evil')).status,404);assert.equal((await get(q,{})).status,503);
 assert.equal((await get('place=US-NC&from=no&to=no')).status,400);
 const family=normal.pool[0].family;const filtered=await (await get(q+'&family='+family)).json();assert.ok(filtered.species.every(b=>b.family===family));
 assert.equal((await ncApi(new Request('https://test/api/nc/import?chunk=0',{method:'POST',body:'bad'}),{EBD_BUCKET:bucket})).status,400);
 assert.equal((await ncApi(new Request('https://test/api/nc/import?chunk=0'),{EBD_BUCKET:bucket})).status,405);
 const cold=await geographyApi(new Request('https://test/api/geography?parent=US-NC-037&type=hotspots'),{});assert.equal(cold.status,200);assert.ok((await cold.json()).children.some(n=>n.id==='L651593'));
 assert.equal(JSON.parse(await fs.readFile('dist/data.json')).birds.length,849);
+const photoCatalog=JSON.parse(await fs.readFile('dist/nc-birds.json'));assert.equal(photoCatalog.birds.length,457);assert.ok(photoCatalog.birds.every(b=>b.photos.length));
 console.log('NC seasonal, rarity, wrap, leap, family, media, import guards, cold-directory, and original catalog checks passed.',{species:normal.species.length,photos:normal.pool.length,withSingle:rare.species.length});
