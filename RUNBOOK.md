@@ -503,6 +503,6 @@ counts and preserve review annotations and hosting access. Wait for owner
 approval before production promotion.
 
 Photo-catalog guideline (November 22, 2026): future curation should provide a
-minimum of three verified photos per species, and more where practical. This is
+minimum of four verified photos per species, and more where practical. This is
 a guideline for subsequent collection work; no additional collection is initiated
 by recording it.
