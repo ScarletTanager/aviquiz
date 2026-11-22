@@ -8,6 +8,7 @@ tax=json.load(open(a.taxonomy));by_sci={t['sciName']:t for t in tax};by_sci['Tro
 # Only references and credits travel to the serving catalog, never media files.
 verified_path=root.parents[1]/'outputs/photo_metadata/verified-photos.json'
 verified=json.load(open(verified_path)) if verified_path.exists() else {}
+for file in verified_path.parent.glob('*/verified-photos.json'):verified.update(json.loads(file.read_text()))
 legacy=json.load(open(root/'dist/data.json'))['birds'];photos={b['scientificName']:b['photos'] for b in legacy}
 for references in photos.values():
  for photo in references:
@@ -56,3 +57,4 @@ for file in [a.regions,a.hotspots]:
 
 # Feed the durable worker on every export; this never resets a host block.
 subprocess.run([sys.executable,str(root/'scripts/photo-metadata-worker.py'),'--enqueue',str(root/'dist/nc-birds.json')],check=True)
+subprocess.run([sys.executable,str(root/'scripts/photo-metadata-worker.py'),'--host','search.macaulaylibrary.org','--db',str(verified_path.parent/'macaulay/queue.sqlite'),'--enqueue',str(root/'dist/nc-birds.json')],check=True)

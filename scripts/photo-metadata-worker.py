@@ -14,6 +14,21 @@ def normalize(text):return re.sub(r'[^a-z0-9]','',(text or '').lower())
 def parse_photo(text,bird):
  # Challenge responses are never a metadata source, even if they contain OG tags.
  if challenged(text):return None
+ if text.lstrip().startswith('{'):
+  try:payload=json.loads(text)
+  except ValueError:return None
+  def records(value):
+   if isinstance(value,dict):
+    yield value
+    for item in value.values():yield from records(item)
+   elif isinstance(value,list):
+    for item in value:yield from records(item)
+  for record in records(payload):
+   if str(record.get('mediaType','')).lower()!='photo':continue
+   name=record.get('commonName','');owner=record.get('userDisplayName','');ident=str(record.get('assetId',''))
+   if not ident.isdigit() or not owner or normalize(name) not in {normalize(bird.get(k,'')) for k in ('name','acceptedName')}:continue
+   return dict(id=ident,source='https://macaulaylibrary.org/asset/'+ident,url='https://cdn.download.ams.birds.cornell.edu/api/v2/asset/'+ident+'/1200',alt=name+' - '+owner,photographer=owner,credit=name+' © '+owner)
+  return None
  p=Meta();p.feed(text);url=p.values.get('og:image','');alt=html.unescape(p.values.get('og:image:alt',''))
  match=re.fullmatch(r'https://cdn\.download\.ams\.birds\.cornell\.edu/api/v2/asset/(\d+)/(\d+)',url)
  if not match or ' - ' not in alt:return None
@@ -72,7 +87,7 @@ def run(c,args):
   if not row or host['state']=='blocked' or requests>=args.max_requests:time.sleep(5);continue
   due=max(host['retry_at'],host['last_request']+args.interval)
   if time.time()<due:time.sleep(min(5,due-time.time()));continue
-  b=json.loads(row['bird']);url='https://ebird.org/species/'+row['id']
+  b=json.loads(row['bird']);url=('https://ebird.org/species/'+row['id']) if HOST=='ebird.org' else ('https://search.macaulaylibrary.org/catalog.json?taxonCode='+row['id']+'&mediaType=photo&count=1')
   c.execute('update hosts set last_request=? where host=?',(time.time(),HOST));c.commit();requests+=1
   status=None;text='';retry_after=COOLDOWN
   try:
@@ -81,7 +96,7 @@ def run(c,args):
     def redirect_request(self,*_):return None
    req=urllib.request.Request(url,headers={'User-Agent':'AviQuiz metadata worker (low-rate; no media downloads)','Accept':'text/html'})
    with urllib.request.build_opener(NoRedirect).open(req,timeout=30) as response:
-    if 'text/html' not in response.headers.get('content-type',''):raise ValueError('Expected metadata HTML')
+    if not any(t in response.headers.get('content-type','') for t in ('text/html','application/json')):raise ValueError('Expected metadata HTML')
     status=response.status;raw=response.read(2*1024*1024+1)
     if len(raw)>2*1024*1024:raise ValueError('Metadata response exceeds limit')
     text=raw.decode('utf-8',errors='replace')
@@ -106,8 +121,9 @@ def run(c,args):
  export(c,args.db.parent/'verified-photos.json');print(json.dumps(report(c,args.db.parent/'status.json')),flush=True)
 
 if __name__=='__main__':
- p=argparse.ArgumentParser();p.add_argument('--db',type=pathlib.Path,default=DEFAULT);p.add_argument('--enqueue',action='append',default=[]);p.add_argument('--run',action='store_true');p.add_argument('--status',action='store_true');p.add_argument('--fresh-attempt',action='store_true',help='Requires owner authorization; clears a persistent host block.');p.add_argument('--record-challenge',help='Record a manual authorized probe without making another request.');p.add_argument('--interval',type=int,default=90);p.add_argument('--max-requests',type=int,default=100);p.add_argument('--hours',type=float,default=24);a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('--host',choices=['ebird.org','search.macaulaylibrary.org'],default='ebird.org');p.add_argument('--db',type=pathlib.Path,default=DEFAULT);p.add_argument('--enqueue',action='append',default=[]);p.add_argument('--run',action='store_true');p.add_argument('--status',action='store_true');p.add_argument('--fresh-attempt',action='store_true',help='Requires owner authorization; clears a persistent host block.');p.add_argument('--record-challenge',help='Record a manual authorized probe without making another request.');p.add_argument('--interval',type=int,default=90);p.add_argument('--max-requests',type=int,default=100);p.add_argument('--hours',type=float,default=24);a=p.parse_args()
  if a.interval<60 or not 0<a.max_requests<=1000 or not 0<a.hours<=168:p.error('Use interval >=60 seconds, 1..1000 requests and 0<hours<=168')
+ HOST=a.host
  c=connect(a.db)
  if a.fresh_attempt:c.execute("update hosts set state='ready',challenges=0,retry_at=0 where host=?",(HOST,));c.commit();event(c,None,'owner_authorized_fresh_attempt')
  enqueue(c,a.enqueue)

@@ -427,8 +427,11 @@ crossing New Year. NC quizzes currently leave saved statistics unchanged.
 Git). It currently requests eBird species-page metadata and accepts only a
 Cornell image URL with an exact species match and an explicit photographer
 credit. A challenge page is rejected even if it includes image metadata. No
-photographs are downloaded. This adapter does not currently query the Macaulay
-catalog endpoint; its access state must not be confused with eBird's.
+photographs are downloaded. A separate adapter queries Macaulay catalog metadata with its own queue under
+`outputs/photo_metadata/macaulay/`, selected with `--host search.macaulaylibrary.org`
+and an explicit `--db` path. Its access state is independent of eBird's.
+Catalog JSON is accepted only when it explicitly supplies photo type, exact
+species identity, asset ID, and contributor; unknown schemas need review.
 
 Feed catalogs with `python3 scripts/photo-metadata-worker.py --enqueue
 /path/to/catalog.json`; repeated enqueue calls are idempotent. EBD quiz exports
@@ -453,3 +456,7 @@ Check the status timestamp as well as the PID to confirm the worker is alive.
 Local work pauses during sleep/offline periods; this is not yet an always-on
 DigitalOcean service. A verified-metadata build still follows dev, staging,
 owner review, then production.
+
+The November 21 separate Macaulay fresh probe also returned an HTTP 200
+challenge. Its worker is on its own 30-minute cooldown and one-retry policy.
+EBD exports feed both queues and merge verified references on the next build.
