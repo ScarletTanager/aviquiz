@@ -460,3 +460,28 @@ owner review, then production.
 The November 21 separate Macaulay fresh probe also returned an HTTP 200
 challenge. Its worker is on its own 30-minute cooldown and one-retry policy.
 EBD exports feed both queues and merge verified references on the next build.
+
+### Browser metadata pilot
+
+The November 22 browser pilot collected one verified photo reference for each of
+10 previously uncovered NC species, with one tab and roughly 20 seconds between
+navigations. All 10 loaded without a visible challenge. Results and the batch
+manifest are under `outputs/photo_metadata/browser-batch-10*.json` outside Git.
+Prepared NC coverage is 96/457; this does not update a deployed catalog.
+
+Use `scripts/import-browser-photos.py --db /path/to/queue.sqlite --input
+/path/to/results.json` for observed browser results with page URL, title, species
+heading, OG image URL, and OG attribution. It validates the complete batch before
+writing, checks scientific/common identity and Cornell URL/credit, deduplicates
+assets, and preserves direct-access host blocks. Browser access is a separate
+observed success, not permission to copy session credentials into HTTP clients.
+The current browser collector runs through the interactive browser tool; it is
+not an unattended browser daemon.
+
+Future concurrency should separate retrieval from validation and publication.
+Use one durable species queue, atomic leases, retry-safe result writes, and a
+shared Cornell request budget across all tabs/workers and domains. Imports can
+queue species while a browser retrieves and local validators prepare results.
+Do not multiply retrieval traffic by launching several browser sessions. Test a
+larger serial batch before considering bounded concurrent retrieval. Preserve the
+30-minute challenge backoff and stop after the permitted retry.
