@@ -419,3 +419,37 @@ Run `node test-nc.mjs` against the exported artifacts, plus geography, app-sessi
 and shared-review regression tests. Test Chatham with/without single-season
 species, a county/hotspot cold reload, a family filter, leap day, and a window
 crossing New Year. NC quizzes currently leave saved statistics unchanged.
+
+### Background photo metadata queue
+
+`scripts/photo-metadata-worker.py` uses a durable local SQLite queue at
+`outputs/photo_metadata/queue.sqlite` under the project workspace root (outside
+Git). It currently requests eBird species-page metadata and accepts only a
+Cornell image URL with an exact species match and an explicit photographer
+credit. A challenge page is rejected even if it includes image metadata. No
+photographs are downloaded. This adapter does not currently query the Macaulay
+catalog endpoint; its access state must not be confused with eBird's.
+
+Feed catalogs with `python3 scripts/photo-metadata-worker.py --enqueue
+/path/to/catalog.json`; repeated enqueue calls are idempotent. EBD quiz exports
+feed the queue automatically and reuse verified references on their next build.
+The worker never edits source catalogs or publishes a release while running.
+
+Run `python3 scripts/photo-metadata-worker.py --run --hours 24 --interval 90
+--max-requests 100` in a supervised process. One worker per queue is enforced by
+an OS lock. The queue survives process restarts. Use SIGTERM to stop the worker.
+It waits at least 90 seconds between requests, caps response size at 2 MiB, rejects
+redirects, and backs off 30 minutes on challenges or rate/server errors (honoring
+longer numeric/date Retry-After values). After a second challenge, that host is
+persistently blocked; adding species or restarting never clears the block.
+`--fresh-attempt` requires explicit owner authorization. Never run it as part of
+an automated import. The owner's November 21 fresh attempt was to eBird, not
+Macaulay, and returned an HTTP 200 challenge.
+
+`status.json`, `access-log.tsv`, and `verified-photos.json` next to the queue
+provide progress, lookup failures, and validated references. `needs_review` means
+missing/unrecognized metadata or a non-success response, not a verified photo.
+Check the status timestamp as well as the PID to confirm the worker is alive.
+Local work pauses during sleep/offline periods; this is not yet an always-on
+DigitalOcean service. A verified-metadata build still follows dev, staging,
+owner review, then production.

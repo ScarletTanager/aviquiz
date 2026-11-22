@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Export public seasonal occurrence masks; no checklist or observer records."""
-import argparse,gzip,hashlib,json,pathlib,sqlite3
+import argparse,gzip,hashlib,json,pathlib,sqlite3,subprocess,sys
 p=argparse.ArgumentParser();p.add_argument('--database',required=True);p.add_argument('--taxonomy',required=True);p.add_argument('--output',required=True);p.add_argument('--regions',required=True);p.add_argument('--hotspots',required=True);a=p.parse_args()
 root=pathlib.Path(__file__).resolve().parents[1];out=pathlib.Path(a.output);out.mkdir(parents=True,exist_ok=True)
 c=sqlite3.connect('file:'+a.database+'?mode=ro',uri=True)
 tax=json.load(open(a.taxonomy));by_sci={t['sciName']:t for t in tax};by_sci['Troglodytes hiemalis']=by_sci['Nannus hiemalis']
 # Only references and credits travel to the serving catalog, never media files.
+verified_path=root.parents[1]/'outputs/photo_metadata/verified-photos.json'
+verified=json.load(open(verified_path)) if verified_path.exists() else {}
 legacy=json.load(open(root/'dist/data.json'))['birds'];photos={b['scientificName']:b['photos'] for b in legacy}
 for references in photos.values():
  for photo in references:
@@ -15,7 +17,7 @@ for references in photos.values():
 source=c.execute('select distinct t.taxon_key,t.scientific_name,t.common_name from ebd_taxon t join ebd_detection_day d using(taxon_key,taxonomy_version) where d.observation_year between 2017 and 2025 order by t.scientific_name').fetchall()
 birds=[];keys={}
 for key,sci,name in source:
- t=by_sci[sci];keys[key]=len(birds);birds.append(dict(id=t['speciesCode'],name=t['comName'],acceptedName=name,scientificName=sci,family=t['familySciName'],taxonOrder=t['taxonOrder'],photos=photos.get(sci,[]),sites=[],worldLifer=False,colombiaLifer=False))
+ t=by_sci[sci];keys[key]=len(birds);birds.append(dict(id=t['speciesCode'],name=t['comName'],acceptedName=name,scientificName=sci,family=t['familySciName'],taxonOrder=t['taxonOrder'],photos=photos.get(sci,[]) or verified.get(t['speciesCode'],[]),sites=[],worldLifer=False,colombiaLifer=False))
 # Each pair is [MM-DD, bitmask of complete historical years 2017..2025].
 index={};chunk=bytearray();chunks=[]
 def flush():
@@ -51,3 +53,6 @@ for file in [a.regions,a.hotspots]:
   if n['kind']=='hotspot':n['parent']=n.get('subnational2') or 'US-NC'
   nodes.append(n)
 (root/'dist/nc-locations.json').write_text(json.dumps(dict(nodes=nodes),separators=(',',':'))+'\n')
+
+# Feed the durable worker on every export; this never resets a host block.
+subprocess.run([sys.executable,str(root/'scripts/photo-metadata-worker.py'),'--enqueue',str(root/'dist/nc-birds.json')],check=True)
