@@ -18,4 +18,11 @@ class WorkerTests(unittest.TestCase):
    w.record_challenge(c,'norcar');w.enqueue(c,[file]);self.assertEqual(c.execute('select state from hosts').fetchone()[0],'blocked')
    w.report(c,path/'status.json');self.assertIn('challenge_blocked',(path/'access-log.tsv').read_text());c.close()
    c=w.connect(path/'queue.sqlite');self.assertEqual(c.execute('select challenges from hosts').fetchone()[0],2)
+ def test_enqueue_preserves_dated_references(self):
+  with tempfile.TemporaryDirectory() as d:
+   p=pathlib.Path(d);c=w.connect(p/'q.sqlite');file=p/'catalog.json'
+   photo=dict(id='123',observationDate='2024-02-29',quarter=1,credit='Northern Cardinal © A Birder')
+   bird=dict(id='norcar',name='Northern Cardinal',photos=[photo]);file.write_text(json.dumps(dict(birds=[bird])));w.enqueue(c,[file])
+   bird['photos']=[dict(id='123',credit=photo['credit'])];file.write_text(json.dumps(dict(birds=[bird])));w.enqueue(c,[file]);saved=json.loads(c.execute('select photos from species').fetchone()[0]);self.assertEqual(saved[0]['observationDate'],'2024-02-29')
+   bird['photos']=[];file.write_text(json.dumps(dict(birds=[bird])));w.enqueue(c,[file]);self.assertEqual(len(json.loads(c.execute('select photos from species').fetchone()[0])),1)
 unittest.main()

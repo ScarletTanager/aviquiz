@@ -502,7 +502,54 @@ require re-uploading unchanged seasonal data packs. Verify live scope/photo
 counts and preserve review annotations and hosting access. Wait for owner
 approval before production promotion.
 
-Photo-catalog guideline (November 22, 2026): future curation should provide a
-minimum of four verified photos per species, and more where practical. This is
-a guideline for subsequent collection work; no additional collection is initiated
-by recording it.
+Earlier flat photo-count guideline (November 22, 2026): four per species.
+This has been superseded by the seasonal two-per-quarter target below.
+
+### Seasonal photo metadata MVP
+
+The current target is **two dated photos per species per calendar quarter**:
+January–March, April–June, July–September, and October–December (eight photos per
+species when fully covered). This supersedes the flat four-photo guideline.
+Location matching, subspecies targeting, and finer month/day selection are
+separate future work; a quarter is calendar context, not a verified plumage label.
+
+`scripts/seasonal-photo-metadata.py` owns two additional tables in the private
+local metadata queue database: `photo_assets` stores unique species/asset pairs,
+exact `observed_on` dates, derived quarters, full reference metadata and evidence;
+`photo_quarter_jobs` tracks each species/quarter toward a target of two. This is
+the metadata-processing database, not the production accounts/trips PostgreSQL
+schema. Existing undated references remain stored with null date/quarter and do
+not count as seasonal coverage.
+
+The working public source is the Macaulay/eBird media catalog in list view. Its
+visible per-photo `<time datetime>` gives the observation date; retain the exact
+calendar date as `observationDate`, its original value as `observationDateRaw`,
+and `observationDateSource: cornell-catalog-observation`. This is not upload date
+or an assertion about EXIF capture time. Store the canonical asset/checklist
+links and photographer credit. Discard browser tracking query parameters. Do
+not extract browser credentials or bypass challenges. The inspected featured
+Northern Cardinal asset ML297087301 resolved to a non-public asset after the
+browser challenge cleared; its observation date remains unknown.
+
+Seed jobs with `--seed dist/nc-birds.json`, import an observed catalog payload with
+`--import-file /private/path/payload.json`, and write reports/exports with
+`--output /private/path/seasonal`. `--plan N` yields one next-quarter job per
+species in breadth-first order, prioritizing species with fewer covered quarters.
+Run `scripts/test-seasonal-photo-metadata.py` before using a changed importer.
+All four quarter jobs are recorded for every NC species, and checkpoints survive
+browser interruptions. A pending queue is not an unattended browser daemon.
+
+Payloads contain the observed catalog URL and rows with species name/scientific
+name, species URL, asset URL, image URL, photographer, exact `observedAt`, and a
+checklist URL. Imports reject wrong identity, missing/invalid dates, stale results
+outside the requested quarter, inconsistent asset IDs, and conflicting dates.
+Empty results require explicit visible no-results confirmation. Distinct assets
+are counted; duplicate imports are idempotent. Independent checklists are preferred
+when available. Location fields are intentionally omitted from this MVP pass.
+
+`coverage.json` reports dated/undated totals, completed species-quarter slots,
+and fully covered species. `dated-photos.json` preserves the reference metadata
+for later publication. `scripts/reconcile-photo-catalog.py --merge` can attach
+that verified export to an existing catalog while retaining references and dates;
+normal dev/staging review still applies. These collection changes do not activate
+quarter-based selection in the deployed quiz.

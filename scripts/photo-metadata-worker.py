@@ -50,7 +50,11 @@ def enqueue(c,files):
  for file in files:
   for b in json.loads(pathlib.Path(file).read_text())['birds']:
    if not re.fullmatch('[a-z0-9]+',b['id']):raise ValueError('Invalid species code')
-   ready=bool(b.get('photos'));c.execute("insert into species(id,bird,state,photos,updated) values(?,?,?,?,?) on conflict(id) do update set bird=excluded.bird,photos=case when excluded.photos is not null then excluded.photos else species.photos end,state=case when excluded.photos is not null then 'ready' else species.state end",(b['id'],json.dumps(b),'ready' if ready else 'pending',json.dumps(b['photos']) if ready else None,time.time()))
+   prior=c.execute('select state,photos from species where id=?',(b['id'],)).fetchone()
+   refs={p['id']:p for p in json.loads(prior['photos'] or '[]')} if prior else {}
+   for photo in b.get('photos',[]):refs[photo['id']]={**refs.get(photo['id'],{}),**photo}
+   state='ready' if refs else prior['state'] if prior else 'pending'
+   c.execute("insert into species(id,bird,state,photos,updated) values(?,?,?,?,?) on conflict(id) do update set bird=excluded.bird,photos=excluded.photos,state=excluded.state",(b['id'],json.dumps(b),state,json.dumps(list(refs.values())) if refs else None,time.time()))
  c.commit()
 def export(c,path):
  value={r['id']:json.loads(r['photos']) for r in c.execute("select id,photos from species where state='ready' order by id")}

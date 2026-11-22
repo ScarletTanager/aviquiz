@@ -239,3 +239,30 @@ September 20–October 10 scope now has 175/175 default species photo-ready, or
 209/209 when single-season records are included. The historical window,
 recurrence rules, serving data-pack hashes, original Colombia catalog, and saved
 statistics keys are unchanged by this metadata release.
+
+## Seasonal-photo collection started (November 22)
+
+The seasonal target is two dated photos per calendar quarter per species. A
+representative catalog sample confirmed exact observation dates for Northern
+Cardinal (Q1), Dunlin (Q2), Mallard (Q3), and Blackburnian Warbler (Q4). The dates
+come from Cornell's displayed per-photo observation metadata, not upload order or
+inferred plumage. The exact date and original displayed datetime are retained;
+no EXIF capture-time guarantee is made.
+
+The first breadth-first batch added Q1 coverage for 50 NC species. Including the
+four representative samples, the processing database holds 108 dated references
+across 54 species-quarter targets. Three previously undated references were
+backfilled; 712 existing references still have unknown dates. No species is yet
+fully covered for all four quarters. All 1,828 NC quarter targets are persisted
+in the queue. Coverage and evidence exports are private local work products under
+`outputs/photo_metadata/seasonal/`; application catalogs and staging/production
+photo selection have not been changed by this collection step.
+
+`scripts/seasonal-photo-metadata.py` validates and stores dated records and plans
+one next-quarter lookup per species, prioritizing species with fewer quarters
+covered. Exact identity, asset URL, date validity, requested quarter, attribution,
+and conflicting-date checks protect imports. The normalized dated-asset table is
+the source for seasonal exports; undated references do not satisfy the target.
+Date-preserving queue re-imports and the catalog publisher's explicit `--merge`
+option allow future publication without losing the new fields. Location matching
+is deferred, as requested. See RUNBOOK.md for the collection and publication steps.
