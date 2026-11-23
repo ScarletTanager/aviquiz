@@ -20,3 +20,7 @@ var/
 *.pfx
 
 *.apikey
+
+# Standalone collector environments/profiles must remain private local state.
+.venv*/
+browser-profile/

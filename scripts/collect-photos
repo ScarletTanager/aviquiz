@@ -1,0 +1,12 @@
+#!/bin/sh
+# Convenient standalone CLI; environment and data stay outside the repository.
+set -eu
+repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+workspace=$(CDPATH= cd -- "$repo/../.." && pwd)
+python="$workspace/outputs/photo_metadata/browser-venv/bin/python"
+export PLAYWRIGHT_BROWSERS_PATH="$workspace/outputs/photo_metadata/browser-binaries"
+if [ ! -x "$python" ]; then
+  echo "Collector environment is missing. See RUNBOOK.md: Standalone browser collection." >&2
+  exit 1
+fi
+exec "$python" "$repo/scripts/browser-photo-collector.py" "$@"

@@ -475,8 +475,8 @@ heading, OG image URL, and OG attribution. It validates the complete batch befor
 writing, checks scientific/common identity and Cornell URL/credit, deduplicates
 assets, and preserves direct-access host blocks. Browser access is a separate
 observed success, not permission to copy session credentials into HTTP clients.
-The current browser collector runs through the interactive browser tool; it is
-not an unattended browser daemon.
+The original browser pilot ran through the interactive browser tool. The
+standalone seasonal collector below can now run independently of Codex.
 
 Future concurrency should separate retrieval from validation and publication.
 Use one durable species queue, atomic leases, retry-safe result writes, and a
@@ -537,7 +537,7 @@ Seed jobs with `--seed dist/nc-birds.json`, import an observed catalog payload w
 species in breadth-first order, prioritizing species with fewer covered quarters.
 Run `scripts/test-seasonal-photo-metadata.py` before using a changed importer.
 All four quarter jobs are recorded for every NC species, and checkpoints survive
-browser interruptions. A pending queue is not an unattended browser daemon.
+browser interruptions. The standalone collector below consumes this queue.
 
 Payloads contain the observed catalog URL and rows with species name/scientific
 name, species URL, asset URL, image URL, photographer, exact `observedAt`, and a
@@ -553,3 +553,109 @@ for later publication. `scripts/reconcile-photo-catalog.py --merge` can attach
 that verified export to an existing catalog while retaining references and dates;
 normal dev/staging review still applies. These collection changes do not activate
 quarter-based selection in the deployed quiz.
+
+### Standalone browser collection
+
+`scripts/collect-photos` controls a local Playwright Chromium worker without
+Codex, ChatGPT, or an AI API. It uses the existing private NC queue by default:
+`/Users/sandy/col_birding/outputs/photo_metadata/queue.sqlite`. Completed quarter
+jobs are skipped; restarting continues breadth-first from the saved queue. The
+November 23 paused checkpoint contains 279 species / 558 dated references; its
+next target is Yellow-bellied Flycatcher, quarter 1. This is one dated quarter
+per covered species, not complete four-quarter coverage.
+
+From the repository directory:
+
+```sh
+scripts/collect-photos status
+scripts/collect-photos start
+scripts/collect-photos stop
+```
+
+`start` detaches the worker from Terminal; closing Terminal or Codex does not
+stop it. `stop` asks the worker to finish its current bounded browser operation,
+save progress, and close the browser. `status` remains responsive during browser
+operations and cooldowns, and reports checkpoint counts/next job even when no
+worker is running. A second `start` reports the existing worker. The queue lock
+also prevents overlap with the older HTTP worker. Do not run interactive imports
+against this queue while the standalone collector is running.
+
+For foreground operation or a bounded batch:
+
+```sh
+scripts/collect-photos run --max-requests 5
+scripts/collect-photos start --max-requests 20
+```
+
+`--max-requests 0` (default) continues until no pending jobs remain, a persistent
+challenge blocks access, or the process is stopped. `--interval 35` is the default;
+values below 30 seconds are rejected. `--visible` opens a dedicated browser window;
+headless is the default. The collector uses its own profile, never your personal
+browser profile or cookies. It does not solve CAPTCHAs, modify its user-agent,
+use proxies, or attempt challenge evasion. Headless browser acceptance by Cornell
+is not guaranteed even when the interactive browser works.
+
+A first challenge sets a durable 30-minute cooldown, followed by one retry.
+A second challenge persistently blocks the browser collector; restarting does
+not clear it. Review that blocker with the owner before any fresh attempt. HTTP
+429 / server errors wait at least 30 minutes and honor a longer Retry-After.
+Transient job failures are tried at most three times, then marked `needs_review`;
+confirmed empty results are `no_results`, and a single valid photo is `partial`.
+Other pending jobs continue. No pending work therefore does not imply complete
+coverage. Review `coverage.json` and the log for gaps. Browser crashes get at most
+two automatic relaunches with a one-minute pause. Unhandled errors stop safely
+with an error status rather than looping forever.
+
+Private files are under `outputs/photo_metadata/seasonal/` outside Git:
+
+- `collector.log`: timestamped progress, failures, and challenge URLs.
+- `collector-status.json`: latest phase, request count and collection result.
+- `coverage.json`, `dated-photos.json`: cumulative metadata and coverage.
+- `<species>-q<quarter>.json`: validated observed metadata evidence.
+- `browser-profile/`: dedicated local browser state; do not upload or commit it.
+
+```sh
+tail -f /Users/sandy/col_birding/outputs/photo_metadata/seasonal/collector.log
+```
+
+The Mac must remain awake and connected. Sleep suspends progress; the persistent
+queue/cooldown lets a later start resume safely. This is not a login-start service:
+restart it explicitly after a reboot. It never uploads metadata or deploys AviQuiz.
+Image, media, and font requests are blocked; only DOM reference metadata is saved.
+Normal browser resources/cache can still use disk. No full-resolution photo
+collection is created.
+
+The isolated Python environment and Chromium binaries have been installed in
+`outputs/photo_metadata/browser-venv` and `outputs/photo_metadata/browser-binaries`.
+To recreate them on this checkout layout (Python 3.13 recommended):
+
+```sh
+python3 -m venv ../../outputs/photo_metadata/browser-venv
+../../outputs/photo_metadata/browser-venv/bin/pip install -r scripts/browser-photo-requirements.txt
+PLAYWRIGHT_BROWSERS_PATH="$(cd ../.. && pwd)/outputs/photo_metadata/browser-binaries" ../../outputs/photo_metadata/browser-venv/bin/python -m playwright install chromium
+```
+
+For another workspace layout, invoke `scripts/browser-photo-collector.py` using
+that environment's Python with explicit `--db` and `--output` paths, and set
+`PLAYWRIGHT_BROWSERS_PATH` to the browser install directory. For a new queue only,
+add `--seed dist/nc-birds.json`; the current NC queue needs no reseeding.
+
+Validation:
+
+```sh
+python3 scripts/test-browser-photo-collector.py
+AVIQUIZ_BROWSER_TESTS=1 PLAYWRIGHT_BROWSERS_PATH="$(cd ../.. && pwd)/outputs/photo_metadata/browser-binaries" ../../outputs/photo_metadata/browser-venv/bin/python scripts/test-browser-photo-collector.py
+```
+
+The opt-in tests use local fixture HTML and a future cooldown for CLI lifecycle
+checks; they make no Cornell requests. The production source remains the public
+catalog's rendered DOM, subject to markup changes and access restrictions.
+
+The November 23 bounded live standalone test received an automated-access
+challenge on the next NC target (Yellow-bellied Flycatcher). It saved no new
+photos, persisted the first challenge and 30-minute cooldown, and exited after
+its one-request limit. Collection is stopped. The next `start` honors that saved
+cooldown and consumes the one allowed retry; a repeated challenge blocks further
+requests. Offline extraction/CLI tests passed, but unattended Cornell access has
+not been established for this separate Chromium profile. No cookies were copied
+from the interactive browser and no bypass was attempted.
