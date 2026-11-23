@@ -1,7 +1,7 @@
 import {audioBirds,validateAudioCatalog} from './audio.mjs';
 import {offersSiteClue,chooseSiteClue} from './site-clue.mjs';
 import {ANNOTATION_REVIEW_KEY,ORIGINAL_REVIEW_PHOTOS,parseReviewedPhotos,unreviewedPhotos} from './annotation-review.mjs';
-import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './quiz.mjs';
+import {eligibleBirds,gradeAnswer,shuffle,familyName,familyLabel,questionPool,buildQuestions} from './quiz.mjs';
 import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,progressKey,emptyProgress,parseProgress,recordAttempt,recordQuizResult,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './statistics.mjs';
 import {ID_TIPS,tipsFor,annotatedBirds,annotationSvg,applySharedTips} from './id-tips.mjs';
@@ -160,7 +160,7 @@ function updatePool(){
   $('family-help').textContent=settings.allSpecies&&!annotationReview?'All eligible species: each playable species appears once. Site and lifer filters still apply.':review?'Site and family filters apply to mistakes in the selected medium. Each species appears once.':`Choose a family to practice different ${audio?'recordings':'photos'} of the same species. Site and lifer filters still apply.`;
   let base=review?reviewBirds(data.birds,histories[medium],settings.site):eligibleBirds(data.birds,settings.site,settings.filter);
   if(audio)base=audioBirds(base,audioCatalog,settings.site).filter(b=>b.photos.length);
-  for(const option of $('family').options){if(option.value==='all')continue;const n=base.filter(b=>familyName(b.family)===option.value).length;option.textContent=`${option.value} · ${n} species`;}
+  for(const option of $('family').options){if(option.value==='all')continue;const n=base.filter(b=>familyName(b.family)===option.value).length;option.textContent=`${familyLabel(option.value)} · ${n} species`;}
   const covered=birds.filter(b=>b.photos.length).length;
   $('pool').textContent=!ready.length?(review?(recentMistakeIds(histories[medium]).length?`No playable ${mediumName(medium)} review birds match these filters. Try another site or family.`:`No ${mediumName(medium)} birds currently exceed a 25% miss rate. Start a regular quiz to practice.`):`No ${audio?'verified recordings':'photos'} match these filters. Try another family, site, or lifer filter.`):`${covered} ${review?'species to review':'eligible species with '+(audio?'audio':'photos')}${audio?` / ${birds.length} scoped species`:''} · ${ready.length} ${familyMode?(audio?'recordings':'different photographs')+'. Species may repeat.':'species questions.'}${requested>ready.length?` Quiz will use ${ready.length} questions.`:''}`;
   $('audio-scope-help').hidden=!audio;
@@ -498,7 +498,7 @@ try{
   $('site').options[0].textContent=`Entire trip checklist (${data.birds.length})`;
   for(const site of data.sites){const count=eligibleBirds(data.birds,site.code).length;const option=document.createElement('option');option.value=site.code;option.textContent=`${site.code} · ${site.name} (${count})`;$('site').append(option);}
   // Bird records follow the checklist's taxonomic order; preserve each family's first occurrence.
-  for(const family of new Set(data.birds.map(b=>familyName(b.family)))){const option=document.createElement('option');option.value=family;option.textContent=family;$('family').append(option);}
+  for(const family of new Set(data.birds.map(b=>familyName(b.family)))){const option=document.createElement('option');option.value=family;option.textContent=familyLabel(family);$('family').append(option);}
   $('collection-sites').textContent=data.sites.length;$('total').textContent=data.summary.species;$('world-total').textContent=data.summary.worldLifers;$('co-total').textContent=data.summary.colombiaLifers;
   const covered=data.birds.filter(b=>b.photos.length).length;$('coverage').textContent=`Macaulay photo records: ${covered} of ${data.birds.length} species. Image availability depends on Macaulay Library’s image server.${covered<data.birds.length?' Species without a photo record are excluded from question selection and remain in the checklist totals.':''}`;
   const hero=data.birds.find(b=>b.name==='Multicolored Tanager'&&b.photos.length)||data.birds.find(b=>b.photos.length);

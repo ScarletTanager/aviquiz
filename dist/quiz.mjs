@@ -1,3 +1,5 @@
+import {familyEnglishNames} from './family-names.mjs';
+
 export function normalize(value) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
@@ -26,6 +28,10 @@ export function gradeAnswer(value, bird, allBirds) {
   return {correct:best<=limit && best<nearestOther,fuzzy:best<=limit && best<nearestOther};
 }
 export const familyName = value => value.replace(/\s*\(\d+\)\s*$/, '').trim();
+export const familyLabel = value => {
+  const scientific = familyName(value);
+  return familyEnglishNames[scientific] ? `${familyEnglishNames[scientific]} (${scientific})` : scientific;
+};
 export function eligibleBirds(birds, site='all', filter='none', family='all') {
   return birds.filter(b=>(site==='all'||b.sites.includes(site))&&(filter==='none'||(filter==='world'?b.worldLifer:b.colombiaLifer))&&(family==='all'||familyName(b.family)===family));
 }

@@ -1,5 +1,5 @@
 import {accountFetch} from './auth-session.mjs';
-import {familyName} from './quiz.mjs';
+import {familyName,familyLabel} from './quiz.mjs';
 import {geographyPool,monthRange,seasonRange} from './geography-core.mjs';
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),today=new Date();
 const fallback=monthRange(today.getFullYear(),today.getMonth()+1);
@@ -121,7 +121,7 @@ window.addEventListener('popstate',()=>{const query=new URLSearchParams(location
 try{
  const responses=await Promise.all(['/geography-seed.json','/route-pilot.json','/data.json','/nc-birds.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error();
  const [seed,pilot,data,nc]=await Promise.all(responses.map(r=>r.json()));nodes=seed.nodes;catalog=pilot;birds=data.birds;
- for(const family of [...new Set([...birds,...nc.birds].map(b=>familyName(b.family)))].sort((a,b)=>(nc.familyOrder?.[a]??1e9)-(nc.familyOrder?.[b]??1e9))){const option=make('option',family);option.value=family;$('geo-family').append(option);}
+ for(const family of [...new Set([...birds,...nc.birds].map(b=>familyName(b.family)))].sort((a,b)=>(nc.familyOrder?.[a]??1e9)-(nc.familyOrder?.[b]??1e9))){const option=make('option',familyLabel(family));option.value=family;$('geo-family').append(option);}
  await restoreLocation();
 }catch{$('geo-loading').textContent='The pilot catalogs could not load. Please reload, or use the original Colombia quiz.';}
 try{const response=await accountFetch('/api/account');if(response.ok){const account=await response.json();$('account-trip-options').hidden=account.kind!=='user';$('geo-refresh').hidden=account.administrator!==true;}}catch{}
