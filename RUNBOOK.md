@@ -659,3 +659,32 @@ cooldown and consumes the one allowed retry; a repeated challenge blocks further
 requests. Offline extraction/CLI tests passed, but unattended Cornell access has
 not been established for this separate Chromium profile. No cookies were copied
 from the interactive browser and no bypass was attempted.
+
+#### Human verification in the standalone browser
+
+To let the owner complete a challenge in the dedicated browser, start with:
+
+```sh
+scripts/collect-photos start --manual-verification
+```
+
+This implies `--visible`. If a collector is already running, stop it first:
+`start` does not change a running worker's mode. On a challenge the worker sets
+`phase: waiting_for_verification` in `status`, leaves the window open, and waits
+indefinitely for the owner to complete verification. It only observes the DOM;
+it does not click challenge controls, reload, or navigate to retry while waiting.
+`stop` still works during this wait. Closing the browser stops collection safely.
+
+Once the requested species/quarter catalog is visible and passes the normal
+metadata validator, the worker saves that page and resumes automatically. This
+successful verification clears only the standalone browser's challenge count,
+block and cooldown; independent HTTP-worker blocks are untouched. An existing
+persistent block is not cleared merely by starting in this mode. Without this
+flag the original 30-minute / one-retry policy remains unchanged. Stopping before
+verification succeeds preserves the challenge count and cooldown/block.
+
+Manual mode permits normal browser resources, including images, so challenge
+widgets can render correctly. The browser may cache those resources; the worker
+still saves only reference metadata, not photo files. No personal browser profile
+or cookies are imported. This mode requires occasional human participation when
+the host requests verification; it is not a CAPTCHA solver or access bypass.

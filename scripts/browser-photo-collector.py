@@ -146,7 +146,8 @@ class Runner:
         self.args, self.c, self.server = args, c, server
         self.stopping = False
         self.requests = 0
-        self.state = dict(pid=os.getpid(), running=True, phase='starting', requests=0)
+        self.state = dict(pid=os.getpid(), running=True, phase='starting', requests=0,
+                          manual_verification=getattr(args, 'manual_verification', False))
 
     def report(self, phase, **fields):
         self.state.update(phase=phase, requests=self.requests, updated=time.time(), **fields)
@@ -170,6 +171,36 @@ class Runner:
     def wait(self, until):
         while not self.stopping and time.time() < until:
             time.sleep(min(0.25, max(0, until - time.time())))
+
+    def handle_challenge(self, page, job):
+        record_challenge(self.c, time.time())
+        if not getattr(self.args, 'manual_verification', False):
+            self.report('challenge', url=job['url'], reason='Thirty-minute cooldown; one retry only')
+            return False
+        self.report('waiting_for_verification', url=job['url'],
+                    reason='Complete verification in the open browser. Collection resumes when the requested catalog is visible.')
+        # Observe only. Never click a challenge, reload it, or navigate while waiting.
+        while not self.stopping:
+            if page.is_closed():
+                self.report('verification_browser_closed', reason='Browser closed; checkpoint preserved')
+                self.stopping = True
+                return False
+            try:
+                snapshot = page.evaluate(EXTRACT)
+                if not challenge(snapshot['title'] + '\n' + snapshot['text']):
+                    payload(snapshot, job, self.c)
+                    # Clear only this browser's access state after verified catalog
+                    # access, never the independent HTTP-worker host blocks.
+                    with self.c:
+                        self.c.execute('update browser_photo_control set challenges=0,blocked=0,retry_at=0,last_request=? where id=1', (time.time(),))
+                        self.c.execute('insert into events values(?,?,?,?,?)', (time.time(), job['species'], HOST, 'manual_verification_catalog_available', None))
+                    self.report('verification_complete', reason='Requested catalog available; resuming')
+                    return True
+            except Exception:
+                # Navigation during human verification can briefly destroy the DOM.
+                pass
+            page.wait_for_timeout(1000)
+        return False
 
     def collect(self, page):
         while not self.stopping and (not self.args.max_requests or self.requests < self.args.max_requests):
@@ -202,9 +233,9 @@ class Runner:
             status = response.status if response else None
             snapshot = page.evaluate(EXTRACT)
             if challenge(snapshot['title'] + '\n' + snapshot['text']) or status == 403:
-                record_challenge(self.c, time.time())
-                self.report('challenge', url=job['url'], reason='Thirty-minute cooldown; one retry only')
-                continue
+                if not self.handle_challenge(page, job):
+                    continue
+                snapshot = page.evaluate(EXTRACT)
             if status == 429 or (status is not None and status >= 500):
                 delay = max(COOLDOWN, retry_after(response.headers.get('retry-after'), time.time()))
                 with self.c:
@@ -217,9 +248,9 @@ class Runner:
                 page.wait_for_function("""() => document.querySelector('ol.ResultsList li time') || /no (matching )?results|no media found/i.test(document.body.innerText)""", timeout=20000)
                 snapshot = page.evaluate(EXTRACT)
                 if challenge(snapshot['title'] + '\n' + snapshot['text']):
-                    record_challenge(self.c, time.time())
-                    self.report('challenge', url=job['url'])
-                    continue
+                    if not self.handle_challenge(page, job):
+                        continue
+                    snapshot = page.evaluate(EXTRACT)
                 evidence = payload(snapshot, job, self.c)
                 atomic(self.args.output / (job['species'] + '-q' + str(job['quarter']) + '.json'), evidence)
                 result = seasonal.ingest(self.c, evidence)
@@ -230,8 +261,12 @@ class Runner:
             except Exception as exc:
                 latest = page.evaluate(EXTRACT)
                 if challenge(latest['title'] + '\n' + latest['text']):
-                    record_challenge(self.c, time.time())
-                    self.report('challenge', url=job['url'])
+                    if self.handle_challenge(page, job):
+                        # Save the now-verified page without another navigation.
+                        evidence = payload(page.evaluate(EXTRACT), job, self.c)
+                        atomic(self.args.output / (job['species'] + '-q' + str(job['quarter']) + '.json'), evidence)
+                        result = seasonal.ingest(self.c, evidence)
+                        self.report('saved', result=result, coverage=seasonal.export(self.c, self.args.output))
                     continue
                 n = record_failure(self.c, job)
                 self.report('needs_review' if n >= 3 else 'retry_pending', failures=n,
@@ -279,7 +314,8 @@ def run(args):
                             with pw.chromium.launch_persistent_context(str(args.output / 'browser-profile'), headless=not args.visible, accept_downloads=False) as browser:
                                 page = browser.pages[0] if browser.pages else browser.new_page()
                                 # Metadata only. Avoid fetching full-resolution image/audio/video files.
-                                page.route('**/*', lambda route: route.abort() if route.request.resource_type in ('image', 'media', 'font') else route.continue_())
+                                if not args.manual_verification:
+                                    page.route('**/*', lambda route: route.abort() if route.request.resource_type in ('image', 'media', 'font') else route.continue_())
                                 runner.collect(page)
                         break
                     except Exception:
@@ -314,7 +350,10 @@ def main():
     p.add_argument('--interval', type=float, default=35, help='Seconds between navigations; minimum 30')
     p.add_argument('--max-requests', type=int, default=0, help='0 runs until pending jobs finish or collection blocks')
     p.add_argument('--visible', action='store_true', help='Show the dedicated browser instead of headless mode')
+    p.add_argument('--manual-verification', action='store_true', help='Show browser and wait for human challenge completion; never solves challenges automatically')
     args = p.parse_args()
+    if args.manual_verification:
+        args.visible = True
     args.db = args.db.resolve()
     args.output = (args.output or args.db.parent / 'seasonal').resolve()
     if args.interval < 30 or args.max_requests < 0:
@@ -342,6 +381,8 @@ def main():
         command += ['--seed', str(args.seed.resolve())]
     if args.visible:
         command.append('--visible')
+    if args.manual_verification:
+        command.append('--manual-verification')
     with open(args.output / 'collector.log', 'a') as log:
         process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
     for _ in range(100):
