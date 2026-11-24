@@ -60,6 +60,11 @@ def taxonomy(profile):
 def eligible(row):
     return row['ALL SPECIES REPORTED'] == '1' and row['PROTOCOL CODE'] in ('P21', 'P22')
 
+def in_scope(row, region):
+    if region.startswith('L'):
+        return row['LOCALITY ID'] == region and row['LOCALITY TYPE'] == 'H'
+    return region in (row['COUNTRY CODE'], row['STATE CODE'], row['COUNTY CODE'])
+
 
 def aggregate(config):
     started = time.monotonic()
@@ -77,15 +82,26 @@ def aggregate(config):
     if manifest.get('schema') != 'aviquiz-ebd-partitions-v1' or manifest.get('status') != 'partitioned':
         raise ValueError('A complete paired partition manifest is required')
     entry = next(item for item in manifest['partitions'] if item['region'] == region)
+    foreign_manifest = load(manifest['foreign_manifest']) if manifest.get('foreign_manifest') else manifest
+    foreign_root = Path(manifest['foreign_manifest']).resolve().parent if manifest.get('foreign_manifest') else source_root
+    if foreign_manifest.get('schema') != 'aviquiz-ebd-partitions-v1' or foreign_manifest.get('status') != 'partitioned' or foreign_manifest.get('release') != manifest.get('release'):
+        raise ValueError('Foreign partition manifest does not match the release')
     profile = load(config['taxonomy_profile'])
     if profile.get('observation_source_sha256') != entry['files']['observations']['sha256'] or profile.get('rows') != entry['rows']['observations']:
         raise ValueError('Taxonomy profile does not match the observation projection')
     mapping, canonical, excluded = taxonomy(profile)
-    for provenance in [profile.get('parent_provenance')]:
+    for provenance in [profile.get('parent_provenance'), *profile.get('parent_provenances', [])]:
         if provenance:
-            parent_entry = next(x for x in manifest['partitions'] if x['region'] == provenance['region'])
+            parent_entry = next(x for x in foreign_manifest['partitions'] if x['region'] == provenance['region'])
             if parent_entry['files']['observations']['sha256'] != provenance['source_sha256']:
                 raise ValueError('Species parent provenance does not match the release')
+            path = safe_path(foreign_root, parent_entry['files']['observations']['path'])
+            if p.checksum(path) != provenance['source_sha256']:
+                raise ValueError('Species parent source checksum mismatch')
+    if profile.get('parent_archive_provenance'):
+        original = profile['parent_archive_provenance']; path = Path(original['path'])
+        if path.stat().st_size != original['bytes'] or p.checksum(path) != original['sha256']:
+            raise ValueError('Species parent archive checksum mismatch')
     metrics, outcomes = Counter(), Counter()
     last_progress = 0
     def progress(phase, force=False):
@@ -110,7 +126,7 @@ def aggregate(config):
     db.executescript('''
     CREATE TABLE events (id INTEGER PRIMARY KEY, event TEXT UNIQUE NOT NULL,
       outing TEXT NOT NULL, day TEXT NOT NULL, county TEXT NOT NULL, locality TEXT NOT NULL,
-      loc_type TEXT NOT NULL, eligible INTEGER NOT NULL, outing_id INTEGER,
+      loc_type TEXT NOT NULL, eligible INTEGER NOT NULL, country TEXT NOT NULL, state TEXT NOT NULL, outing_id INTEGER,
       has_observation INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE audit (kind TEXT NOT NULL, reference TEXT NOT NULL, reason TEXT NOT NULL);
     ''')
@@ -127,16 +143,16 @@ def aggregate(config):
         with b.source(verified_file(entry, 'sampling')) as (stream, _, _):
             header, _ = b.fields(stream)
             for row in b.records(stream, header, deadline):
-                if p.region_key(row['COUNTRY CODE'], row['STATE CODE']) != region:
+                if not in_scope(row, region):
                     raise ValueError('Sampling row is outside its regional partition')
                 if date.fromisoformat(row['OBSERVATION DATE']).year < 1800:
                     raise ValueError('Observation date precedes the daily schema range')
                 event, group = row['SAMPLING EVENT IDENTIFIER'], row['GROUP IDENTIFIER']
                 if not event or not row['LOCALITY ID']:
                     raise ValueError('Missing event or locality identifier')
-                db.execute('INSERT INTO events(event,outing,day,county,locality,loc_type,eligible) VALUES (?,?,?,?,?,?,?)',
+                db.execute('INSERT INTO events(event,outing,day,county,locality,loc_type,eligible,country,state) VALUES (?,?,?,?,?,?,?,?,?)',
                     (event,'g:'+group if group else 'e:'+event,row['OBSERVATION DATE'],row['COUNTY CODE'],
-                     row['LOCALITY ID'],row['LOCALITY TYPE'],int(eligible(row))))
+                     row['LOCALITY ID'],row['LOCALITY TYPE'],int(eligible(row)),row['COUNTRY CODE'],row['STATE CODE']))
                 metrics['sampling_rows'] += 1
                 metrics['eligible_submissions'] += int(eligible(row))
                 if metrics['sampling_rows'] % 10000 == 0:
@@ -149,14 +165,14 @@ def aggregate(config):
         CREATE INDEX events_outing ON events(outing);
         CREATE TABLE outings (id INTEGER PRIMARY KEY, outing TEXT UNIQUE NOT NULL,
           day TEXT NOT NULL, county TEXT NOT NULL, locality TEXT NOT NULL, loc_type TEXT NOT NULL,
-          valid INTEGER NOT NULL DEFAULT 1);
-        INSERT INTO outings(outing,day,county,locality,loc_type)
-          SELECT outing,min(day),min(county),min(locality),min(loc_type) FROM events WHERE eligible=1
+          country TEXT NOT NULL,state TEXT NOT NULL,valid INTEGER NOT NULL DEFAULT 1);
+        INSERT INTO outings(outing,day,county,locality,loc_type,country,state)
+          SELECT outing,min(day),min(county),min(locality),min(loc_type),min(country),min(state) FROM events WHERE eligible=1
           GROUP BY outing HAVING min(day)=max(day) AND min(locality)=max(locality)
-            AND min(county)=max(county) AND min(loc_type)=max(loc_type);
+            AND min(county)=max(county) AND min(loc_type)=max(loc_type) AND min(country)=max(country) AND min(state)=max(state);
         INSERT INTO audit SELECT 'outing',outing,'conflicting_local_metadata' FROM events WHERE eligible=1
           GROUP BY outing HAVING min(day)<>max(day) OR min(locality)<>max(locality)
-            OR min(county)<>max(county) OR min(loc_type)<>max(loc_type);
+            OR min(county)<>max(county) OR min(loc_type)<>max(loc_type) OR min(country)<>max(country) OR min(state)<>max(state);
         ''')
         db.commit()
         metrics['local_conflicting_outings'] = db.execute("SELECT COUNT(*) FROM audit").fetchone()[0]
@@ -166,10 +182,22 @@ def aggregate(config):
         event_ids = {r[0].encode() for r in db.execute('SELECT event FROM events')}
         progress('cross_region_shared_groups', True)
         signature = db.cursor()
-        for other in manifest['partitions']:
+        foreign_sources = []
+        for other in foreign_manifest['partitions']:
             if other['region'] == region:
                 continue
-            path = verified_file(other, 'sampling')
+            value = other['files']['sampling']; path = safe_path(foreign_root, value['path'])
+            if path.stat().st_size != value['bytes'] or p.checksum(path) != value['sha256']:
+                raise ValueError('Foreign sampling checksum or size mismatch')
+            foreign_sources.append((other, path))
+        if manifest.get('external_sampling'):
+            external = manifest['external_sampling']; external_path = Path(external['path'])
+            if external_path.stat().st_size != external['bytes'] or p.checksum(external_path) != external['sha256']:
+                raise ValueError('External sampling source checksum or size mismatch')
+            foreign_sources.append(({'region':'external'}, external_path))
+        for other, path in foreign_sources:
+            if other['region'] == region:
+                continue
             with b.source(path) as (stream, _, _):
                 header, _ = b.fields(stream)
                 index = {name:i for i,name in enumerate(header)}
@@ -182,6 +210,9 @@ def aggregate(config):
                     values = line.rstrip(b'\r\n').split(b'\t')
                     if len(values)!=len(header):
                         raise ValueError('Sampling projection width mismatch')
+                    scope_row={name:values[index[name]].decode() for name in ['COUNTRY CODE','STATE CODE','COUNTY CODE','LOCALITY ID','LOCALITY TYPE']}
+                    if in_scope(scope_row, region):
+                        continue
                     metrics['external_sampling_rows_checked'] += 1
                     if values[index['SAMPLING EVENT IDENTIFIER']] in event_ids:
                         metrics['cross_region_duplicate_event_ids'] += 1
@@ -191,7 +222,7 @@ def aggregate(config):
                         outing='g:'+group.decode()
                         current=signature.execute('SELECT day,county,locality,loc_type FROM outings WHERE outing=?',(outing,)).fetchone()
                         foreign=tuple(values[index[n]].decode() for n in ['OBSERVATION DATE','COUNTY CODE','LOCALITY ID','LOCALITY TYPE'])
-                        if current is None or tuple(current)!=foreign or values[index['STATE CODE']].decode()!=region:
+                        if current is None or tuple(current)!=foreign or not in_scope(scope_row, region):
                             db.execute('UPDATE outings SET valid=0 WHERE outing=?',(outing,))
                             db.execute("INSERT INTO audit VALUES ('outing',?,'cross_region_shared_group_conflict')",(outing,))
                     if metrics['external_sampling_rows_checked'] % 200000==0:
@@ -222,7 +253,7 @@ def aggregate(config):
                 reason=None
                 if not event:
                     reason='missing_sampling_event'
-                elif (event[1],event[2],event[3],event[4]) != (row['OBSERVATION DATE'],row['COUNTY CODE'],row['LOCALITY ID'],row['LOCALITY TYPE']) or p.region_key(row['COUNTRY CODE'],row['STATE CODE'])!=region:
+                elif (event[1],event[2],event[3],event[4]) != (row['OBSERVATION DATE'],row['COUNTY CODE'],row['LOCALITY ID'],row['LOCALITY TYPE']) or not in_scope(row,region):
                     reason='conflicting_shared_outing:metadata_mismatch' if event[5] and event[6] is None else 'date_or_geography_mismatch'
                 elif not event[5]:
                     reason='ineligible_submission'
@@ -262,14 +293,16 @@ def aggregate(config):
         metrics['independent_outing_species_pairs']=db.execute('SELECT COUNT(*) FROM detections').fetchone()[0]
         progress('place_membership', True)
         db.execute('CREATE TABLE membership (outing_id INTEGER NOT NULL,place_id TEXT NOT NULL,PRIMARY KEY(outing_id,place_id)) WITHOUT ROWID')
-        county_pattern=re.compile(re.escape(region)+r'-[0-9]{3}')
         buffer=[]
-        for outing in db.execute('SELECT id,county,locality,loc_type FROM outings WHERE valid=1'):
-            buffer.append((outing[0],region))
-            if county_pattern.fullmatch(outing[1]) and not outing[1].endswith('-000'):
-                buffer.append((outing[0],outing[1]))
-            else:
+        for outing in db.execute('SELECT id,county,locality,loc_type,country,state FROM outings WHERE valid=1'):
+            country,state,county=outing[4],outing[5],outing[1]
+            places={region}
+            for code in [state,county]:
+                if code and code!=country and not code.endswith('-') and not code.endswith('-000') and (region==country or code==region or code.startswith(region+'-')):
+                    places.add(code)
+            if not county or county.endswith('-') or county.endswith('-000'):
                 metrics['outings_without_county']+=1
+            buffer.extend((outing[0],code) for code in places)
             if outing[3]=='H':
                 if not re.fullmatch(r'L\d+',outing[2]):
                     raise ValueError('Invalid public hotspot identifier')

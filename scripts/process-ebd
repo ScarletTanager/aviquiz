@@ -1,0 +1,9 @@
+#!/bin/sh
+# Use an independently installed Python; the collector's browser environment is not required.
+if [ -n "$AVIQUIZ_PYTHON" ]; then
+  exec "$AVIQUIZ_PYTHON" "$(dirname "$0")/process-ebd.py" "$@"
+elif command -v python3.13 >/dev/null 2>&1; then
+  exec python3.13 "$(dirname "$0")/process-ebd.py" "$@"
+else
+  exec python3 "$(dirname "$0")/process-ebd.py" "$@"
+fi
