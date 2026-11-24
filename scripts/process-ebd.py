@@ -19,6 +19,7 @@ data = importlib.util.module_from_spec(spec); spec.loader.exec_module(data)
 ROOT = HERE.parents[2] / 'outputs' / 'ebd_jobs'
 DEFAULT_MANIFEST = ROOT.parent / 'ebd_ingestion' / 'relSep2026-20261120-r2' / 'manifest.json'
 DEFAULT_TAXONOMY = ROOT.parent / 'ebd_reference' / 'taxonomy-2026.json'
+DEFAULT_PHOTO_DB = ROOT.parent / 'photo_metadata' / 'queue.sqlite'
 GIB = 1024 ** 3
 
 def write(path, obj):
@@ -79,8 +80,10 @@ def worker(job):
 def main():
     parser=argparse.ArgumentParser(description=__doc__); parser.add_argument('--root', type=Path, default=ROOT)
     sub=parser.add_subparsers(dest='command', required=True)
+    for cmd in ('validate','activate'):
+        q=sub.add_parser(cmd); q.add_argument('package',type=Path); q.add_argument('--target',type=Path,default=ROOT.parent/'ebd_active')
     for cmd in ('start','run'):
-        q=sub.add_parser(cmd); q.add_argument('scope'); q.add_argument('--parent'); q.add_argument('--manifest',type=Path,default=DEFAULT_MANIFEST); q.add_argument('--taxonomy',type=Path,default=DEFAULT_TAXONOMY); q.add_argument('--resume',action='store_true'); q.add_argument('--disk-gib',type=int,default=20); q.add_argument('--hours',type=int,default=24); q.add_argument('--first-year',type=int,default=2017); q.add_argument('--last-year',type=int,default=2025)
+        q=sub.add_parser(cmd); q.add_argument('scope'); q.add_argument('--parent'); q.add_argument('--manifest',type=Path,default=DEFAULT_MANIFEST); q.add_argument('--taxonomy',type=Path,default=DEFAULT_TAXONOMY); q.add_argument('--photo-db',type=Path,default=DEFAULT_PHOTO_DB); q.add_argument('--resume',action='store_true'); q.add_argument('--disk-gib',type=int,default=20); q.add_argument('--hours',type=int,default=24); q.add_argument('--first-year',type=int,default=2017); q.add_argument('--last-year',type=int,default=2025)
     for cmd in ('status','stop'):
         q=sub.add_parser(cmd); q.add_argument('scope',nargs='?' if cmd=='status' else None)
     q=sub.add_parser('_worker');q.add_argument('job',type=Path)
@@ -94,6 +97,26 @@ def main():
             write(Path(cfg['directory'])/'result.json',result)
         except Exception:
             (Path(cfg['directory'])/'error.log').write_text(traceback.format_exc()); return 1
+        return 0
+    if args.command in ('validate','activate'):
+        package=args.package.resolve(); manifest=json.loads((package/'package.json').read_text())
+        if manifest.get('schema')!='aviquiz-seasonal-package-v1': raise ValueError('Unsupported package schema')
+        if not isinstance(manifest.get('geography'),str) or not __import__('re').fullmatch(r'[A-Z]{2}(?:-[A-Z0-9]{1,12}){0,2}',manifest['geography']): raise ValueError('Invalid package geography')
+        if not isinstance(manifest.get('files'),dict) or not manifest['files']: raise ValueError('Package file list is missing')
+        for name,expected in manifest['files'].items():
+            path=(package/name).resolve()
+            if package not in path.parents or not path.is_file() or data.p.checksum(path)!=expected['sha256'] or path.stat().st_size!=expected['bytes']: raise ValueError('Package file checksum or size mismatch: '+name)
+        if args.command=='activate':
+            root=args.target.expanduser().resolve();root.mkdir(parents=True,exist_ok=True);dest=root/manifest['geography'];dest.mkdir(parents=True,exist_ok=True)
+            import tempfile
+            stage=Path(tempfile.mkdtemp(prefix='.activate-',dir=dest))
+            try:
+                for name in manifest['files']: shutil.copyfile(package/name,stage/name)
+                (stage/'manifest.json').write_bytes((package/'manifest.json').read_bytes())
+                pointer=dest/'active.json';temp=pointer.with_suffix('.next');write(temp,{'revision':manifest['revision'],'path':str(stage)});temp.replace(pointer)
+            except BaseException: shutil.rmtree(stage,ignore_errors=True);raise
+            print(pointer)
+        else: print(json.dumps({'valid':True,'geography':manifest['geography'],'species':manifest['species_count'],'places':manifest['place_count'] }))
         return 0
     if args.command=='_worker': return 0 if worker(args.job) else 1
     root=args.root.expanduser().resolve(); root.mkdir(parents=True,exist_ok=True)
@@ -154,7 +177,7 @@ def main():
         if old: raise ValueError('Job exists; choose --resume or a different --root')
         if not args.manifest or not args.taxonomy: raise ValueError('--manifest and --taxonomy are required')
         if not args.manifest.is_file() or not args.taxonomy.is_file(): raise ValueError('Manifest and taxonomy must be existing files')
-        config=dict(scope=args.scope,parent=args.parent,manifest=str(args.manifest.resolve()),taxonomy=str(args.taxonomy.resolve()),first_year=args.first_year,last_year=args.last_year,photo_sources=[],seconds=args.hours*3600,disk_bytes=args.disk_gib*GIB,memory_bytes=768*1024**2,reserve_free_bytes=60*GIB)
+        config=dict(scope=args.scope,parent=args.parent,manifest=str(args.manifest.resolve()),taxonomy=str(args.taxonomy.resolve()),shared_photo_db=str(args.photo_db.resolve()),first_year=args.first_year,last_year=args.last_year,photo_sources=[],seconds=args.hours*3600,disk_bytes=args.disk_gib*GIB,memory_bytes=768*1024**2,reserve_free_bytes=60*GIB)
         info=dict(config=config,status='starting',completed={})
     write(job/'state.json',info)
     # The worker acquires the lock; keep scheduler serialized until it does so.

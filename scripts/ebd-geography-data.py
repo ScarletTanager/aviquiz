@@ -184,5 +184,13 @@ def export(config):
   family=taxon.get('familySciName')
   if family:order[family]=min(order.get(family,1e9),taxon['taxonOrder'])
  catalog=out/'photo-catalog.json';atomic(catalog,dict(birds=birds,familyOrder=order))
- photos=out/'photos';photos.mkdir();queue=photos/'queue.sqlite';connection=seasonal.worker.connect(queue);seasonal.init(connection);seasonal.seed(connection,catalog);coverage=seasonal.export(connection,photos);connection.close()
- return dict(species=len(birds),places=len(places),serving_bytes=sum(x['bytes'] for x in chunks),photo_catalog=str(catalog),photo_queue=str(queue),photo_output=str(photos),photo_coverage=coverage)
+ atomic(serving/'species.json',dict(birds=birds,familyOrder=order))
+ package_files={}
+ for file in sorted(serving.iterdir()):
+  if file.is_file(): package_files[file.name]=dict(bytes=file.stat().st_size,sha256=checksum(file,config))
+ package=dict(schema='aviquiz-seasonal-package-v1',revision=hashlib.sha256(json.dumps(package_files,sort_keys=True).encode()).hexdigest(),geography=geo,release=extract_manifest['release'],years=[first,last],species_count=len(birds),place_count=len(places),files=package_files)
+ atomic(serving/'package.json',package)
+ shared=pathlib.Path(config['shared_photo_db']);shared.parent.mkdir(parents=True,exist_ok=True)
+ connection=seasonal.worker.connect(shared);seasonal.init(connection);seasonal.seed(connection,catalog)
+ photos=out/'photos';coverage=seasonal.export(connection,photos);connection.close()
+ return dict(species=len(birds),places=len(places),serving_bytes=sum(x['bytes'] for x in chunks),package=str(serving),package_manifest=str(serving/'package.json'),photo_catalog=str(catalog),shared_photo_queue=str(shared),photo_output=str(photos),photo_coverage=coverage)

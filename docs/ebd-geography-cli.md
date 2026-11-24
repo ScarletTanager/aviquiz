@@ -17,11 +17,20 @@ At most two jobs in the same root run concurrently. Each reserves up to 20 GiB b
 
 Outputs and progress are in `outputs/ebd_jobs/<code>/`. The status output identifies each stage directory and any error. Interrupted stages start again in a new directory; completed extraction and aggregation are checked and reused with `--resume`. Unresolved taxonomy is reported in the failing stage's `taxonomy-unresolved.json`; the job stops rather than guessing. Source partitions and private reconciliation outputs contain sensitive EBD records and must not be published. They can be large.
 
-The extract retains all source years. The derived quiz facts default to 2017–2025; choose another bounded period with `--first-year` and `--last-year`. Processing verifies source checksums, deduplicates shared checklists, quarantines conflicting events, and exports seasonal facts. The export stage creates `photo-catalog.json`, a seeded `photos/queue.sqlite`, and collector output files. Find their exact paths under `completed.export` in status. For example, substitute those paths in:
+The extract retains all source years. The derived quiz facts default to 2017–2025; choose another bounded period with `--first-year` and `--last-year`. Processing verifies source checksums, deduplicates shared checklists, quarantines conflicting events, and exports a common versioned package. The export stage also seeds one shared photo queue at `outputs/photo_metadata/queue.sqlite` by default. Override with `--photo-db`. Existing photo references and completed quarter jobs are preserved for species already queued from another geography; only missing quarter jobs are added. A shared species code is fetched once for all geographies. Find the package directory in `completed.export.package` and validate or activate it with:
 
 ```sh
-scripts/collect-photos start --db /path/to/queue.sqlite --output /path/to/photos --manual-verification
-scripts/collect-photos status --db /path/to/queue.sqlite --output /path/to/photos
+scripts/process-ebd validate /path/to/package
+scripts/process-ebd activate /path/to/package
 ```
 
-The queue begins without prior photo references, so the collector will seek coverage for the resulting species. The generated seasonal facts are processing artifacts, not a production-ready deployment bundle. The CLI currently requires a completed paired partition manifest; it does not partition the original worldwide tarballs itself. To process a new release, first create its paired partitions using the existing ingestion tooling.
+Activation copies the validated immutable package under `outputs/ebd_active/<geography>/` and atomically replaces that geography's `active.json` pointer. It does not deploy the package to staging or production. The package has one `package.json`, `manifest.json`, `places.json`, `species.json`, and content-hashed chunk files. Each place has an independently compressed record within bounded chunks, with full-range hexadecimal year masks. Each geography uses the same package schema and can be activated or rolled back locally by changing its active revision pointer.
+
+Use the shared collector queue and output directory. For example:
+
+```sh
+scripts/collect-photos start --db outputs/photo_metadata/queue.sqlite --output outputs/photo_metadata --manual-verification
+scripts/collect-photos status --db outputs/photo_metadata/queue.sqlite --output outputs/photo_metadata
+```
+
+The collector works breadth-first across the shared species queue and seeks dated coverage in each quarter. The CLI currently requires a completed paired partition manifest; it does not partition the original worldwide tarballs itself. To process a new release, first create its paired partitions using the existing ingestion tooling.

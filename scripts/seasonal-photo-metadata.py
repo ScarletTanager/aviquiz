@@ -30,7 +30,13 @@ def canonical(value,host,pattern):
 def seed(c,catalog):
  with c:
   for bird in json.loads(pathlib.Path(catalog).read_text())['birds']:
-   c.execute("insert into species(id,bird,state,photos,updated) values(?,?,?,?,?) on conflict(id) do update set bird=excluded.bird",(bird['id'],json.dumps(bird),'ready' if bird.get('photos') else 'pending',json.dumps(bird.get('photos',[])),time.time()))
+   prior=c.execute('select state,photos,bird from species where id=?',(bird['id'],)).fetchone()
+   refs={p['id']:p for p in json.loads(prior['photos'] or '[]')} if prior else {}
+   refs.update({p['id']:{**refs.get(p['id'],{}),**p} for p in bird.get('photos',[])})
+   existing=json.loads(prior['bird']) if prior else {}
+   merged={**existing,**bird,'photos':list(refs.values())}
+   state='ready' if refs else prior['state'] if prior else 'pending'
+   c.execute("insert into species(id,bird,state,photos,updated) values(?,?,?,?,?) on conflict(id) do update set bird=excluded.bird,photos=excluded.photos,state=excluded.state,updated=excluded.updated",(bird['id'],json.dumps(merged),'ready' if state=='ready' else 'pending',json.dumps(list(refs.values())),time.time()))
  with c:
   for bird in json.loads(pathlib.Path(catalog).read_text())['birds']:
    for q in range(1,5):c.execute('insert or ignore into photo_quarter_jobs(species_id,quarter,taxon_order) values(?,?,?)',(bird['id'],q,bird.get('taxonOrder',0)))
