@@ -211,7 +211,12 @@ assert.deepEqual(JSON.parse(store.get(AUDIO_PROGRESS_KEY)).siteSpecies[$('site')
 assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)).siteSpecies,JSON.parse(scopedHistory).siteSpecies);
 await $('exit').fire('click');
 const emptyFamily=[...new Set(data.birds.map(b=>b.family))].find(f=>!data.birds.some(b=>b.family===f&&audio.recordings[b.id]));
-if(emptyFamily){$('medium').value='audio';await $('medium').fire('change');$('family').value=emptyFamily;await $('family').fire('change');assert.equal($('start').disabled,true);assert.match($('pool').textContent,/No verified recordings/);}
+if(emptyFamily){$('medium').value='audio';await $('medium').fire('change');
+ assert.ok(!$('family').options.some(o=>o.value===emptyFamily));
+ $('show-all-families').checked=true;await $('show-all-families').fire('change');assert.ok($('family').options.some(o=>o.value===emptyFamily));
+ $('family').value=emptyFamily;await $('family').fire('change');assert.equal($('start').disabled,true);assert.match($('pool').textContent,/No verified recordings/);
+ $('show-all-families').checked=false;await $('show-all-families').fire('change');assert.equal($('family').value,'all');
+}
 console.log('Passed app integration: legacy visual history, audio playback gating, hidden answer metadata, miss/correct scoring, separate statistics, results, repeat, review, unscored failures, linked audio scopes, reset, visual regression and empty audio scopes. No browser/screen capture used.');
 
 // All-species counts track intersecting filters and suppress family repeats.

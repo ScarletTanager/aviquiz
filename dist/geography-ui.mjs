@@ -10,6 +10,13 @@ for(let m=1;m<=12;m++){const option=document.createElement('option');option.valu
 $('geo-month').value=String(today.getMonth()+1);
 let nodes=[],catalog,birds=[],selected=null,columns=[],request=0,previewRequest=0,preview={pool:[],places:[]};
 let eligibleCount=0;
+let allFamilies=[];
+function updateFamilies(species){
+ const previous=$('geo-family').value,represented=new Set(species.map(b=>familyName(b.family)));
+ const choices=allFamilies.filter(f=>$('geo-show-all-families').checked||represented.has(f));
+ const options=[make('option','All families'),...choices.map(f=>{const option=make('option',familyLabel(f));option.value=f;return option;})];options[0].value='all';
+ $('geo-family').replaceChildren(...options);$('geo-family').value=choices.includes(previous)?previous:'all';
+}
 function updateQuestionCount(){
  const all=$('geo-all-species').checked;
  $('geo-count').readOnly=all;
@@ -24,10 +31,12 @@ async function updatePreview(){
  $('geo-configuration').hidden=false;$('geo-selected-heading').textContent='Quiz scope: '+selected.name;
  try{
   seasonRange($('geo-start').value,$('geo-end').value);
-  const ncResponse=await fetch('/api/nc/quiz?'+new URLSearchParams({place:selected.id,from:$('geo-start').value,to:$('geo-end').value,single:String($('geo-single').checked),family:$('geo-family').value}));
+  const ncResponse=await fetch('/api/nc/quiz?'+new URLSearchParams({place:selected.id,from:$('geo-start').value,to:$('geo-end').value,single:String($('geo-single').checked),family:'all'}));
   if(previewToken!==previewRequest)return;
   if(ncResponse.status!==404){
    const nc=await ncResponse.json();if(!ncResponse.ok)throw Error(nc.error);
+   updateFamilies(nc.species);const family=$('geo-family').value;
+   nc.species=nc.species.filter(b=>family==='all'||familyName(b.family)===family);nc.pool=nc.pool.filter(b=>family==='all'||familyName(b.family)===family);
    preview={pool:nc.pool,places:[selected]};$('geo-sample').closest('label').hidden=true;
    $('geo-coverage').textContent=`${nc.species.length} seasonal species after filters; ${nc.pool.length} with verified photos; ${nc.sampledSeasons} sampled seasons. ${nc.notice}`;
    const list=$('geo-species-list');list.replaceChildren();for(const b of nc.species){list.append(make('li',`${b.name} · ${b.family} · reported in ${b.reportingSeasons} season(s)${b.photos.length?'':' · photo pending'}`));}
@@ -35,6 +44,7 @@ async function updatePreview(){
   }
   $('geo-sample').closest('label').hidden=false;$('geo-species-details').hidden=true;
   preview=geographyPool({scope:selected,nodes,catalog,birds,start:$('geo-start').value,end:$('geo-end').value,single:$('geo-single').checked});
+  updateFamilies(preview.pool);
   const family=$('geo-family').value,available=preview.pool.filter(b=>family==='all'||familyName(b.family)===family);
   $('geo-coverage').textContent=preview.places.length?`Limited pilot coverage: ${preview.places.length} supported place(s) for these dates; ${available.length} species with photos after filters. This is not a complete seasonal list for ${selected.name}.`:`No supported seasonal species list yet for ${selected.name} across these dates. Browsing locations is available; quiz generation awaits coverage. Try a pilot site within its documented season.`;
   eligibleCount=available.length;updateQuestionCount();$('geo-start-quiz').disabled=!available.length||!$('geo-sample').checked;
@@ -110,7 +120,7 @@ async function load(node,depth,{refresh=false,navigate=true}={}){
 }
 function choose(node,depth,options={}){return load(node,depth,options);}
 function openWorld(options={}){return load(nodes.find(n=>n.id==='world'),-1,options);}
-for(const id of ['geo-start','geo-end','geo-family','geo-single','geo-sample'])$(id).addEventListener('change',updatePreview);
+for(const id of ['geo-start','geo-end','geo-family','geo-single','geo-sample','geo-show-all-families'])$(id).addEventListener('change',updatePreview);
 $('geo-all-species').addEventListener('change',updateQuestionCount);
 $('geo-apply-month').addEventListener('click',()=>{try{const range=monthRange(Number($('geo-year').value),Number($('geo-month').value));$('geo-start').value=range.start;$('geo-end').value=range.end;updatePreview();}catch(error){$('geo-error').textContent=error.message;}});
 $('geo-refresh').addEventListener('click',()=>load(selected||nodes.find(n=>n.id==='world'),Math.max(-1,columns.findIndex(c=>c.selectedId===selected?.id)),{refresh:true}));
@@ -131,7 +141,8 @@ window.addEventListener('popstate',()=>{const query=new URLSearchParams(location
 try{
  const responses=await Promise.all(['/geography-seed.json','/route-pilot.json','/data.json','/nc-birds.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error();
  const [seed,pilot,data,nc]=await Promise.all(responses.map(r=>r.json()));nodes=seed.nodes;catalog=pilot;birds=data.birds;
- for(const family of [...new Set([...birds,...nc.birds].map(b=>familyName(b.family)))].sort((a,b)=>(nc.familyOrder?.[a]??1e9)-(nc.familyOrder?.[b]??1e9))){const option=make('option',familyLabel(family));option.value=family;$('geo-family').append(option);}
+ allFamilies=[...new Set([...birds,...nc.birds].map(b=>familyName(b.family)))].sort((a,b)=>(nc.familyOrder?.[a]??1e9)-(nc.familyOrder?.[b]??1e9));
+ for(const family of allFamilies){const option=make('option',familyLabel(family));option.value=family;$('geo-family').append(option);}
  if(params.has('family'))$('geo-family').value=params.get('family');
  $('geo-single').checked=params.get('single')==='true';
  await restoreLocation();

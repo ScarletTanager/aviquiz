@@ -160,6 +160,11 @@ function updatePool(){
   $('family-help').textContent=settings.allSpecies&&!annotationReview?'All eligible species: each playable species appears once. Site and lifer filters still apply.':review?'Site and family filters apply to mistakes in the selected medium. Each species appears once.':`Choose a family to practice different ${audio?'recordings':'photos'} of the same species. Site and lifer filters still apply.`;
   let base=review?reviewBirds(data.birds,histories[medium],settings.site):eligibleBirds(data.birds,settings.site,settings.filter);
   if(audio)base=audioBirds(base,audioCatalog,settings.site).filter(b=>b.photos.length);
+  if(annotationReview)base=pool({...settings,family:'all'});
+  const represented=new Set(base.map(b=>familyName(b.family))),families=[...new Set(data.birds.map(b=>familyName(b.family)))].filter(f=>$('show-all-families').checked||represented.has(f));
+  const options=[document.createElement('option'),...families.map(f=>{const option=document.createElement('option');option.value=f;option.textContent=familyLabel(f);return option;})];options[0].value='all';options[0].textContent='All families';
+  $('family').replaceChildren(...options);$('family').value=families.includes(settings.family)?settings.family:'all';
+  if($('family').value!==settings.family){updatePool();return;}
   for(const option of $('family').options){if(option.value==='all')continue;const n=base.filter(b=>familyName(b.family)===option.value).length;option.textContent=`${familyLabel(option.value)} · ${n} species`;}
   const covered=birds.filter(b=>b.photos.length).length;
   $('pool').textContent=!ready.length?(review?(recentMistakeIds(histories[medium]).length?`No playable ${mediumName(medium)} review birds match these filters. Try another site or family.`:`No ${mediumName(medium)} birds currently exceed a 25% miss rate. Start a regular quiz to practice.`):`No ${audio?'verified recordings':'photos'} match these filters. Try another family, site, or lifer filter.`):`${covered} ${review?'species to review':'eligible species with '+(audio?'audio':'photos')}${audio?` / ${birds.length} scoped species`:''} · ${ready.length} ${familyMode?(audio?'recordings':'different photographs')+'. Species may repeat.':'species questions.'}${!annotationReview&&!review&&requested>new Set(birds.map(b=>b.id)).size?' Additional questions use newly shuffled species rounds.':(annotationReview||review)&&requested>ready.length?` Quiz will use ${ready.length} questions.`:''}`;
@@ -478,6 +483,7 @@ $('site-clue-toggle').addEventListener('change',()=>{siteClueEnabled=$('site-clu
 document.addEventListener('play',e=>{if(e.target.tagName==='AUDIO')document.querySelectorAll('audio').forEach(a=>{if(a!==e.target)a.pause();});},true);
 for(const id of ['site-stat-sort','site-stat-direction','family-stat-sort','family-stat-direction'])$(id).addEventListener('change',renderStatistics);
 $('family-expand').addEventListener('click',()=>{familiesExpanded=!familiesExpanded;renderStatistics();});
+$('show-all-families').addEventListener('change',updatePool);
 $('site-expand').addEventListener('click',()=>{sitesExpanded=!sitesExpanded;renderStatistics();});
 for(const id of ['species-sort','species-direction'])$(id).addEventListener('change',renderSpeciesList);
 $('species-quiz').addEventListener('submit',e=>{

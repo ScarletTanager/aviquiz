@@ -78,3 +78,5 @@
 .browser-backup label{display:block;margin-top:24px}
 .browser-backup input[type=file]{height:auto;max-width:100%;padding:12px}
 #backup-status{overflow-wrap:anywhere}
+
+.family-visibility-controls{display:flex;align-items:center;gap:10px;margin:12px 0 18px}.family-visibility-controls label{display:flex;align-items:center;gap:8px;margin:0;font-size:1rem}.family-visibility-controls input[type=checkbox]{width:auto;height:auto;margin:0}.family-help-button{width:30px;height:30px;min-width:30px;padding:0;border-radius:50%;font-size:1rem;line-height:1}.family-help-popover{max-width:min(420px,calc(100vw - 40px));padding:22px;border:1px solid var(--line);border-radius:12px;background:var(--white);color:var(--ink);box-shadow:0 12px 40px #0003}.family-help-popover p{font-size:1rem;line-height:1.6;margin-top:0}

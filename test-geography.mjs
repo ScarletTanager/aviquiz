@@ -75,9 +75,9 @@ if(import.meta.main){
  elements['geo-family'].value='all';elements['geo-count'].value='20';
  let assigned='';const location={search:'?from=2027-02-01&to=2027-02-28',assign(url){assigned=url;}};
  const browserNodes=[...seed.nodes,{id:'EC-P',name:'Pichincha',kind:'subnational1',parent:'EC'},{id:'L9999999999',name:'Ecuador test hotspot',kind:'hotspot',parent:'EC-P'}];
- const apiRequest=[];let holdParent=null;const releaseHeld=[];
+ const apiRequest=[];let ncFixture=null;let holdParent=null;const releaseHeld=[];
  const fetcher=async url=>{
-  if(url==='/nc-birds.json')return {ok:true,json:async()=>({birds:[]})};if(url.startsWith('/api/nc/quiz'))return {status:404,ok:false};
+  if(url==='/nc-birds.json')return {ok:true,json:async()=>({birds:[]})};if(url.startsWith('/api/nc/quiz'))return ncFixture?{status:200,ok:true,json:async()=>JSON.parse(JSON.stringify(ncFixture))}:{status:404,ok:false};
   if(url==='/geography-seed.json')return {ok:true,json:async()=>seed};if(url==='/route-pilot.json')return {ok:true,json:async()=>catalog};if(url==='/data.json')return {ok:true,json:async()=>data};
   if(url==='/api/account')return {ok:true,json:async()=>({kind:'guest'})};
   const u=new URL(url,'https://quiz.example'),id=u.searchParams.get('parent'),type=u.searchParams.get('type'),parent=browserNodes.find(n=>n.id===id);apiRequest.push(id+':'+type);
@@ -111,11 +111,30 @@ if(import.meta.main){
  assert.equal(elements['geo-count'].readOnly,true);
  const launcherPool=geographyPool({scope,nodes:seed.nodes,catalog,birds:data.birds,start:'2027-02-01',end:'2027-02-28',single:false}).pool;
  assert.equal(Number(elements['geo-count'].value),launcherPool.length);
+ const normalizedFamily=b=>b.family.replace(/\s*\(\d+\)\s*$/,'').trim();
+ const represented=new Set(launcherPool.map(normalizedFamily));
+ const familyValues=()=>elements['geo-family'].children.map(o=>o.value).filter(v=>v!=='all');
+ assert.deepEqual(new Set(familyValues()),represented);
+ const absent=data.birds.map(normalizedFamily).find(f=>!represented.has(f));assert.ok(absent);
+ elements['geo-show-all-families'].checked=true;await elements['geo-show-all-families'].listeners.change();assert.ok(familyValues().includes(absent));
+ elements['geo-family'].value=absent;await elements['geo-family'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,true);
+ elements['geo-show-all-families'].checked=false;await elements['geo-show-all-families'].listeners.change();assert.equal(elements['geo-family'].value,'all');assert.equal(elements['geo-start-quiz'].disabled,false);
+ assert.deepEqual(new Set(familyValues()),represented);
+
  elements['geo-start-quiz'].listeners.click();assert.equal(new URL(assigned,'https://quiz.example').searchParams.get('allSpecies'),'true');
  const family=launcherPool[0].family.replace(/\s*\(\d+\)\s*$/,'').trim();elements['geo-family'].value=family;await elements['geo-family'].listeners.change();
  assert.equal(Number(elements['geo-count'].value),launcherPool.filter(b=>b.family.replace(/\s*\(\d+\)\s*$/,'').trim()===family).length);
  elements['geo-all-species'].checked=false;elements['geo-all-species'].listeners.change();assert.equal(elements['geo-count'].readOnly,false);
  elements['geo-count'].value='17';elements['geo-family'].value='all';await elements['geo-family'].listeners.change();assert.equal(elements['geo-count'].value,'17');
+ // NC responses are fetched before family filtering, so selecting one family
+ // must not remove the other represented families from the selector.
+ const ncFirst=launcherPool[0],ncSecond=launcherPool.find(b=>normalizedFamily(b)!==normalizedFamily(ncFirst));
+ ncFixture={species:[ncFirst,ncSecond],pool:[ncFirst,ncSecond],sampledSeasons:9,notice:'Test NC serving response'};
+ await elements['geo-family'].listeners.change();assert.equal(familyValues().length,2);
+ elements['geo-family'].value=normalizedFamily(ncFirst);await elements['geo-family'].listeners.change();assert.equal(familyValues().length,2);
+ assert.equal(elements['geo-start-quiz'].disabled,false);
+ ncFixture=null;elements['geo-family'].value='all';await elements['geo-family'].listeners.change();
+
 
  elements['geo-start'].value='2027-06-01';elements['geo-end'].value='2027-06-30';elements['geo-end'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,true);
  elements['geo-year'].value='2028';elements['geo-month'].value='2';elements['geo-apply-month'].listeners.click();assert.equal(elements['geo-end'].value,'2028-02-29');
