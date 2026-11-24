@@ -1,0 +1,4 @@
+# Historical test fixture: public oai-authenticated-user-id UUID, not a credential.
+# Current source already has an inline gitleaks:allow marker. Scope this exception
+# to the one historical commit/path/rule/line; do not suppress UUIDs globally.
+90261fbe2bdf707eaf20946cd20016586bbd7af7:test-account-api.mjs:generic-api-key:31
