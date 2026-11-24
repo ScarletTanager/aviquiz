@@ -79,4 +79,13 @@
 .browser-backup input[type=file]{height:auto;max-width:100%;padding:12px}
 #backup-status{overflow-wrap:anywhere}
 
-.family-visibility-controls{display:flex;align-items:center;gap:10px;margin:12px 0 18px}.family-visibility-controls label{display:flex;align-items:center;gap:8px;margin:0;font-size:1rem}.family-visibility-controls input[type=checkbox]{width:auto;height:auto;margin:0}.family-help-button{width:30px;height:30px;min-width:30px;padding:0;border-radius:50%;font-size:1rem;line-height:1}.family-help-popover{max-width:min(420px,calc(100vw - 40px));padding:22px;border:1px solid var(--line);border-radius:12px;background:var(--white);color:var(--ink);box-shadow:0 12px 40px #0003}.family-help-popover p{font-size:1rem;line-height:1.6;margin-top:0}
+.family-visibility-controls{display:flex;align-items:center;gap:10px;margin:12px 0 18px}.family-visibility-controls label{display:flex;align-items:center;gap:8px;margin:0;font-size:1rem}.family-visibility-controls input[type=checkbox]{width:auto;height:auto;margin:0}.family-help-button{width:24px;height:24px;min-width:24px;padding:0;border-radius:50%;font-size:.8rem;line-height:1}.family-help-popover{max-width:min(420px,calc(100vw - 40px));padding:22px;border:1px solid var(--line);border-radius:12px;background:var(--white);color:var(--ink);box-shadow:0 12px 40px #0003}.family-help-popover p{font-size:1rem;line-height:1.6;margin-top:0}
+
+/* Quiz-builder labels share a size; checkbox boxes align with the first text line. */
+#settings,.geography-page{--quiz-label-size:1rem;--quiz-label-line:1.5rem;--quiz-check-size:1.125rem}
+#settings label,#settings legend,#settings .segments span,.geography-page label{font-size:var(--quiz-label-size);line-height:var(--quiz-label-line)}
+#settings select,#settings input:not([type=checkbox]):not([type=radio]),.geography-page input:not([type=checkbox]),.geography-page select{font-size:1rem}
+#settings .all-species-control,#settings .experimental-checkbox,#settings .family-visibility-controls label,.geography-page .geo-check,.geography-page .family-visibility-controls label{display:grid;grid-template-columns:var(--quiz-check-size) minmax(0,1fr);align-items:start;gap:10px;font-size:var(--quiz-label-size);line-height:var(--quiz-label-line)}
+#settings input[type=checkbox],.geography-page input[type=checkbox]{width:var(--quiz-check-size);height:var(--quiz-check-size);min-width:var(--quiz-check-size);padding:0;margin:calc((var(--quiz-label-line) - var(--quiz-check-size))/2) 0 0;align-self:start;accent-color:var(--ink)}
+#settings .family-visibility-controls,.geography-page .family-visibility-controls{align-items:flex-start}
+#settings .family-visibility-controls>.family-help-button,.geography-page .family-visibility-controls>.family-help-button,.geography-page .geo-check-with-help>.family-help-button{margin-top:calc((var(--quiz-label-line) - 24px)/2)}
