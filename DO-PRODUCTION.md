@@ -237,3 +237,43 @@ setting change is introduced by this adapter.
 Before production, run `node test-ebd-files.mjs`, the standalone HTTP and permission
 checks, and verify all four serving artifact digests. The packager requires main
 to be pushed at the exact release commit; it refuses dirty/unpushed source.
+
+## First alpha live - November 24, 2026
+
+Production at https://aviquiz.org now runs **v0.1.0-alpha.1**, annotated Git tag
+pointing to `dee576480a2c3fc2676661473244d0925c5b516f`. The immutable Droplet release
+is `/srv/aviquiz/releases/aviquiz-1d80e9838caf2fa6`; `current` points to it.
+The archive SHA-256 is
+`6c89f3e6ac687771f3e04401d9d83c25432c9f7c5839fdec0b96dbc54469f109`.
+`release.json` records the version, source commit, main branch and artifact files.
+Staging version 56 records the same source; its archive is byte-for-byte identical
+to the owner-approved version 55 because the extra adapter is standalone-only.
+
+The four NC serving files were size/hash checked locally and again on the Droplet.
+The existing production node_modules were reused only after package.json and
+package-lock.json compared byte-for-byte equal to the previous release. No database
+migration, data replacement, authentication change or AWS account action was needed.
+No Spaces traffic was introduced. The service uses the small packaged read-only
+serving copy; canonical Spaces retention remains separate work.
+
+Post-activation checks passed:
+
+- HTTPS health and landing, explore, Colombia quiz, statistics, and review pages.
+- NC Chatham September 20–October 10: 175 eligible species, all with photos
+  (1,564 references across that list).
+- Jordan Lake Dam: 83 species; NC December 20–January 10: 269 species, all with photos.
+- Public annotations exactly matched the pre-deploy JSON: 126 approved photos /
+  123 covered species. Guest review access returned 403.
+- New sizing/family/help controls and sans-serif styles are present in live assets.
+- Initial service MemoryCurrent was 88,915,968 bytes; NRestarts was 0.
+
+The first full-history Gitleaks run flagged an old test's public hosting user ID,
+not a credential. CI-only commit `f49e4fe2ace879b92572dbab0b1959529755c977` adds one
+historical commit/path/rule/line fingerprint to `.gitleaksignore`; it does not
+weaken detection for other files/values. The full-history rescan, Security checks
+run 45408191131 and CodeQL run 45408191130 passed. This CI-only follow-up does not
+change the immutable alpha artifact or move its published tag.
+
+Rollback target remains `releases/aviquiz-809e8823048a163f`. Atomically restore that
+`current` symlink and restart aviquiz.service, then recheck health. No schema rollback
+is involved. Never restore an old database snapshot merely to roll back this code.
