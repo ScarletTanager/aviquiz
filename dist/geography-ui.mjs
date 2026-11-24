@@ -40,9 +40,9 @@ async function updatePreview(){
    preview={pool:nc.pool,places:[selected]};$('geo-sample').closest('label').hidden=true;
    $('geo-coverage').textContent=`${nc.species.length} seasonal species after filters; ${nc.pool.length} with verified photos; ${nc.sampledSeasons} sampled seasons. ${nc.notice}`;
    const list=$('geo-species-list');list.replaceChildren();for(const b of nc.species){list.append(make('li',`${b.name} · ${b.family} · reported in ${b.reportingSeasons} season(s)${b.photos.length?'':' · photo pending'}`));}
-   eligibleCount=nc.pool.length;updateQuestionCount();$('geo-species-details').hidden=false;$('geo-start-quiz').disabled=!nc.pool.length;return;
+   eligibleCount=nc.pool.length;updateQuestionCount();$('geo-species-details').hidden=false;$('geo-coverage-help-row').hidden=false;$('geo-start-quiz').disabled=!nc.pool.length;return;
   }
-  $('geo-sample').closest('label').hidden=false;$('geo-species-details').hidden=true;
+  $('geo-sample').closest('label').hidden=false;$('geo-species-details').hidden=true;$('geo-coverage-help-row').hidden=true;
   preview=geographyPool({scope:selected,nodes,catalog,birds,start:$('geo-start').value,end:$('geo-end').value,single:$('geo-single').checked});
   updateFamilies(preview.pool);
   const family=$('geo-family').value,available=preview.pool.filter(b=>family==='all'||familyName(b.family)===family);
