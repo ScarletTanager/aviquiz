@@ -49,7 +49,10 @@ class CollectorTests(unittest.TestCase):
             m.payload(bad, self.job, self.c)
 
     def test_empty_and_partial_are_explicit(self):
-        self.snapshot.update(rows=[], text='No results found')
+        self.snapshot.update(rows=[], text='0 results found',photoCount=3303)
+        with self.assertRaises(ValueError):
+            m.payload(self.snapshot,self.job,self.c)
+        self.snapshot['photoCount']=0
         result = m.payload(self.snapshot, self.job, self.c)
         self.assertEqual(m.seasonal.ingest(self.c, result)['state'], 'no_results')
         self.snapshot.update(rows=[self.row('123')], text='')

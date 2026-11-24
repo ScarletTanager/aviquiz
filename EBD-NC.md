@@ -266,3 +266,31 @@ the source for seasonal exports; undated references do not satisfy the target.
 Date-preserving queue re-imports and the catalog publisher's explicit `--merge`
 option allow future publication without losing the new fields. Location matching
 is deferred, as requested. See RUNBOOK.md for the collection and publication steps.
+
+## Seasonal photo collection and quiz sizing - November 24
+
+Merged the standalone collector's verified metadata into `dist/nc-birds.json`,
+retaining existing references. All 457 species have photos: 4,102 references,
+including 3,654 with exact Cornell observation dates. There are 456 species with
+at least two dated photos in each calendar quarter (1,827 completed quarter
+slots). Eastern Marsh Wren Q1 remains a retrieval issue needing review: the
+filtered photo control shows 3,303, while a fresh load showed an empty list and
+in-page filtering retained out-of-season rows. No claim of absent media or
+biological absence is justified. Its other-quarter photos remain available.
+
+The Redpoll Q4 gap was resolved with a reviewed `Redpoll (Common)` record linked
+by Cornell to `/species/redpol1`. The importer accepts that explicit common /
+scientific form pair, preserving the source labels. Arbitrary name-prefix,
+hybrid, or subspecies inference remains disallowed. The collector now recognizes
+`0 results found` only with a corroborating zero photo count; inconsistent
+counts remain review failures rather than false empty coverage. The
+reconciliation parser also preserves photographer names containing ` - `.
+
+The geography launcher has a Use all eligible species checkbox, sizing to the
+playable species after location, season, rarity, and family filters. Regular
+quizzes requested beyond that count use independently shuffled species rounds;
+photo-family practice varies photos between appearances. Mistake-review and
+annotation-review selection retain their previous bounded behavior. The original
+Colombia catalog, saved-progress keys, and seasonal analytical/serving packs are
+unchanged. Dates are retained in the photo catalog; quarter-aware photo selection
+is a separate follow-up and is not enabled by this metadata publication.

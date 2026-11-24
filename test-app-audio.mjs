@@ -456,5 +456,21 @@ $('question-image').onload();await $('reveal').fire('click');await $('next').fir
 assert.equal(store.get(PROGRESS_KEY),beforeGeoHistory);
 await $('new-quiz').fire('click');assert.match(globalThis.__geoReturn,/trail=/);
 console.log('Passed NC catalog-to-session handoff, scoped title, deep return trail, and unchanged saved history.');
+// Geography all-species sizing overrides a stale custom count, including a family
+// scope, and regular oversize quizzes use a fresh species order in each round.
+history.pushState(null,'','/quiz?geo=US-NC-037&from=2026-09-20&to=2026-10-10&questions=1&allSpecies=true&family='+encodeURIComponent(ncBirds[0].family));
+for(const fn of windowEvents.popstate||[])await fn();
+for(let n=0;n<20&&$('session').hidden;n++)await settle();
+assert.match($('question-number').textContent,/1 \/ 2$/);
+const allSeen=new Set();
+for(let i=0;i<2;i++){const asset=$('question-image').src.match(/asset\/(\d+)/)[1];allSeen.add(ncBirds.find(b=>b.photos.some(p=>p.id===asset)).id);$('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');}
+assert.equal(allSeen.size,2);assert.equal($('results').hidden,false);
+history.pushState(null,'','/quiz?geo=US-NC-037&from=2026-09-20&to=2026-10-10&questions=5');
+for(const fn of windowEvents.popstate||[])await fn();
+for(let n=0;n<20&&$('session').hidden;n++)await settle();
+const repeated=[];
+for(let i=0;i<5;i++){assert.match($('question-number').textContent,new RegExp(`${i+1} / 5$`));const asset=$('question-image').src.match(/asset\/(\d+)/)[1];repeated.push(ncBirds.find(b=>b.photos.some(p=>p.id===asset)).id);$('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');}
+assert.equal(new Set(repeated.slice(0,2)).size,2);assert.equal(new Set(repeated.slice(2,4)).size,2);assert.notDeepEqual(repeated.slice(0,2),repeated.slice(2,4));assert.equal(store.get(PROGRESS_KEY),beforeGeoHistory);
+console.log('Passed geography all-species family sizing and oversize quizzes with reshuffled species rounds.');
 globalThis.fetch=originalGeographyFetch;
 console.log('Passed geography-to-photo-session handoff, preserved legacy statistics, and return to location launcher.');

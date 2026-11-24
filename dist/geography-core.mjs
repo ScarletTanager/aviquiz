@@ -29,5 +29,5 @@ export function geographySelection(params){
  const id=params.get('geo'),start=params.get('from'),end=params.get('to');
  if(!id||id.length>100)throw Error('Select a location.');seasonRange(start,end);
  const count=Number(params.get('questions')||20);if(!Number.isInteger(count)||count<1||count>10000)throw Error('Choose 1–10,000 questions.');
- return {id,start,end,count,family:params.get('family')||'all',single:params.get('single')==='true'};
+ return {id,start,end,count,allSpecies:params.get('allSpecies')==='true',family:params.get('family')||'all',single:params.get('single')==='true'};
 }

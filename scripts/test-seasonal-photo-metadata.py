@@ -34,4 +34,9 @@ class SeasonalTests(unittest.TestCase):
    p['rows']=[self.row(str(q*100+1),f'2024-{month}-15T12:00:00','S123'),self.row(str(q*100+2),f'2023-{month}-16T12:00:00','S456')];m.ingest(self.c,p)
    report=m.export(self.c,self.root/'report');self.assertEqual(report['completeSpecies'],1 if q==4 else 0)
   self.assertEqual(report['datedPhotos'],8);self.assertEqual(report['undatedPhotos'],1)
+ def test_reviewed_redpoll_form_and_missing_identity(self):
+  bird=dict(id='redpol1',name='Redpoll',scientificName='Acanthis flammea')
+  self.assertTrue(m.identity_matches(bird,dict(name='Redpoll (Common)',scientificName='Acanthis flammea flammea/rostrata')))
+  for row in [dict(name='Redpoll',scientificName=None),dict(name='',scientificName='Acanthis flammea'),dict(name='Redpoll (Common)',scientificName='Other species'),dict(name='Redpoll (invented)',scientificName='Acanthis flammea invented')]:
+   self.assertFalse(m.identity_matches(bird,row))
 unittest.main()

@@ -25,6 +25,7 @@ HOST = 'media.ebird.org'
 COOLDOWN = 1800
 EXTRACT = r"""() => ({catalogUrl: location.href, title: document.title,
  text: document.body.innerText.slice(0, 15000),
+ photoCount: (() => {const text=[...document.querySelectorAll('a')].find(a=>a.textContent.startsWith('Remove media type filter'))?.textContent;const n=text?.match(/filter\s*([\d,]+)/);return n ? Number(n[1].replaceAll(',','')) : null;})(),
  rows: [...document.querySelectorAll('ol.ResultsList > li')].slice(0, 100).map(li => ({
  name: li.querySelector('.Species-common')?.textContent?.trim(),
  scientificName: li.querySelector('.Species-sci')?.textContent?.trim(),
@@ -76,13 +77,11 @@ def payload(snapshot, job, c):
     if 'Media Search' not in snapshot['title']:
         raise ValueError('Unexpected catalog title')
     bird = json.loads(c.execute('select bird from species where id=?', (job['species'],)).fetchone()[0])
-    names = {seasonal.worker.normalize(bird.get(k, '')) for k in ('name', 'acceptedName')}
-    science = {bird['scientificName'], seasonal.SCI_RENAMES.get(bird['scientificName'])}
-    rows = [r for r in snapshot['rows'] if seasonal.worker.normalize(r.get('name')) in names and r.get('scientificName') in science]
+    rows = [r for r in snapshot['rows'] if seasonal.identity_matches(bird,r)]
     result = dict(catalogUrl=snapshot['catalogUrl'], rows=rows)
     if not rows:
         # A loading page or changed markup is never evidence of zero coverage.
-        if not snapshot['rows'] and re.search(r'\bno (?:matching )?results\b|\bno media found\b', snapshot['text'], re.I):
+        if not snapshot['rows'] and snapshot.get('photoCount') == 0 and re.search(r'\bno (?:matching )?results\b|\bno media found\b|\b0 results found\b', snapshot['text'], re.I):
             result['emptyVerified'] = True
         else:
             raise ValueError('No exact species rows; catalog needs review')
@@ -245,7 +244,7 @@ class Runner:
                 continue
             try:
                 # Wait for rendered rows or an explicit empty state, not network-idle.
-                page.wait_for_function("""() => document.querySelector('ol.ResultsList li time') || /no (matching )?results|no media found/i.test(document.body.innerText)""", timeout=20000)
+                page.wait_for_function(r"""() => document.querySelector('ol.ResultsList li time') || /no (matching )?results|no media found|\b0 results found\b/i.test(document.body.innerText)""", timeout=20000)
                 snapshot = page.evaluate(EXTRACT)
                 if challenge(snapshot['title'] + '\n' + snapshot['text']):
                     if not self.handle_challenge(page, job):

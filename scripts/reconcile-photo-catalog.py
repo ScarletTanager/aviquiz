@@ -19,7 +19,7 @@ def reconcile(catalog,verified,merge=False):
     date=datetime.date.fromisoformat(photo['observationDate'])
     if photo.get('quarter')!=(date.month-1)//3+1:raise ValueError('Invalid photo quarter for '+bird['id'])
    ident=str(photo.get('id',''));alt=photo.get('alt','');credit=photo.get('credit','')
-   actual=alt.rsplit(' - ',1)[0] if ' - ' in alt else credit.split('©')[0].strip()
+   actual=alt.split(' - ',1)[0] if ' - ' in alt else credit.split('©')[0].strip()
    names={norm(bird[k]) for k in ('name','acceptedName') if bird.get(k)}
    if not ident.isdigit() or photo.get('source')!='https://macaulaylibrary.org/asset/'+ident:raise ValueError('Invalid source for '+bird['id'])
    if not re.fullmatch('https://cdn.download.ams.birds.cornell.edu/api/v2/asset/'+ident+r'/\d+',photo.get('url','')):raise ValueError('Invalid image URL for '+bird['id'])

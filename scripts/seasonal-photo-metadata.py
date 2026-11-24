@@ -3,6 +3,13 @@
 import argparse,datetime,importlib.util,json,pathlib,re,time,urllib.parse
 spec=importlib.util.spec_from_file_location('photo_worker',pathlib.Path(__file__).with_name('photo-metadata-worker.py'));worker=importlib.util.module_from_spec(spec);spec.loader.exec_module(worker)
 SCI_RENAMES={'Troglodytes hiemalis':'Nannus hiemalis'}
+# Reviewed public catalog form, linked by Cornell to /species/redpol1.
+# Keep this explicit: do not infer arbitrary hybrids/forms from name prefixes.
+CATALOG_FORMS={'redpol1':{('Redpoll (Common)','Acanthis flammea flammea/rostrata')}}
+def identity_matches(bird,row):
+ names={worker.normalize(bird[k]) for k in ('name','acceptedName') if bird.get(k)}
+ science={bird['scientificName'],SCI_RENAMES.get(bird['scientificName'])}-{None}
+ return (worker.normalize(row.get('name','')) in names and row.get('scientificName') in science) or (row.get('name'),row.get('scientificName')) in CATALOG_FORMS.get(bird['id'],set())
 def init(c):
  c.executescript('''CREATE TABLE IF NOT EXISTS photo_assets (
  species_id TEXT NOT NULL REFERENCES species(id),asset_id TEXT NOT NULL,
@@ -38,12 +45,12 @@ def validate(payload,c):
  if not 1<=which<=4 or start!=(which-1)*3+1 or end!=which*3 or q.get('mediaType')!=['photo'] or q.get('view')!=['list']:raise ValueError('Expected one complete quarter of photo results')
  row=c.execute('select bird from species where id=?',(species,)).fetchone()
  if not row:raise ValueError('Enqueue species before metadata import')
- bird=json.loads(row['bird']);names={worker.normalize(bird.get(k,'')) for k in ('name','acceptedName')};science={bird['scientificName'],SCI_RENAMES.get(bird['scientificName'])}
+ bird=json.loads(row['bird'])
  query='https://media.ebird.org/catalog?'+urllib.parse.urlencode({k:q[k][0] for k in ('birdOnly','taxonCode','mediaType','view','beginMonth','endMonth','sort') if k in q})
  if not payload['rows'] and payload.get('emptyVerified') is not True:raise ValueError('Empty catalog results need visible no-results confirmation')
  photos=[];seen=set()
  for r in payload['rows']:
-  if worker.normalize(r.get('name','')) not in names or r.get('scientificName') not in science:raise ValueError('Photo species identity mismatch')
+  if not identity_matches(bird,r):raise ValueError('Photo species identity mismatch')
   if canonical(r.get('speciesUrl'),'ebird.org',r'/species/[a-z0-9]+')!='https://ebird.org/species/'+species:raise ValueError('Species URL mismatch')
   source=canonical(r.get('source'),'macaulaylibrary.org',r'/asset/\d+');ident=source.rsplit('/',1)[1]
   url=canonical(r.get('url'),'cdn.download.ams.birds.cornell.edu',r'/api/v2/asset/'+ident+r'/\d+')
@@ -57,7 +64,7 @@ def validate(payload,c):
   if ident in seen:continue
   seen.add(ident)
   p=dict(id=ident,source=source,url=url,alt=r['name']+' - '+owner,photographer=owner,credit=r['name']+' © '+owner,observationDate=date,observationDateRaw=raw,observationDateSource='cornell-catalog-observation',quarter=which,metadataSource=query,checklist=checklist)
-  photos.append(p)
+  p['catalogCommonName']=r['name'];p['catalogScientificName']=r['scientificName'];photos.append(p)
  return species,which,query,photos
 
 def ingest(c,payload):

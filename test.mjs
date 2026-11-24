@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {ID_TIPS,SPECIES_TIPS,tipsFor,annotationFor,annotatedBirds,annotationGeometry,annotationSvg} from './dist/id-tips.mjs';
-import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions} from './dist/quiz.mjs';
+import {eligibleBirds,gradeAnswer,shuffle,familyName,questionPool,buildQuestions,buildQuestionRounds} from './dist/quiz.mjs';
 import {emptyProgress,parseProgress,recordAttempt,mistakeRate,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './dist/progress.mjs';
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './dist/statistics.mjs';
 const data=JSON.parse(fs.readFileSync(new URL('./dist/data.json',import.meta.url)));
@@ -192,3 +192,19 @@ assert.deepEqual(listQuizSettings('family','Furnariidae'),{mode:'regular',site:'
 assert.equal(speciesAccuracy(data.birds,emptyProgress(),'family','Furnariidae').length,51);
 assert.equal(speciesAccuracy(data.birds,emptyProgress(),'site','Ch').length,261);
 console.log('Passed: every linked site/family species list; individual accuracy reconciles to group totals; taxonomic order; empty/unknown scopes; quiz launch scopes without inherited lifer filters.');
+
+// Each regular quiz round includes each eligible species once and is reshuffled.
+const roundBirds=data.birds.slice(0,10);
+const rounds=buildQuestionRounds(roundBirds,25,false,()=>0.4);
+assert.equal(rounds.length,25);
+const ids=list=>list.map(b=>b.id);
+assert.deepEqual(new Set(ids(rounds.slice(0,10))),new Set(ids(roundBirds)));
+assert.deepEqual(new Set(ids(rounds.slice(10,20))),new Set(ids(roundBirds)));
+assert.notDeepEqual(ids(rounds.slice(0,10)),ids(rounds.slice(10,20)));
+assert.equal(new Set(ids(rounds.slice(20))).size,5);
+assert.deepEqual(buildQuestionRounds([],20),[]);
+assert.equal(buildQuestionRounds([roundBirds[0]],5).length,5);
+const familyRounds=buildQuestionRounds(chicaque,2*chicaque.length,true,()=>0.4);
+for(let i=0;i<2;i++)assert.equal(new Set(ids(familyRounds.slice(i*chicaque.length,(i+1)*chicaque.length))).size,chicaque.length);
+for(const bird of chicaque){const appearances=familyRounds.filter(b=>b.id===bird.id);assert.notEqual(appearances[0].photos[0].id,appearances[1].photos[0].id);}
+console.log('Passed regular shuffled species rounds, partial final round, single/empty scopes, and family photo variety.');

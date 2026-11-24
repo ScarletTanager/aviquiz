@@ -1,7 +1,7 @@
 import {audioBirds,validateAudioCatalog} from './audio.mjs';
 import {offersSiteClue,chooseSiteClue} from './site-clue.mjs';
 import {ANNOTATION_REVIEW_KEY,ORIGINAL_REVIEW_PHOTOS,parseReviewedPhotos,unreviewedPhotos} from './annotation-review.mjs';
-import {eligibleBirds,gradeAnswer,shuffle,familyName,familyLabel,questionPool,buildQuestions} from './quiz.mjs';
+import {eligibleBirds,gradeAnswer,shuffle,familyName,familyLabel,questionPool,buildQuestions,buildQuestionRounds} from './quiz.mjs';
 import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,progressKey,emptyProgress,parseProgress,recordAttempt,recordQuizResult,recentMistakeIds,sessionMistakeIds,reviewBirds,withFreshPhotos} from './progress.mjs';
 import {accuracyStatistics,sortAccuracy,speciesAccuracy,listQuizSettings} from './statistics.mjs';
 import {ID_TIPS,tipsFor,annotatedBirds,annotationSvg,applySharedTips} from './id-tips.mjs';
@@ -162,7 +162,7 @@ function updatePool(){
   if(audio)base=audioBirds(base,audioCatalog,settings.site).filter(b=>b.photos.length);
   for(const option of $('family').options){if(option.value==='all')continue;const n=base.filter(b=>familyName(b.family)===option.value).length;option.textContent=`${familyLabel(option.value)} · ${n} species`;}
   const covered=birds.filter(b=>b.photos.length).length;
-  $('pool').textContent=!ready.length?(review?(recentMistakeIds(histories[medium]).length?`No playable ${mediumName(medium)} review birds match these filters. Try another site or family.`:`No ${mediumName(medium)} birds currently exceed a 25% miss rate. Start a regular quiz to practice.`):`No ${audio?'verified recordings':'photos'} match these filters. Try another family, site, or lifer filter.`):`${covered} ${review?'species to review':'eligible species with '+(audio?'audio':'photos')}${audio?` / ${birds.length} scoped species`:''} · ${ready.length} ${familyMode?(audio?'recordings':'different photographs')+'. Species may repeat.':'species questions.'}${requested>ready.length?` Quiz will use ${ready.length} questions.`:''}`;
+  $('pool').textContent=!ready.length?(review?(recentMistakeIds(histories[medium]).length?`No playable ${mediumName(medium)} review birds match these filters. Try another site or family.`:`No ${mediumName(medium)} birds currently exceed a 25% miss rate. Start a regular quiz to practice.`):`No ${audio?'verified recordings':'photos'} match these filters. Try another family, site, or lifer filter.`):`${covered} ${review?'species to review':'eligible species with '+(audio?'audio':'photos')}${audio?` / ${birds.length} scoped species`:''} · ${ready.length} ${familyMode?(audio?'recordings':'different photographs')+'. Species may repeat.':'species questions.'}${!annotationReview&&!review&&requested>new Set(birds.map(b=>b.id)).size?' Additional questions use newly shuffled species rounds.':(annotationReview||review)&&requested>ready.length?` Quiz will use ${ready.length} questions.`:''}`;
   $('audio-scope-help').hidden=!audio;
   if(audio){const tiers=[0,0,0,0,0,0];for(const bird of birds)if(bird.photos.length)tiers[bird.photos[0].match.rank]++;$('audio-scope-help').textContent=`Best matches for this scope: ${tiers[0]+tiers[1]} site-area · ${tiers[2]} same-department · ${tiers[3]} Colombia-wide · ${tiers[4]+tiers[5]} outside-Colombia fallbacks. These counts describe our current catalog, not the entire archive. Department matches do not establish the same elevation or population. Subspecies matching is not yet verified. Site dropdown counts include all target species; audio coverage is shown above.`;}
   $('count').removeAttribute('max');$('start').disabled=!ready.length;
@@ -207,8 +207,8 @@ async function openGeographyQuiz(token){
       if(!nc.pool.length)throw Error('No species with verified photos match this NC location, season, and family. Return to Take a quiz to adjust your selection.');
       const locations=await (await fetch('/nc-locations.json')).json();if(token!==navigationToken)return;
       const scope=locations.nodes.find(n=>n.id===selection.id);
-      const route={geography:true,title:(scope?.name||selection.id)+' · '+selection.start+' to '+selection.end,pool:nc.pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:selection.id,from:selection.start,to:selection.end,trail:query.get('trail')||''})};
-      begin({route,count:selection.count,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});return;
+      const route={geography:true,title:(scope?.name||selection.id)+' · '+selection.start+' to '+selection.end,pool:nc.pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:selection.id,from:selection.start,to:selection.end,trail:query.get('trail')||'',allSpecies:String(selection.allSpecies),questions:String(selection.count),family:selection.family,single:String(selection.single)})};
+      begin({route,count:selection.count,allSpecies:selection.allSpecies,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});return;
     }
     const responses=await Promise.all(['/geography-seed.json','/route-pilot.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error('Geography pilot data is unavailable.');
     const [seed,catalog]=await Promise.all(responses.map(r=>r.json()));if(token!==navigationToken)return;
@@ -216,8 +216,8 @@ async function openGeographyQuiz(token){
     const candidates=geographyPool({scope,nodes:seed.nodes,catalog,birds:data.birds,...selection});
     const pool=candidates.pool.filter(b=>selection.family==='all'||familyName(b.family)===selection.family);
     if(!pool.length)throw Error('No pilot species with photos match this location, date range, and family. Return to Take a quiz to choose another scope.');
-    const route={geography:true,title:scope.name+' · '+selection.start+' to '+selection.end,pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:scope.id,from:selection.start,to:selection.end})};
-    begin({route,count:selection.count,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});
+    const route={geography:true,title:scope.name+' · '+selection.start+' to '+selection.end,pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:scope.id,from:selection.start,to:selection.end,allSpecies:String(selection.allSpecies),questions:String(selection.count),family:selection.family,single:String(selection.single)})};
+    begin({route,count:selection.count,allSpecies:selection.allSpecies,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});
   }catch(error){if(token===navigationToken)$('settings-error').textContent=error.message;}
 }
 function navigateLocation(){
@@ -247,7 +247,7 @@ for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav
 async function begin(settings=formSettings()){
   if(starting)return;
   let count=settings.count;
-  if(!settings.allSpecies&&(!Number.isInteger(count)||count<1)){$('settings-error').textContent='Choose a whole number of questions, at least 1.';return;}
+  if(!settings.allSpecies&&(!Number.isInteger(count)||count<1||count>10000)){$('settings-error').textContent='Choose a whole number of questions from 1 to 10,000.';return;}
   settings={...settings,medium:settings.medium||'photo'};
   if(settings.mode==='annotations'){settings.medium='photo';settings.experimentalTips=true;settings.filter='none';readReviewedPhotos();}
   readProgress(settings.medium);const navigation=navigationToken;starting=true;if(settings.medium==='photo'&&!settings.route)await loadSharedTips();starting=false;if(navigation!==navigationToken)return;
@@ -257,7 +257,7 @@ async function begin(settings=formSettings()){
   const birds=review?withFreshPhotos(pool(settings),settings.avoidPhotoIds):pool(settings);
   if(settings.allSpecies)count=questionPool(birds,familyMode).length;
   settings.count=count;
-  queue=buildQuestions(birds,count,familyMode);
+  queue=settings.mode==='annotations'||review?buildQuestions(birds,count,familyMode):buildQuestionRounds(birds,count,familyMode);
   if(!queue.length){showView('setup');updatePool();$('settings-error').textContent=review?'No species currently need review with these settings. Choose a regular quiz or change your filters.':'No species match these settings.';return;}
   activeSettings={...settings,eligibleSpecies:new Set(questionPool(birds,familyMode).map(bird=>bird.id)).size};
   index=0;answers=[];showView('session');

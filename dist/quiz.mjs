@@ -44,6 +44,24 @@ export function questionPool(birds, repeatSpecies=false) {
 export function buildQuestions(birds, count, repeatSpecies=false, random=Math.random) {
   return shuffle(questionPool(birds,repeatSpecies),random).slice(0,count);
 }
+export function buildQuestionRounds(birds, count, varyPhotos=false, random=Math.random) {
+  const ready=[...new Map(birds.filter(b=>b.photos.length).map(b=>[b.id,b])).values()];
+  if(!ready.length||!Number.isInteger(count)||count<1)return [];
+  const questions=[],decks=new Map();let prior=[];
+  while(questions.length<count){
+    let round=shuffle(ready,random);
+    if(round.length>1&&round.every((bird,i)=>bird.id===prior[i]?.id))round=[...round.slice(1),round[0]];
+    for(const bird of round){
+      if(questions.length===count)break;
+      if(varyPhotos){
+        if(!decks.get(bird.id)?.length)decks.set(bird.id,shuffle([...new Map(bird.photos.map(p=>[p.id,p])).values()],random));
+        questions.push({...bird,photos:[decks.get(bird.id).pop()]});
+      }else questions.push(bird);
+    }
+    prior=round;
+  }
+  return questions;
+}
 export function shuffle(items, random=Math.random) {
   const a=[...items];
   for(let i=a.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}

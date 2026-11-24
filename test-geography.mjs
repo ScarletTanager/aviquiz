@@ -88,7 +88,7 @@ if(import.meta.main){
  const document={getElementById:id=>elements[id],createElement:()=>new Element(),createDocumentFragment:()=>new Element(),createTextNode:text=>({textContent:text})};
  const history={pushState(a,b,url){location.search=new URL(url,'https://quiz.example').search;}};
  const windowEvents={};
- const context=vm.createContext({document,location,history,fetch:fetcher,accountFetch:fetcher,URLSearchParams,Intl,Date,console,window:{addEventListener(name,fn){windowEvents[name]=fn;}},familyName:(await import('./dist/quiz.mjs')).familyName,geographyPool,monthRange,seasonRange});
+ const context=vm.createContext({document,location,history,fetch:fetcher,accountFetch:fetcher,URLSearchParams,Intl,Date,console,window:{addEventListener(name,fn){windowEvents[name]=fn;}},familyName:(await import('./dist/quiz.mjs')).familyName,familyLabel:(await import('./dist/quiz.mjs')).familyLabel,geographyPool,monthRange,seasonRange});
  const source=(await fs.readFile('dist/geography-ui.mjs','utf8')).replace(/^import .*;\n/gm,'');
  await vm.runInContext('(async()=>{'+source+'})()',context);
  const leaves=e=>e.children.flatMap(n=>n instanceof Element?[n,...leaves(n)]:[]);
@@ -107,6 +107,16 @@ if(import.meta.main){
  assert.equal(elements['geo-start-quiz'].disabled,true);
  elements['geo-sample'].checked=true;await elements['geo-sample'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,false);
  elements['geo-start-quiz'].listeners.click();assert.match(assigned,/geo=CO-CAL/);assert.match(assigned,/from=2027-02-01/);
+ elements['geo-all-species'].checked=true;elements['geo-all-species'].listeners.change();
+ assert.equal(elements['geo-count'].readOnly,true);
+ const launcherPool=geographyPool({scope,nodes:seed.nodes,catalog,birds:data.birds,start:'2027-02-01',end:'2027-02-28',single:false}).pool;
+ assert.equal(Number(elements['geo-count'].value),launcherPool.length);
+ elements['geo-start-quiz'].listeners.click();assert.equal(new URL(assigned,'https://quiz.example').searchParams.get('allSpecies'),'true');
+ const family=launcherPool[0].family.replace(/\s*\(\d+\)\s*$/,'').trim();elements['geo-family'].value=family;await elements['geo-family'].listeners.change();
+ assert.equal(Number(elements['geo-count'].value),launcherPool.filter(b=>b.family.replace(/\s*\(\d+\)\s*$/,'').trim()===family).length);
+ elements['geo-all-species'].checked=false;elements['geo-all-species'].listeners.change();assert.equal(elements['geo-count'].readOnly,false);
+ elements['geo-count'].value='17';elements['geo-family'].value='all';await elements['geo-family'].listeners.change();assert.equal(elements['geo-count'].value,'17');
+
  elements['geo-start'].value='2027-06-01';elements['geo-end'].value='2027-06-30';elements['geo-end'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,true);
  elements['geo-year'].value='2028';elements['geo-month'].value='2';elements['geo-apply-month'].listeners.click();assert.equal(elements['geo-end'].value,'2028-02-29');
  await choose('North America');assert.equal(lists().length,2);assert.equal(lists()[1].value,'');assert.equal(elements['geo-configuration'].hidden,true);
