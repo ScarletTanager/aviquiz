@@ -213,3 +213,27 @@ See INVITATIONS.md for backup path, release checks, limits, and pending delivery
 The delivery correction archive contains app code only. Production dependencies
 were copied from the prior immutable release only after package.json and
 package-lock.json compared byte-for-byte equal. No schema migration was needed.
+
+## First alpha deployment preparation - November 24
+
+The approved staging UI revision is `668a91e`. A production readiness check found
+that the standalone Node environment did not yet supply the `EBD_BUCKET` binding
+used by NC quizzes on Sites. The read-only filesystem adapter in
+`server/ebd-files.mjs` supplies the same bounded range-read interface for packaged
+NC serving files. `scripts/package-do.mjs` verifies each file against the compiled
+NC index's size and SHA-256 before including it under `ebd/<sha256>` in an immutable
+release. Total NC data is 16,042,075 bytes; no original archives or analytical
+SQLite databases are packaged. Data resides on the app Droplet only as this small
+release-specific serving copy. Canonical retention in Spaces remains separate.
+
+The standalone environment automatically reads the release's `ebd/` directory.
+An explicit `EBD_DATA_DIR` can override it and must exist; a checkout without the
+optional default folder retains its prior no-data behavior. The adapter rejects
+non-hash filenames, symlinks, invalid/oversized ranges, incomplete reads and writes.
+The existing per-place compressed-data digest check still applies. Sites continues
+using its existing R2 binding unchanged. No database migration or authentication
+setting change is introduced by this adapter.
+
+Before production, run `node test-ebd-files.mjs`, the standalone HTTP and permission
+checks, and verify all four serving artifact digests. The packager requires main
+to be pushed at the exact release commit; it refuses dirty/unpushed source.

@@ -1,4 +1,6 @@
 import {resolveDatabaseConfig} from './config.mjs';
+import {fileEbdBucket} from '../ebd-files.mjs';
+import {fileURLToPath} from 'node:url';
 // Node startup only. The Worker receives its existing D1 binding unchanged.
 export async function createDatabase(config,{d1}={}) {
   const driver=config.DB_DRIVER;
@@ -34,5 +36,8 @@ export async function createDatabaseEnvironment(config,options) {
   try{if(config.EBIRD_API_KEY_FILE){const fs=await import('node:fs/promises');apiKey=(await fs.readFile(config.EBIRD_API_KEY_FILE,'utf8')).trim();} }catch{await db.close();throw Error('eBird location key file is unavailable.');}
   const {locationCache}=await import('../location-cache.mjs');
   const locations=createEbirdLocations({apiKey,store:locationCache(db)});
-  return {...config,LOCATION_DIRECTORY:locations,DEPLOYMENT_TARGET:'standalone',DB:db,INVITATION_PROVIDER:invitations};
+  let ebd;
+  try{ebd=await fileEbdBucket(config.EBD_DATA_DIR||fileURLToPath(new URL('../../ebd/',import.meta.url)),{optional:!config.EBD_DATA_DIR});}
+  catch{await db.close();throw Error('EBD serving data configuration is invalid.');}
+  return {...config,EBD_BUCKET:ebd,LOCATION_DIRECTORY:locations,DEPLOYMENT_TARGET:'standalone',DB:db,INVITATION_PROVIDER:invitations};
 }
