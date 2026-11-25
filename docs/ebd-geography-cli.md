@@ -1,36 +1,111 @@
-# Offline EBD geography processing
+# Adding geography data to AviQuiz
 
-Run these commands from the AviQuiz repository. They need a local Python 3.10 or newer and do not contact eBird, Cornell, AWS, or DigitalOcean. They do not deploy or publish data. The current defaults point to the completed September 2026 partition manifest and the local taxonomy snapshot in `outputs/ebd_reference/taxonomy-2026.json`. Both live outside Git. Override them with `--manifest` and `--taxonomy` when using other inputs.
+Run these commands from `sites/colombia-bird-quiz`. Python 3.10+ and Node 22+ are required; the collector uses its separately installed browser environment. Data paths below are outside Git. Processing, conversion, assembly, validation, and preparation are local operations. Only the photo collector contacts Cornell. None of these commands deploys the app.
+
+## 1. Process a new geography
 
 ```sh
-scripts/process-ebd start US-NC
 scripts/process-ebd start CO
+scripts/process-ebd start US-NC
 scripts/process-ebd status
-scripts/process-ebd status US-NC
-scripts/process-ebd stop US-NC
-scripts/process-ebd start US-NC --resume
+scripts/process-ebd status CO
+scripts/process-ebd stop CO
+scripts/process-ebd start CO --resume
 ```
 
-Use eBird country, state/province, or county codes. A public hotspot requires its enclosing country or region: `scripts/process-ebd start L651593 --parent US-NC`. A country spanning multiple partitions is combined. `run` runs in the foreground instead of starting a background process. `--root` before the subcommand selects a different job directory, for example to preserve an older completed run. The same geography cannot run twice in the same root.
+Use eBird country, state/province, county, or public hotspot IDs. A hotspot requires `--parent`, for example `start L651593 --parent US-NC`. The default inputs are the completed September 2026 partition manifest and `outputs/ebd_reference/taxonomy-2026.json`, relative to the workspace. Override with `--manifest` and `--taxonomy`. Original worldwide tarballs first need the existing partitioning workflow.
 
-At most two jobs in the same root run concurrently. Each reserves up to 20 GiB by default and checks a 60 GiB free-space floor while running. Start checks the remaining reservations for other running jobs; the supervisor stops a job if its size, runtime, memory, or free-space limits are exceeded. Use `--disk-gib` and `--hours` to set larger or smaller limits. Simultaneous jobs compete for CPU and disk bandwidth. Start only one photo collector at a time; separate collectors do not share a Cornell request rate limit.
+Jobs retain all source years in daily SQLite facts. The serving export defaults to 2017–2025; use `--first-year` and `--last-year` for a different historical reference. The format supports arbitrary-precision hexadecimal year masks. Date windows selected by a quiz taker are matched against the reference years, rather than interpreted as requests for observations in the future travel year.
 
-Outputs and progress are in `outputs/ebd_jobs/<code>/`. The status output identifies each stage directory and any error. Interrupted stages start again in a new directory; completed extraction and aggregation are checked and reused with `--resume`. Unresolved taxonomy is reported in the failing stage's `taxonomy-unresolved.json`; the job stops rather than guessing. Source partitions and private reconciliation outputs contain sensitive EBD records and must not be published. They can be large.
+At most two jobs per root run concurrently, with default 20 GiB/job, 768 MiB worker memory, 24 hours, and a 60 GiB free-space floor. Adjust `--disk-gib` or `--hours` as needed. Do not bypass the concurrency limit with multiple roots to start additional simultaneous jobs. A fresh root can preserve prior completed runs: `scripts/process-ebd --root ../../outputs/ebd_jobs_next start CO`.
 
-The extract retains all source years. The derived quiz facts default to 2017–2025; choose another bounded period with `--first-year` and `--last-year`. Processing verifies source checksums, deduplicates shared checklists, quarantines conflicting events, and exports a common versioned package. The export stage also seeds one shared photo queue at `outputs/photo_metadata/queue.sqlite` by default. Override with `--photo-db`. Existing photo references and completed quarter jobs are preserved for species already queued from another geography; only missing quarter jobs are added. A shared species code is fetched once for all geographies. Find the package directory in `completed.export.package` and validate or activate it with:
+Each geography has independent state and stage folders. Resume verifies completed extraction/aggregation and restarts an interrupted stage in a new folder. Unresolved taxonomy stops with a report rather than guessing. The private extracts and reconciliation files must not be published. Status's `completed.export.package` identifies the package directory.
+
+## 2. Convert an existing validated daily database instead
+
+This skips the expensive EBD extraction and aggregation. The report must match the database size, SHA-256, and geography. By default, years come from the database's actual effort range. Output must be a new directory.
+
+Colombia can use the existing ZIP's **manifest only** as place metadata. The converter does not reuse its facts or species numbering:
 
 ```sh
-scripts/process-ebd validate /path/to/package
-scripts/process-ebd activate /path/to/package
+scripts/process-ebd convert CO \
+  --database ../../outputs/ebd_aggregation/co-20261122T070336/daily.sqlite \
+  --report ../../outputs/ebd_aggregation/co-20261122T070336/analysis-report.json \
+  --places ../../outputs/ebd_aggregation/co-20261122T070336/quiz-export/colombia-quiz.zip \
+  --output ../../outputs/ebd_common/co-converted-next
 ```
 
-Activation copies the validated immutable package under `outputs/ebd_active/<geography>/` and atomically replaces that geography's `active.json` pointer. It does not deploy the package to staging or production. The package has one `package.json`, `manifest.json`, `places.json`, `species.json`, and content-hashed chunk files. Each place has an independently compressed record within bounded chunks, with full-range hexadecimal year masks. Each geography uses the same package schema and can be activated or rolled back locally by changing its active revision pointer.
-
-Use the shared collector queue and output directory. For example:
+NC can use the cached node list and an explicit reference range:
 
 ```sh
-scripts/collect-photos start --db outputs/photo_metadata/queue.sqlite --output outputs/photo_metadata --manual-verification
-scripts/collect-photos status --db outputs/photo_metadata/queue.sqlite --output outputs/photo_metadata
+scripts/process-ebd convert US-NC \
+  --database ../../outputs/ebd_aggregation/nc-20261121-r2/daily.sqlite \
+  --report ../../outputs/ebd_aggregation/nc-20261121-r2/analysis-report.json \
+  --places dist/nc-locations.json \
+  --first-year 2017 --last-year 2025 \
+  --output ../../outputs/ebd_common/nc-converted-next
 ```
 
-The collector works breadth-first across the shared species queue and seeks dated coverage in each quarter. The CLI currently requires a completed paired partition manifest; it does not partition the original worldwide tarballs itself. To process a new release, first create its paired partitions using the existing ingestion tooling.
+`--places` accepts `{nodes:[...]}`, `{place_names:{...}}`, a map by place ID, or legacy department summaries. A place without cached naming metadata retains its public ID as the label. Use the ZIP manifest or complete nodes for correct hotspot parent relationships.
+
+## 3. Collect photo metadata using the shared queue
+
+Processing and conversion enqueue species into `../../outputs/photo_metadata/queue.sqlite`. `--photo-db` can override this. Species already collected for another geography retain their photos and quarter job state. Seeding does not reset blocked/no-results/review quarter jobs or their challenge history. The target is two dated photos per quarter per species.
+
+```sh
+scripts/collect-photos start --manual-verification
+scripts/collect-photos status
+scripts/collect-photos stop
+```
+
+The wrapper defaults to the same queue and `../../outputs/photo_metadata/seasonal/` output. Use one collector at a time to share Cornell pacing and challenge controls. Manual verification permits a human to complete a challenge; collection never solves it automatically. Stop/start without manual verification preserves the backoff. A manual restart permits one recovery visit while retaining the minimum request interval and clears its access block only after validating catalog access.
+
+## 4. Assemble a new photo revision
+
+Use a new output directory and substitute the package path from processing/conversion. Assembly reads a consistent snapshot of the shared queue and never writes to it. Additional existing catalogs can contribute public Cornell references; scientific identities must match. Credits are required. This step updates species metadata and coverage without rebuilding the daily facts or changing the chunk bytes.
+
+```sh
+scripts/process-ebd assemble ../../outputs/ebd_common/co-converted-next/serving \
+  --catalog dist/data.json --catalog dist/nc-birds.json \
+  --output ../../outputs/ebd_common/co-photos-next
+scripts/process-ebd assemble ../../outputs/ebd_common/nc-converted-next/serving \
+  --catalog dist/nc-birds.json --catalog dist/data.json \
+  --output ../../outputs/ebd_common/nc-photos-next
+scripts/process-ebd validate ../../outputs/ebd_common/co-photos-next
+```
+
+Both geographies use `aviquiz-seasonal-package-v1`: `package.json` identifies immutable files and revision hashes; `manifest.json` indexes gzip records within chunk files; `places.json` contains the navigation nodes; `species.json` establishes bird indices and credited photo references. Assembly adds `photo-coverage.json`. Validation checks file/revision hashes, record bounds/digests, decompressed sizes, year masks, species indices, place coverage, photo references, and detections against effort masks.
+
+## 5. Prepare application integration locally
+
+Supply the full set of packages to register; this replaces the generated registry, so include both NC and Colombia. It validates packages, copies chunks to content-addressed local objects, and atomically writes public metadata to `worker/seasonal-packages.json`. No binary facts, raw EBD, private identifiers, or collector database go into Git.
+
+```sh
+AVIQUIZ_PYTHON=python3.13 node scripts/prepare-seasonal.mjs \
+  --package ../../outputs/ebd_common/nc-photos-next \
+  --package ../../outputs/ebd_common/co-photos-next \
+  --objects ../../outputs/ebd_common/objects
+node scripts/build-worker.mjs
+```
+
+The application uses `/api/geography/quiz` for every common-format geography. Its shared reader selects the package/place, reads a bounded range through `EBD_BUCKET`, verifies the compressed digest, and decodes hexadecimal masks with `BigInt`. It supports family filters, leap days, and cross-year windows. Photos matching the travel quarters are preferred; other dates are allowed when matching coverage is unavailable. Species without photos appear in coverage lists but cannot become photo questions. The original Colombia practice itinerary remains available.
+
+For a standalone local app, set `EBD_DATA_DIR` to the prepared objects directory alongside the existing local database/auth configuration. PostgreSQL or SQLite application storage does not alter the serving format. Geography browsing uses existing cached/API metadata plus package nodes. Browsing a place without serving coverage can still use the explicitly labeled pilot fallback where supported.
+
+`activate PACKAGE --target DIR` additionally creates a validated local copy and atomic `active.json` pointer. It is a local inventory operation: the app currently uses the committed/compiled registry, not live pointer changes. Use preparation and rebuild to change the app's active package revisions. Keep prior packages to prepare a rollback.
+
+## 6. Commit and verify before deployment
+
+Commit the source and generated public registry, run the shared-reader, launcher, and package tests, and push to `dev`. Binary objects stay outside Git. Staging deployment requires separate authorization. A future Sites upload uses `/api/geography/import?sha=...`, accepting only the exact sizes/hashes compiled into the registry. Standalone production packaging reads `EBD_COMMON_OBJECTS_DIR` (default `../../outputs/ebd_common/objects`) and includes verified objects for its filesystem adapter. It retains the existing NC legacy adapter for compatibility.
+
+Checks available locally:
+
+```sh
+python3.13 -B scripts/test-seasonal-package.py
+node scripts/build-worker.mjs
+node test-seasonal.mjs
+node test-geography.mjs
+AVIQUIZ_PYTHON=python3.13 node scripts/test-seasonal-daily.mjs
+```
+
+The daily comparison check uses the existing private NC and Colombia analytical databases. No eBird, Macaulay, AWS, or DigitalOcean calls are made. Geography quizzes continue to exclude responses from saved statistics.

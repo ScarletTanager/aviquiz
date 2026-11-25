@@ -75,9 +75,11 @@ if(import.meta.main){
  elements['geo-family'].value='all';elements['geo-count'].value='20';
  let assigned='';const location={search:'?from=2027-02-01&to=2027-02-28',assign(url){assigned=url;}};
  const browserNodes=[...seed.nodes,{id:'EC-P',name:'Pichincha',kind:'subnational1',parent:'EC'},{id:'L9999999999',name:'Ecuador test hotspot',kind:'hotspot',parent:'EC-P'}];
- const apiRequest=[];let ncFixture=null;let holdParent=null;const releaseHeld=[];
+ const {seasonalApi:sharedApi,seasonalPackages}=await import('./worker/seasonal-api.mjs');
+ const {fileEbdBucket}=await import('./server/ebd-files.mjs');const commonBucket=await fileEbdBucket('../../outputs/ebd_common/objects');
+ const apiRequest=[];let ncFixture=null;let commonMode=false;let holdParent=null;const releaseHeld=[];
  const fetcher=async url=>{
-  if(url==='/nc-birds.json')return {ok:true,json:async()=>({birds:[]})};if(url.startsWith('/api/nc/quiz'))return ncFixture?{status:200,ok:true,json:async()=>JSON.parse(JSON.stringify(ncFixture))}:{status:404,ok:false};
+  if(url==='/api/geography/catalog')return {ok:true,json:async()=>({families:[]})};if(url.startsWith('/api/geography/quiz')&&commonMode)return sharedApi(new Request('https://quiz.example'+url),{EBD_BUCKET:commonBucket});if(url.startsWith('/api/geography/quiz'))return ncFixture?{status:200,ok:true,json:async()=>JSON.parse(JSON.stringify(ncFixture))}:{status:404,ok:false};
   if(url==='/geography-seed.json')return {ok:true,json:async()=>seed};if(url==='/route-pilot.json')return {ok:true,json:async()=>catalog};if(url==='/data.json')return {ok:true,json:async()=>data};
   if(url==='/api/account')return {ok:true,json:async()=>({kind:'guest'})};
   const u=new URL(url,'https://quiz.example'),id=u.searchParams.get('parent'),type=u.searchParams.get('type'),parent=browserNodes.find(n=>n.id===id);apiRequest.push(id+':'+type);
@@ -157,5 +159,17 @@ if(import.meta.main){
  await choose('North America');holdParent=null;releaseHeld.forEach(resolve=>resolve());await oldSelection;
  assert.equal(lists().length,2);assert.equal(lists()[0].value,'continent:North America');assert.equal(elements['geo-configuration'].hidden,true);
  assert.equal(elements['geo-refresh'].hidden,true);assert.equal(elements['account-trip-options'].hidden,true);
+ commonMode=true;
+ const existing=new Set(browserNodes.map(n=>n.id));
+ for(const p of seasonalPackages)for(const n of p.nodes)if(!existing.has(n.id)){browserNodes.push(n);existing.add(n.id);}
+ elements['geo-family'].value='all';elements['geo-all-species'].checked=true;
+ elements['geo-start'].value='2026-09-01';elements['geo-end'].value='2026-09-30';
+ await choose('South America');await choose('Colombia');
+ for(let i=0;i<100&&elements['geo-start-quiz'].disabled;i++)await new Promise(resolve=>setTimeout(resolve,10));
+ assert.equal(elements['geo-start-quiz'].disabled,false);assert.ok(Number(elements['geo-count'].value)>0);elements['geo-start-quiz'].listeners.click();assert.equal(new URL(assigned,'https://quiz.example').searchParams.get('geo'),'CO');
+ await choose('North America');await choose('United States of America');await choose('North Carolina');
+ for(let i=0;i<100&&elements['geo-start-quiz'].disabled;i++)await new Promise(resolve=>setTimeout(resolve,10));
+ assert.equal(elements['geo-start-quiz'].disabled,false);assert.ok(Number(elements['geo-count'].value)>0);elements['geo-start-quiz'].listeners.click();assert.equal(new URL(assigned,'https://quiz.example').searchParams.get('geo'),'US-NC');
+ console.log('Actual launcher generated links for CO and US-NC from shared packages, with all-species question sizing.');
  console.log('Passed actual launcher UI: World/continent/country/department drilldown, sample consent, date handoff, unsupported-season disable, leap-month shortcut, and guest/admin control visibility.');
 }

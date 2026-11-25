@@ -5,6 +5,7 @@ import {databaseForEnvironment,firstReviewWrite} from './database.mjs';
 import {trustedSiteOwner} from './account-api.mjs';
 import {accountApi} from './account-api.mjs';
 import {ncApi} from './nc-api.mjs';
+import {seasonalApi} from './seasonal-api.mjs';
 import {geographyApi} from './geography-api.mjs';
 import {invitationApi} from './invitations.mjs';
 // Built with embedded, unchanged quiz assets by scripts/build-worker.mjs.
@@ -24,6 +25,7 @@ async function reviewAccess(request,env,db,verifyIdentity){
 }
 export async function api(request,env,{verifyIdentity}={}){
   const url=new URL(request.url),path=url.pathname;
+  if(['/api/geography/quiz','/api/geography/catalog','/api/geography/import'].includes(path))return seasonalApi(request,env);
   if(path==='/api/nc/quiz'||path==='/api/nc/import')return ncApi(request,env);
   if(path==='/api/geography'||path==='/api/geography/refresh')return geographyApi(request,env,{verifyIdentity});
   if(path==='/api/invitations')return invitationApi(request,env,{verifyIdentity});

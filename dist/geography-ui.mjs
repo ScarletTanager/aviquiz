@@ -13,7 +13,7 @@ let eligibleCount=0;
 let allFamilies=[];
 function updateFamilies(species){
  const previous=$('geo-family').value,represented=new Set(species.map(b=>familyName(b.family)));
- const choices=allFamilies.filter(f=>$('geo-show-all-families').checked||represented.has(f));
+ const choices=[...new Set([...allFamilies,...represented])].filter(f=>$('geo-show-all-families').checked||represented.has(f));
  const options=[make('option','All families'),...choices.map(f=>{const option=make('option',familyLabel(f));option.value=f;return option;})];options[0].value='all';
  $('geo-family').replaceChildren(...options);$('geo-family').value=choices.includes(previous)?previous:'all';
 }
@@ -31,7 +31,7 @@ async function updatePreview(){
  $('geo-configuration').hidden=false;$('geo-selected-heading').textContent='Quiz scope: '+selected.name;
  try{
   seasonRange($('geo-start').value,$('geo-end').value);
-  const ncResponse=await fetch('/api/nc/quiz?'+new URLSearchParams({place:selected.id,from:$('geo-start').value,to:$('geo-end').value,single:String($('geo-single').checked),family:'all'}));
+  const ncResponse=await fetch('/api/geography/quiz?'+new URLSearchParams({place:selected.id,from:$('geo-start').value,to:$('geo-end').value,single:String($('geo-single').checked),family:'all'}));
   if(previewToken!==previewRequest)return;
   if(ncResponse.status!==404){
    const nc=await ncResponse.json();if(!ncResponse.ok)throw Error(nc.error);
@@ -139,9 +139,10 @@ async function restoreLocation(){
 }
 window.addEventListener('popstate',()=>{const query=new URLSearchParams(location.search);$('geo-start').value=query.get('from')||fallback.start;$('geo-end').value=query.get('to')||fallback.end;return restoreLocation();});
 try{
- const responses=await Promise.all(['/geography-seed.json','/route-pilot.json','/data.json','/nc-birds.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error();
+ const responses=await Promise.all(['/geography-seed.json','/route-pilot.json','/data.json','/api/geography/catalog'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error();
  const [seed,pilot,data,nc]=await Promise.all(responses.map(r=>r.json()));nodes=seed.nodes;catalog=pilot;birds=data.birds;
- allFamilies=[...new Set([...birds,...nc.birds].map(b=>familyName(b.family)))].sort((a,b)=>(nc.familyOrder?.[a]??1e9)-(nc.familyOrder?.[b]??1e9));
+ const orders=new Map(nc.families.map(f=>[f.name,f.order]));
+ allFamilies=[...new Set([...birds.map(b=>familyName(b.family)),...orders.keys()])].sort((a,b)=>(orders.get(a)??1e9)-(orders.get(b)??1e9));
  for(const family of allFamilies){const option=make('option',familyLabel(family));option.value=family;$('geo-family').append(option);}
  if(params.has('family'))$('geo-family').value=params.get('family');
  $('geo-single').checked=params.get('single')==='true';

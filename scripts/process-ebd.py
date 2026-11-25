@@ -82,6 +82,8 @@ def main():
     sub=parser.add_subparsers(dest='command', required=True)
     for cmd in ('validate','activate'):
         q=sub.add_parser(cmd); q.add_argument('package',type=Path); q.add_argument('--target',type=Path,default=ROOT.parent/'ebd_active')
+    q=sub.add_parser('assemble'); q.add_argument('package',type=Path);q.add_argument('--photo-db',type=Path,default=DEFAULT_PHOTO_DB);q.add_argument('--catalog',type=Path,action='append',default=[]);q.add_argument('--output',type=Path,required=True)
+    q=sub.add_parser('convert'); q.add_argument('geography'); q.add_argument('--database',type=Path,required=True); q.add_argument('--report',type=Path,required=True); q.add_argument('--places',type=Path,required=True); q.add_argument('--taxonomy',type=Path,default=DEFAULT_TAXONOMY); q.add_argument('--photo-db',type=Path,default=DEFAULT_PHOTO_DB); q.add_argument('--output',type=Path,required=True); q.add_argument('--first-year',type=int); q.add_argument('--last-year',type=int)
     for cmd in ('start','run'):
         q=sub.add_parser(cmd); q.add_argument('scope'); q.add_argument('--parent'); q.add_argument('--manifest',type=Path,default=DEFAULT_MANIFEST); q.add_argument('--taxonomy',type=Path,default=DEFAULT_TAXONOMY); q.add_argument('--photo-db',type=Path,default=DEFAULT_PHOTO_DB); q.add_argument('--resume',action='store_true'); q.add_argument('--disk-gib',type=int,default=20); q.add_argument('--hours',type=int,default=24); q.add_argument('--first-year',type=int,default=2017); q.add_argument('--last-year',type=int,default=2025)
     for cmd in ('status','stop'):
@@ -99,24 +101,55 @@ def main():
             (Path(cfg['directory'])/'error.log').write_text(traceback.format_exc()); return 1
         return 0
     if args.command in ('validate','activate'):
-        package=args.package.resolve(); manifest=json.loads((package/'package.json').read_text())
-        if manifest.get('schema')!='aviquiz-seasonal-package-v1': raise ValueError('Unsupported package schema')
-        if not isinstance(manifest.get('geography'),str) or not __import__('re').fullmatch(r'[A-Z]{2}(?:-[A-Z0-9]{1,12}){0,2}',manifest['geography']): raise ValueError('Invalid package geography')
-        if not isinstance(manifest.get('files'),dict) or not manifest['files']: raise ValueError('Package file list is missing')
-        for name,expected in manifest['files'].items():
-            path=(package/name).resolve()
-            if package not in path.parents or not path.is_file() or data.p.checksum(path)!=expected['sha256'] or path.stat().st_size!=expected['bytes']: raise ValueError('Package file checksum or size mismatch: '+name)
+        package=args.package.resolve(); result=data.packages.validate(package);manifest=data.load(package/'package.json')
         if args.command=='activate':
-            root=args.target.expanduser().resolve();root.mkdir(parents=True,exist_ok=True);dest=root/manifest['geography'];dest.mkdir(parents=True,exist_ok=True)
-            import tempfile
-            stage=Path(tempfile.mkdtemp(prefix='.activate-',dir=dest))
-            try:
-                for name in manifest['files']: shutil.copyfile(package/name,stage/name)
-                (stage/'manifest.json').write_bytes((package/'manifest.json').read_bytes())
-                pointer=dest/'active.json';temp=pointer.with_suffix('.next');write(temp,{'revision':manifest['revision'],'path':str(stage)});temp.replace(pointer)
-            except BaseException: shutil.rmtree(stage,ignore_errors=True);raise
-            print(pointer)
-        else: print(json.dumps({'valid':True,'geography':manifest['geography'],'species':manifest['species_count'],'places':manifest['place_count'] }))
+            root=args.target.expanduser().resolve()
+            if root==HERE.parent or HERE.parent in root.parents: raise ValueError('Activation target must be outside source repository')
+            dest=root/manifest['geography'];dest.mkdir(parents=True,exist_ok=True)
+            with (dest/'activation.lock').open('a+') as lock:
+                fcntl.flock(lock,fcntl.LOCK_EX)
+                import tempfile
+                stage=Path(tempfile.mkdtemp(prefix='.activate-',dir=dest))
+                try:
+                    for name in [*manifest['files'],'package.json']: shutil.copyfile(package/name,stage/name)
+                    data.packages.validate(stage)
+                    write(dest/'active.json',{'revision':manifest['revision'],'path':str(stage)})
+                except BaseException: shutil.rmtree(stage,ignore_errors=True);raise
+            print(dest/'active.json')
+        else: print(json.dumps(result))
+        return 0
+    if args.command=='assemble':
+        print(json.dumps(data.packages.assemble(args.package,args.output,args.photo_db,args.catalog),indent=2));return 0
+    if args.command=='convert':
+        geography=data.validate_scope(args.geography)
+        report=data.load(args.report)
+        if report.get('schema')!='aviquiz-ebd-regional-aggregate-v1' or report.get('status')!='aggregated' or report.get('analysis_ready') is not True or report.get('region')!=geography: raise ValueError('Expected validated report matching geography')
+        if args.database.stat().st_size!=report['daily_database_bytes'] or data.p.checksum(args.database)!=report['daily_database_sha256']: raise ValueError('Database does not match report')
+        import sqlite3,zipfile
+        with sqlite3.connect(args.database.resolve().as_uri()+'?mode=ro',uri=True) as c:
+            first,last=c.execute('select min(observation_year),max(observation_year) from ebd_effort_day').fetchone()
+        years=[args.first_year if args.first_year is not None else first,args.last_year if args.last_year is not None else last]
+        if not all(type(y)==int for y in years) or not 1800<=years[0]<=years[1]<=9999 or years[1]-years[0]>1000: raise ValueError('Invalid year range')
+        if zipfile.is_zipfile(args.places):
+            with zipfile.ZipFile(args.places) as z:
+                if z.getinfo('manifest.json').file_size>16*1024**2: raise ValueError('Place manifest too large')
+                places=json.loads(z.read('manifest.json'))
+        else: places=data.load(args.places)
+        place_names=places.get('place_names',places.get('nodes',places.get('places',places))) if isinstance(places,dict) else places
+        if isinstance(place_names,list):
+            place_names={row['id']:row for row in place_names} if all(isinstance(row,dict) for row in place_names) else {row[0]:dict(id=row[0],name=row[1],kind='subnational1',parent=geography) for row in place_names}
+        if not isinstance(place_names,dict): raise ValueError('Invalid place metadata')
+        for ident,node in place_names.items():
+            if not isinstance(node,dict): raise ValueError('Invalid place metadata row')
+            node.setdefault('id',ident)
+        extract={'release':report['release'],'place_names':place_names}
+        out=args.output.resolve()
+        if out.exists() or out==HERE.parent or HERE.parent in out.parents: raise ValueError('Use a new output directory outside the repository')
+        out.parent.mkdir(parents=True,exist_ok=True)
+        if shutil.disk_usage(out.parent).free<60*GIB: raise ValueError('60 GiB free reserve required')
+        out.mkdir()
+        cfg=dict(directory=str(out),daily_database=str(args.database.resolve()),place_metadata=extract,scope=geography,taxonomy=str(args.taxonomy.resolve()),photo_sources=[],shared_photo_db=str(args.photo_db.resolve()),first_year=years[0],last_year=years[1],reserve_free_bytes=60*GIB,_deadline=time.monotonic()+72*3600)
+        result=data.export(cfg); result['validation']=data.packages.validate(result['package']);write(out/'conversion-result.json',result); print(json.dumps(result,indent=2))
         return 0
     if args.command=='_worker': return 0 if worker(args.job) else 1
     root=args.root.expanduser().resolve(); root.mkdir(parents=True,exist_ok=True)
@@ -157,7 +190,7 @@ def main():
                 active+=1
                 reserved+=max(0,state(other).get('config',{}).get('disk_bytes',20*GIB)-data.b.directory_bytes(other))
     if active>=2: raise ValueError('At most two geography jobs may run at once')
-    if not 1<=args.disk_gib<=150 or not 1<=args.hours<=72 or not 1800<=args.first_year<=args.last_year or args.last_year-args.first_year>=30: raise ValueError('Invalid limits or year range')
+    if not 1<=args.disk_gib<=150 or not 1<=args.hours<=72 or not 1800<=args.first_year<=args.last_year or args.last_year-args.first_year>1000: raise ValueError('Invalid limits or year range')
     if shutil.disk_usage(root).free < 60*GIB+reserved+args.disk_gib*GIB: raise ValueError('Insufficient free disk for reserved jobs and 60 GiB safety margin')
     old=state(job)
     if args.resume:

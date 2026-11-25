@@ -2,6 +2,7 @@ import {createEbirdLocations} from '../server/ebird-locations.mjs';
 import {locationCache} from '../server/location-cache.mjs';
 import ncLocations from '../dist/nc-locations.json' with {type:'json'};
 import seed from '../dist/geography-seed.json' with {type:'json'};
+import {seasonalPackages} from './seasonal-api.mjs';
 import {resolvePrincipal} from './identity.mjs';
 import {hasPermission} from './permissions.mjs';
 import {verifierForEnvironment} from './cognito.mjs';
@@ -14,6 +15,7 @@ function directoryFor(env){
  return workerDirectories.get(env.DB);
 }
 const registry=new Map([...seed.nodes,...ncLocations.nodes].map(n=>[n.id,n]));
+for(const pkg of seasonalPackages)for(const node of pkg.nodes){const previous=registry.get(node.id);registry.set(node.id,{...node,...previous});}
 registry.set('continent:Other areas',{id:'continent:Other areas',name:'Other countries / areas',kind:'continent',parent:'world'});
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json','cache-control':'no-store','x-content-type-options':'nosniff'}});
 export async function geographyApi(request,env,{verifyIdentity}={}){

@@ -16,6 +16,17 @@ tests=module('aggregate_tests','test-ebd-aggregate-region.py')
 geo=module('geo','ebd-geography-data.py')
 
 class GeographyTests(tests.AggregateTests):
+    def test_shared_queue_keeps_collected_coverage(self):
+        catalog=self.root/'catalog.json';db=self.root/'photos.sqlite'
+        photos=[dict(id=str(q*10+i),observationDate=f'2025-{(q-1)*3+1:02}-01') for q in range(1,5) for i in range(2)]
+        bird=dict(id='sharedbird',name='Shared bird',scientificName='Avis test',taxonOrder=1,photos=photos)
+        catalog.write_text(json.dumps({'birds':[bird]}));c=geo.seasonal.worker.connect(db);geo.seasonal.init(c);geo.seasonal.seed(c,catalog)
+        catalog.write_text(json.dumps({'birds':[{**bird,'photos':[]}]}));geo.seasonal.seed(c,catalog)
+        self.assertEqual(c.execute('select count(*) from photo_assets').fetchone()[0],8)
+        self.assertEqual(c.execute("select count(*) from photo_quarter_jobs where state='complete'").fetchone()[0],4)
+        self.assertEqual(len(json.loads(c.execute('select photos from species').fetchone()[0])),8)
+        self.assertEqual(geo.seasonal.plan(c,10),[]);c.close()
+
     def test_geography_to_collector(self):
         inputs=self.inputs()
         extract=self.root/'extract';extract.mkdir()

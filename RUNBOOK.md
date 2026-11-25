@@ -398,6 +398,13 @@ migration or a new live quiz list. Keep the reconciliation database private.
 
 ### NC seasonal data build and staging upload
 
+The dev branch now has a shared NC/Colombia package reader and launcher integration.
+It has not been deployed. For new packages use [the common geography CLI workflow](docs/ebd-geography-cli.md),
+including photo assembly, validation, and preparation. The instructions below describe
+the legacy NC publication path still retained for compatibility. The shared import
+route is `/api/geography/import?sha=<compiled chunk hash>`; it accepts only exact
+registry-approved bytes. Preparing or activating a local package is not deployment.
+
 Run `scripts/ebd-export-quiz.py` with `--database` pointing to the validated
 `daily.sqlite`, `--taxonomy` to the public eBird species taxonomy JSON, `--regions`
 and `--hotspots` to cached NC geography API responses, and `--output` to a private

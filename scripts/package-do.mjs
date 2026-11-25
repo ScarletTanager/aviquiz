@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import index from '../worker/nc-index.json' with {type:'json'};
+import seasonal from '../worker/seasonal-packages.json' with {type:'json'};
 const root=path.resolve(import.meta.dirname,'..');
 const source=verifyReleaseSource(root);
 const tag=spawnSync('git',['describe','--tags','--exact-match',source.commit],{cwd:root,encoding:'utf8'});
@@ -20,6 +21,13 @@ const serving=process.env.EBD_SERVING_DIR||path.resolve(root,'../../outputs/ebd_
 for(const chunk of index.chunks){
  const bytes=await fs.readFile(path.join(serving,chunk.key));
  if(bytes.length!==chunk.bytes||createHash('sha256').update(bytes).digest('hex')!==chunk.sha256)throw Error('NC serving artifact verification failed.');
+ const name='ebd/'+chunk.sha256;artifacts.push({name,bytes});digest.update(name);digest.update(bytes);
+}
+const objects=process.env.EBD_COMMON_OBJECTS_DIR||path.resolve(root,'../../outputs/ebd_common/objects');
+for(const chunk of seasonal.packages.flatMap(p=>p.index.chunks)){
+ if(artifacts.some(a=>a.name==='ebd/'+chunk.sha256))continue;
+ const bytes=await fs.readFile(path.join(objects,chunk.sha256));
+ if(bytes.length!==chunk.bytes||createHash('sha256').update(bytes).digest('hex')!==chunk.sha256)throw Error('Common serving artifact verification failed.');
  const name='ebd/'+chunk.sha256;artifacts.push({name,bytes});digest.update(name);digest.update(bytes);
 }
 const release='aviquiz-'+digest.digest('hex').slice(0,16);

@@ -4,6 +4,26 @@ Status: current implementation, updated November 18, 2026; standalone PostgreSQL
 
 ## System context
 
+### Common geography integration on dev (November 25, 2026; not deployed)
+
+The geography launcher and quiz sessions share `/api/geography/quiz` for NC and
+Colombia. `worker/seasonal-api.mjs` reads the committed public package registry,
+verifies bounded compressed records through `EBD_BUCKET`, and uses
+`dist/seasonal-core.mjs` for arbitrary-precision historical year masks. Sites supplies
+the bucket in staging; the standalone filesystem adapter supplies it on Node.
+The generated registry contains public navigation, species/photo metadata and
+hashes. Binary facts and private analytical databases remain outside Git.
+
+Conversion verifies the existing daily database against its report. Photo assembly
+reads the shared collector database without changing its queue, creates a new
+photo revision, and preserves immutable seasonal chunks. Preparation compiles
+the package metadata and copies content-addressed objects locally. Package selection
+is frozen in the committed registry; local `active.json` pointers alone do not change
+a running app. The original itinerary and old NC API retain their existing behavior.
+
+See [the CLI workflow](docs/ebd-geography-cli.md) for conversion, photo assembly,
+validation, preparation, and separate staging/production publication steps.
+
 AviQuiz provides photo and vocalization identification quizzes from a prepared Colombia trip checklist. Visitors select sites, families, lifer filters, question counts, and regular or mistake-review practice. Experimental photo guidance combines paraphrased eBird/Merlin descriptions with manually checked arrows on specific Macaulay Library photographs.
 
 The deployed application is a browser application plus a small HTTP Worker and a shared database. Quiz selection, answer matching, statistics, and personal annotation-review marks run in the browser. The backend serves application assets and manages shared annotation drafts and published snapshots. Media streams directly from Cornell; the backend does not proxy or store it.

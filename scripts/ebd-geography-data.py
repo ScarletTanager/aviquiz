@@ -15,6 +15,7 @@ def module(name,file):
  spec=importlib.util.spec_from_file_location(name,HERE/file);value=importlib.util.module_from_spec(spec);spec.loader.exec_module(value);return value
 aggregate=module('geo_aggregate','ebd-aggregate-region.py');p=aggregate.p;b=p.benchmark
 seasonal=module('geo_photos','seasonal-photo-metadata.py')
+packages=module('seasonal_packages','seasonal-package.py')
 GIB=1024**3
 
 def atomic(path,value):
@@ -139,7 +140,7 @@ def extract(config):
  return dict(manifest=str(out/'manifest.json'),profile=str(out/'taxonomy-profile.json'),counts=counts)
 
 def export(config):
- out=pathlib.Path(config['directory']);database=pathlib.Path(config['daily_database']);extract_manifest=load(config['extract_manifest']);geo=config['scope']
+ out=pathlib.Path(config['directory']);database=pathlib.Path(config['daily_database']);extract_manifest=config.get('place_metadata') or load(config['extract_manifest']);geo=config['scope']
  taxonomy=load(config['taxonomy']);by_sci={t['sciName']:t for t in taxonomy if t.get('category','species')=='species'}
  if 'Nannus hiemalis' in by_sci:by_sci['Troglodytes hiemalis']=by_sci['Nannus hiemalis']
  refs={}
@@ -170,14 +171,14 @@ def export(config):
    if not effort:continue
    for key,day,year in c.execute('select taxon_key,observation_date,observation_year from ebd_detection_day where place_id=? and observation_year between ? and ?',(place,first,last)):
     row=detections.setdefault(keys[key],{});row[day[5:]]=row.get(day[5:],0)|(1<<(year-first))
-   raw=json.dumps(dict(e=list(effort.items()),b={str(k):list(v.items()) for k,v in detections.items()}),separators=(',',':')).encode();data=gzip.compress(raw,mtime=0)
+   raw=json.dumps(dict(e=[[day,format(mask,'x')] for day,mask in effort.items()],b={str(k):[[day,format(mask,'x')] for day,mask in values.items()] for k,values in detections.items()}),separators=(',',':')).encode();data=gzip.compress(raw,mtime=0)
    if len(chunk)+len(data)>4*1024*1024:flush()
    node=extract_manifest['place_names'].get(place,dict(id=place,name=place,kind='hotspot' if place.startswith('L') else 'region',parent=geo if place!=geo else None));places.append(node)
    index[place]=dict(chunk=len(chunks),offset=len(chunk),length=len(data),sha256=hashlib.sha256(data).hexdigest(),rawBytes=len(raw),kind=node['kind']);chunk.extend(data)
    tick(config,'exporting',places=number+1,species=len(birds))
   flush()
  finally:c.close()
- manifest=dict(schema=1,release=extract_manifest['release'],scope=geo,years=[first,last],places=index,chunks=chunks)
+ manifest=dict(schema='aviquiz-place-facts-v1',release=extract_manifest['release'],scope=geo,years=[first,last],year_encoding='hex-bitset-lsb-first',places=index,chunks=chunks)
  atomic(serving/'manifest.json',manifest);atomic(serving/'places.json',dict(nodes=places))
  order={}
  for taxon in taxonomy:
