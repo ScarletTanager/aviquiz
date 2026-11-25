@@ -1,3 +1,4 @@
+import {t} from '../dist/i18n.mjs';
 import {createRemoteJWKSet,jwtVerify} from 'jose';
 import {authConfig} from '../dist/auth-config.mjs';
 // Trusted, deployment-owned issuer and audience. Never derive a key URL from a token.
@@ -5,11 +6,11 @@ export function identityVerifier({issuer,clientId,keySet}) {
   return async request => {
     const header=request.headers.get('authorization');
     if(!header)return null;
-    if(!/^Bearer [^\s]+$/.test(header)||header.length>20000)throw Error('Invalid authentication.');
+    if(!/^Bearer [^\s]+$/.test(header)||header.length>20000)throw Error(t("worker-cognito:invalid_authentication_00fc0ae6"));
     const {payload}=await jwtVerify(header.slice(7),keySet,{
       issuer,audience:clientId,algorithms:['RS256'],requiredClaims:['sub','exp','iat'],clockTolerance:5
     });
-    if(payload.token_use!=='id'||typeof payload.sub!=='string'||!payload.sub)throw Error('Invalid authentication.');
+    if(payload.token_use!=='id'||typeof payload.sub!=='string'||!payload.sub)throw Error(t("worker-cognito:invalid_authentication_00fc0ae6"));
     return {issuer:payload.iss,subject:payload.sub,email:payload.email,emailVerified:payload.email_verified===true};
   };
 }
@@ -19,7 +20,7 @@ export function verifierForEnvironment(env={}){
   const key=issuer+'|'+clientId;
   if(!verifiers.has(key)){
     const url=new URL(issuer);
-    if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error('Invalid configured identity issuer.');
+    if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error(t("worker-cognito:invalid_configured_identity_issuer_285484a0"));
     if(verifiers.size>=8)verifiers.clear();
     verifiers.set(key,identityVerifier({issuer,clientId,
       keySet:createRemoteJWKSet(new URL(issuer+'/.well-known/jwks.json'),{timeoutDuration:5000,cooldownDuration:30000,cacheMaxAge:600000})}));

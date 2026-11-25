@@ -1,3 +1,4 @@
+import {locale} from './i18n.mjs';
 import {familyName} from './quiz.mjs';
 
 export function accuracyStatistics(birds,sites,progress,{siteOnly=false}={}){
@@ -26,7 +27,7 @@ export function sortAccuracy(rows,by='taxonomy',direction='asc'){
   return [...rows].sort((a,b)=>{
     // Missing history is not a zero score, and stays last in either rate direction.
     if(by==='rate'&&(a.rate===null||b.rate===null))return a.rate===b.rate?a.order-b.order:a.rate===null?1:-1;
-    const difference=by==='name'?a.name.localeCompare(b.name,'en',{sensitivity:'base'}):by==='rate'?a.rate-b.rate:a.order-b.order;
+    const difference=by==='name'?a.name.localeCompare(b.name,locale,{sensitivity:'base'}):by==='rate'?a.rate-b.rate:a.order-b.order;
     return difference*sign||a.order-b.order;
   });
 }

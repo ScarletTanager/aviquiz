@@ -1,0 +1,21 @@
+{
+  "browser_history_changed_in_another_tab_refresh_this_pag_5591df42": "Browser history changed in another tab. Refresh this page when your quiz is finished.",
+  "full_historical_statistics_are_available_only_to_signed_7f4762ce": "Full historical statistics are available only to signed-in users. Guest statistics aggregate the most recent five quizzes; without browser storage they last only for this visit.",
+  "showing_cumulative_account_statistics_plus_any_unsaved_f1e011a9": "Showing cumulative account statistics, plus any unsaved recent practice from this device. Latest results provide a comparison point.",
+  "older_browser_statistics_were_imported_into_your_accoun_0f368611": "Older browser statistics were imported into your account. They contain rolling answers and latest results, not dated quiz sessions.",
+  "import_failed_browser_history_was_kept_7be8828b": "Import failed. Browser history was kept.",
+  "no_older_browser_statistics_were_found_to_import_c2100cd6": "No older browser statistics were found to import.",
+  "turn_on_historical_statistics_storage_before_importing_cda778fb": "Turn on historical statistics storage before importing.",
+  "sign_in_first_1ba0ae88": "Sign in first.",
+  "new_quizzes_will_not_be_saved_to_your_account_existing_a6663d9a": "New quizzes will not be saved to your account. Existing account history is retained.",
+  "new_completed_quizzes_will_be_saved_to_your_account_ecc6d5c8": "New completed quizzes will be saved to your account.",
+  "the_preference_could_not_be_saved_please_retry_ee1e8e4e": "The preference could not be saved. Please retry.",
+  "statistics_have_not_synchronized_keep_this_tab_open_and_e254f926": "Statistics have not synchronized. Keep this tab open and retry when connected; pending results are retained within the browser limit.",
+  "account_statistics_synchronized_the_browser_keeps_at_mo_95ecbeba": "Account statistics synchronized. The browser keeps at most five recent quizzes when allowed.",
+  "historical_storage_is_off_this_quiz_remains_in_recent_b_ece514b5": "Historical storage is off. This quiz remains in recent browser history only.",
+  "more_than_five_quizzes_are_waiting_to_upload_keep_this_12f386ba": "More than five quizzes are waiting to upload. Keep this tab open and reconnect; only five can survive a reload.",
+  "the_account_changed_during_this_quiz_so_its_result_was_a1261d16": "The account changed during this quiz, so its result was not uploaded.",
+  "account_statistics_could_not_load_recent_results_and_un_fec3ed3b": "Account statistics could not load. Recent results and unimported browser history have been kept.",
+  "browser_storage_is_unavailable_new_results_remain_in_me_b33edd06": "Browser storage is unavailable. New results remain in memory for this visit.",
+  "recent_browser_statistics_could_not_be_read_older_brows_85957b89": "Recent browser statistics could not be read. Older browser history has been preserved."
+}

@@ -1,0 +1,8 @@
+{
+  "packaged_ebd_serving_data_is_read_only_25c6c4d3": "Packaged EBD serving data is read-only.",
+  "incomplete_ebd_artifact_bee70f9b": "Incomplete EBD artifact.",
+  "invalid_ebd_range_ec042cdd": "Invalid EBD range.",
+  "invalid_ebd_artifact_key_444f099e": "Invalid EBD artifact key.",
+  "ebd_serving_directory_is_unavailable_c0be8f0e": "EBD serving directory is unavailable.",
+  "not_a_directory_83c54ca7": "Not a directory"
+}

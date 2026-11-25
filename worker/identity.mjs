@@ -1,11 +1,12 @@
+import {t} from '../dist/i18n.mjs';
 // Server-only seam. verifyIdentity is a trusted adapter, never request-supplied claims.
 export const GUEST=Object.freeze({kind:'guest',userId:null,grants:[]});
 export function verifiedIdentity(value){
   if(!value||typeof value.issuer!=='string'||typeof value.subject!=='string'||
-    !value.subject||value.subject.length>255)throw Error('Invalid verified identity.');
+    !value.subject||value.subject.length>255)throw Error(t("worker-identity:invalid_verified_identity_920e86d0"));
   const issuer=new URL(value.issuer);
   if(issuer.protocol!=='https:'||issuer.username||issuer.password||issuer.search||issuer.hash)
-    throw Error('Invalid identity issuer.');
+    throw Error(t("worker-identity:invalid_identity_issuer_211539c1"));
   // Do not normalize issuer/subject or merge accounts by email.
   return {issuer:value.issuer,subject:value.subject,email:value.email||null,emailVerified:value.emailVerified===true};
 }
@@ -16,7 +17,7 @@ export async function principalForUser(db,userId){
   return {kind:'user',userId:user.id,grants:rows.results.map(r=>r.permission)};
 }
 export async function resolvePrincipal(request,{db,verifyIdentity}){
-  if(typeof verifyIdentity!=='function')throw Error('A trusted identity verifier is required.');
+  if(typeof verifyIdentity!=='function')throw Error(t("worker-identity:a_trusted_identity_verifier_is_required_659c5939"));
   // Verification failures propagate; never downgrade invalid credentials to a user.
   const claims=await verifyIdentity(request);
   if(claims===null)return GUEST;

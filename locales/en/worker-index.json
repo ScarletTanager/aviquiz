@@ -1,0 +1,23 @@
+{
+  "not_found_e3ebaa16": "Not found",
+  "method_not_allowed_371b2688": "Method not allowed",
+  "review_could_not_be_saved_17550dbc": "Review could not be saved.",
+  "shared_storage_could_not_complete_this_request_please_r_cd502c46": "Shared storage could not complete this request. Please retry.",
+  "invalid_json_70fddef4": "Invalid JSON.",
+  "this_review_changed_elsewhere_reload_before_saving_02a52d8d": "This review changed elsewhere. Reload before saving.",
+  "breadth_first_review_finish_round_before_approving_anot_ff03ae90": "Breadth-first review: finish round {{v0}} before approving another photo for this species.",
+  "this_review_changed_elsewhere_reload_it_before_saving_640ca3f7": "This review changed elsewhere. Reload it before saving.",
+  "a_revision_is_required_2f5320a5": "A revision is required.",
+  "photo_publishing_permission_is_required_3324d9e2": "Photo publishing permission is required.",
+  "unknown_review_action_914e3dcb": "Unknown review action.",
+  "unknown_review_route_14793128": "Unknown review route.",
+  "previously_reviewed_six_photo_pilot_b498aa63": "Previously reviewed six-photo pilot.",
+  "administrator_permission_is_required_8e2ee2de": "Administrator permission is required.",
+  "review_payload_too_large_32dd6e72": "Review payload too large.",
+  "send_json_01dc6e8d": "Send JSON.",
+  "use_the_review_workspace_on_this_site_65a7d43b": "Use the review workspace on this site.",
+  "photo_editing_permission_is_required_ece0a496": "Photo editing permission is required.",
+  "sign_in_with_an_authorized_aviquiz_account_to_access_ph_d005ebcd": "Sign in with an authorized AviQuiz account to access photo reviews.",
+  "sign_in_again_to_verify_your_account_18e5667f": "Sign in again to verify your account.",
+  "shared_review_storage_is_unavailable_please_try_again_l_bcb232b1": "Shared review storage is unavailable. Please try again later."
+}

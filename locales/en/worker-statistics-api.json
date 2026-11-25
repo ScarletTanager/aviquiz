@@ -1,0 +1,21 @@
+{
+  "statistics_storage_is_unavailable_browser_summaries_hav_9e925f39": "Statistics storage is unavailable. Browser summaries have been kept; retry later.",
+  "statistics_changed_concurrently_your_browser_summary_wa_2138e010": "Statistics changed concurrently. Your browser summary was kept; retry synchronization.",
+  "this_aggregate_backup_may_overlap_existing_account_stat_102592ef": "This aggregate backup may overlap existing account statistics. Its browser copy was kept.",
+  "turn_on_historical_statistics_storage_before_importing_cda778fb": "Turn on historical statistics storage before importing.",
+  "a_different_history_snapshot_was_already_imported_brows_c6c58602": "A different history snapshot was already imported. Browser data was kept to avoid counting overlapping statistics twice.",
+  "this_contribution_conflicts_with_an_already_synchronize_ca6baf56": "This contribution conflicts with an already synchronized result.",
+  "invalid_statistics_contribution_be0e824c": "Invalid statistics contribution.",
+  "choose_whether_to_save_history_180bdbde": "Choose whether to save history.",
+  "invalid_or_oversized_statistics_data_356a6e17": "Invalid or oversized statistics data.",
+  "the_signed_in_account_changed_reload_statistics_before_2b813331": "The signed-in account changed. Reload statistics before saving.",
+  "sign_in_to_access_historical_statistics_82b64e96": "Sign in to access historical statistics.",
+  "sign_in_again_to_access_account_statistics_4b1b69eb": "Sign in again to access account statistics.",
+  "statistics_storage_is_unavailable_please_retry_later_38039a87": "Statistics storage is unavailable. Please retry later.",
+  "use_the_statistics_controls_on_this_site_37de3685": "Use the statistics controls on this site.",
+  "invalid_statistics_query_a55d1e26": "Invalid statistics query.",
+  "method_not_allowed_5765cf56": "Method not allowed.",
+  "not_found_0802559d": "Not found.",
+  "statistics_request_exceeds_1_mb_9a412cfe": "Statistics request exceeds 1 MB.",
+  "send_json_01dc6e8d": "Send JSON."
+}

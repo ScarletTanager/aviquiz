@@ -90,7 +90,7 @@ if(import.meta.main){
  const document={getElementById:id=>elements[id],createElement:()=>new Element(),createDocumentFragment:()=>new Element(),createTextNode:text=>({textContent:text})};
  const history={pushState(a,b,url){location.search=new URL(url,'https://quiz.example').search;}};
  const windowEvents={};
- const context=vm.createContext({document,location,history,fetch:fetcher,accountFetch:fetcher,URLSearchParams,Intl,Date,console,window:{addEventListener(name,fn){windowEvents[name]=fn;}},familyName:(await import('./dist/quiz.mjs')).familyName,familyLabel:(await import('./dist/quiz.mjs')).familyLabel,geographyPool,monthRange,seasonRange});
+ const context=vm.createContext({t:(await import("./dist/i18n.mjs")).t,locale:"en",document,location,history,fetch:fetcher,accountFetch:fetcher,URLSearchParams,Intl,Date,console,window:{addEventListener(name,fn){windowEvents[name]=fn;}},familyName:(await import('./dist/quiz.mjs')).familyName,familyLabel:(await import('./dist/quiz.mjs')).familyLabel,geographyPool,monthRange,seasonRange});
  const source=(await fs.readFile('dist/geography-ui.mjs','utf8')).replace(/^import .*;\n/gm,'');
  await vm.runInContext('(async()=>{'+source+'})()',context);
  const leaves=e=>e.children.flatMap(n=>n instanceof Element?[n,...leaves(n)]:[]);

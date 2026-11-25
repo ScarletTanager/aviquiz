@@ -1,3 +1,4 @@
+import {t} from '../dist/i18n.mjs';
 import {verifierForEnvironment} from './cognito.mjs';
 import {resolvePrincipal} from './identity.mjs';
 import {hasPermission} from './permissions.mjs';
@@ -34,7 +35,7 @@ export async function api(request,env,{verifyIdentity}={}){
   // Keep the named API entry point consistent with default.fetch.
   if(path==='/api/account'||path.startsWith('/api/account/'))return accountApi(request,env,{verifyIdentity});
   let db;
-  try{db=databaseForEnvironment(env);}catch{return json({error:'Shared review storage is unavailable. Please try again later.'},503);}
+  try{db=databaseForEnvironment(env);}catch{return json({error:t("worker-index:shared_review_storage_is_unavailable_please_try_again_l_bcb232b1")},503);}
   try{
     if(path==='/api/annotations'&&request.method==='GET'){
       const all=await rows(db),approved=all.filter(r=>r.approved).map(r=>{
@@ -44,36 +45,36 @@ export async function api(request,env,{verifyIdentity}={}){
     }
     let access;
     try{access=await reviewAccess(request,env,db,verifyIdentity||verifierForEnvironment(env));}
-    catch{return json({error:'Sign in again to verify your account.'},401);}
-    if(!access.read)return json({error:'Sign in with an authorized AviQuiz account to access photo reviews.'},403);
+    catch{return json({error:t("worker-index:sign_in_again_to_verify_your_account_18e5667f")},401);}
+    if(!access.read)return json({error:t("worker-index:sign_in_with_an_authorized_aviquiz_account_to_access_ph_d005ebcd")},403);
     if(path==='/api/reviews'&&request.method==='GET'){
       const all=await rows(db);return json({schema:1,rows:all,coverage:reviewCoverage(CATALOG.birds,all),canEdit:access.edit,canPublish:access.publish});
     }
-    if(request.method!=='POST')return json({error:'Unknown review route.'},404);
-    if(!access.edit)return json({error:'Photo editing permission is required.'},403);
+    if(request.method!=='POST')return json({error:t("worker-index:unknown_review_route_14793128")},404);
+    if(!access.edit)return json({error:t("worker-index:photo_editing_permission_is_required_ece0a496")},403);
     const origin=request.headers.get('origin');
-    if(origin&&origin!==url.origin)return json({error:'Use the review workspace on this site.'},403);
-    if(!request.headers.get('content-type')?.startsWith('application/json'))return json({error:'Send JSON.'},415);
-    const raw=await request.text();if(raw.length>200000)return json({error:'Review payload too large.'},413);
+    if(origin&&origin!==url.origin)return json({error:t("worker-index:use_the_review_workspace_on_this_site_65a7d43b")},403);
+    if(!request.headers.get('content-type')?.startsWith('application/json'))return json({error:t("worker-index:send_json_01dc6e8d")},415);
+    const raw=await request.text();if(raw.length>200000)return json({error:t("worker-index:review_payload_too_large_32dd6e72")},413);
     const body=JSON.parse(raw);
     if(path==='/api/reviews/seed'){
-      if(!access.admin)return json({error:'Administrator permission is required.'},403);
+      if(!access.admin)return json({error:t("worker-index:administrator_permission_is_required_8e2ee2de")},403);
       const statements=Object.entries(LEGACY_TIPS).map(([photoId,entry])=>{
-        const document={...entry,photoId,schema:1,tips:LEGACY_SPECIES[entry.speciesId].tips,photoChecked:true,sourceChecked:true,notes:'Previously reviewed six-photo pilot.'};
+        const document={...entry,photoId,schema:1,tips:LEGACY_SPECIES[entry.speciesId].tips,photoChecked:true,sourceChecked:true,notes:t("worker-index:previously_reviewed_six_photo_pilot_b498aa63")};
         return db.prepare("INSERT INTO photo_reviews (photo_id,species_id,status,revision,document_json,approved_json,updated_at) VALUES (?,?,'approved',1,?,?,?) ON CONFLICT(photo_id) DO NOTHING").bind(photoId,entry.speciesId,JSON.stringify(document),JSON.stringify(document),new Date().toISOString());
       });
       await db.batch(statements);return json({seeded:true});
     }
-    if(path!=='/api/reviews/save')return json({error:'Unknown review route.'},404);
-    const action=body.action;if(!['draft','approve','skip','unpublish'].includes(action))return json({error:'Unknown review action.'},400);
-    if(['approve','unpublish'].includes(action)&&!access.publish)return json({error:'Photo publishing permission is required.'},403);
+    if(path!=='/api/reviews/save')return json({error:t("worker-index:unknown_review_route_14793128")},404);
+    const action=body.action;if(!['draft','approve','skip','unpublish'].includes(action))return json({error:t("worker-index:unknown_review_action_914e3dcb")},400);
+    if(['approve','unpublish'].includes(action)&&!access.publish)return json({error:t("worker-index:photo_publishing_permission_is_required_3324d9e2")},403);
     const document=validateReview(body.document,CATALOG.birds,{approve:action==='approve'});
-    const expected=body.revision;if(!Number.isInteger(expected)||expected<0)return json({error:'A revision is required.'},400);
+    const expected=body.revision;if(!Number.isInteger(expected)||expected<0)return json({error:t("worker-index:a_revision_is_required_2f5320a5")},400);
     const all=await rows(db),existing=all.find(r=>r.photoId===document.photoId);
-    if((existing?.revision||0)!==expected)return json({error:'This review changed elsewhere. Reload it before saving.'},409);
+    if((existing?.revision||0)!==expected)return json({error:t("worker-index:this_review_changed_elsewhere_reload_it_before_saving_640ca3f7")},409);
     if(action==='approve'&&!existing?.approved){
       const c=reviewCoverage(CATALOG.birds,all);
-      if(c.round!==null&&c.counts[document.speciesId]+1>c.round)return json({error:`Breadth-first review: finish round ${c.round} before approving another photo for this species.`},409);
+      if(c.round!==null&&c.counts[document.speciesId]+1>c.round)return json({error:t("worker-index:breadth_first_review_finish_round_before_approving_anot_ff03ae90", {v0:(c.round)})},409);
     }
     const status=action==='approve'?'approved':action==='skip'?'skipped':'draft';
     const now=new Date().toISOString();if(action==='approve')document.approvedAt=now;
@@ -88,21 +89,21 @@ export async function api(request,env,{verifyIdentity}={}){
       db.prepare(`INSERT INTO photo_reviews (photo_id,species_id,status,revision,document_json,approved_json,updated_at) SELECT ?,?,?,1,?,?,? WHERE 1=1${condition} ON CONFLICT(photo_id) DO NOTHING RETURNING *`).bind(document.photoId,document.speciesId,status,JSON.stringify(document),approved,now,...guardArgs):
       db.prepare(`UPDATE photo_reviews SET status=?, revision=revision+1, document_json=?, approved_json=?, updated_at=? WHERE photo_id=? AND revision=?${condition} RETURNING *`).bind(status,JSON.stringify(document),approved,now,document.photoId,expected,...guardArgs);
     const saved=await firstReviewWrite(db,statement);
-    if(!saved)return json({error:'This review changed elsewhere. Reload before saving.'},409);
+    if(!saved)return json({error:t("worker-index:this_review_changed_elsewhere_reload_before_saving_02a52d8d")},409);
     return json({row:rowValue(saved)});
   }catch(error){
-    if(error instanceof SyntaxError)return json({error:'Invalid JSON.'},400);
-    if(error.databaseError||error.message?.includes('SQLITE')||error.message?.includes('D1'))return json({error:'Shared storage could not complete this request. Please retry.'},503);
-    return json({error:error.message||'Review could not be saved.'},400);
+    if(error instanceof SyntaxError)return json({error:t("worker-index:invalid_json_70fddef4")},400);
+    if(error.databaseError||error.message?.includes('SQLITE')||error.message?.includes('D1'))return json({error:t("worker-index:shared_storage_could_not_complete_this_request_please_r_cd502c46")},503);
+    return json({error:error.message||t("worker-index:review_could_not_be_saved_17550dbc")},400);
   }
 }
 export default {
   async fetch(request,env){
     const path=new URL(request.url).pathname;
     if(path.startsWith('/api/'))return api(request,env);
-    if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405});
+    if(!['GET','HEAD'].includes(request.method))return new Response(t("worker-index:method_not_allowed_371b2688"),{status:405});
     const name=path==='/explore'||path==='/explore/'?'/explore.html':path==='/invite'||path==='/invite/'?'/invite.html':['/auth/callback','/','/index.html','/quiz','/quiz/','/trips','/trips/','/routes','/routes/','/statistics','/statistics/'].includes(path)?'/index.html':path==='/review'||path==='/review/'?'/review.html':path;
-    const asset=ASSETS[name];if(!asset)return new Response('Not found',{status:404});
+    const asset=ASSETS[name];if(!asset)return new Response(t("worker-index:not_found_e3ebaa16"),{status:404});
     return new Response(request.method==='HEAD'?null:asset.body,{headers:{'content-type':asset.type,'cache-control':'no-cache','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin'}});
   }
 };

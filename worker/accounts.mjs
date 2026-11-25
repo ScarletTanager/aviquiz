@@ -1,10 +1,11 @@
+import {t} from '../dist/i18n.mjs';
 import {verifiedIdentity,principalForUser} from './identity.mjs';
 import {GLOBAL_PERMISSIONS,hasPermission,canAccessRoute} from './permissions.mjs';
 
 // No HTTP endpoints or provider SDKs here. A future server controller supplies
 // actor IDs ONLY from resolvePrincipal, never from a request body or localStorage.
 export class AccessDenied extends Error{
-  constructor(){super('Access denied.');this.status=403;}
+  constructor(){super(t("worker-accounts:access_denied_278f003d"));this.status=403;}
 }
 export function accountService(db){
   const stamp=()=>new Date().toISOString();
@@ -27,7 +28,7 @@ export function accountService(db){
     async registerVerifiedUser(claims){
       const identity=verifiedIdentity(claims);
       if(!identity.emailVerified||typeof identity.email!=='string'||identity.email.length>320||
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity.email))throw Error('A provider-verified email is required.');
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity.email))throw Error(t("worker-accounts:a_provider_verified_email_is_required_97f313ce"));
       const id=crypto.randomUUID();
       await db.batch([
         statement('INSERT INTO app_users (id,email,created_at) VALUES (?,?,?)',id,identity.email,stamp()),
@@ -38,10 +39,10 @@ export function accountService(db){
     },
     async setGrant(actorId,targetId,permission,enabled){
       await administrator(actorId);await user(targetId);
-      if(!GLOBAL_PERMISSIONS.includes(permission)||typeof enabled!=='boolean')throw Error('Invalid grant.');
+      if(!GLOBAL_PERMISSIONS.includes(permission)||typeof enabled!=='boolean')throw Error(t("worker-accounts:invalid_grant_82a01c26"));
       // Administrator bootstrap/recovery and last-admin protection need an explicit
       // operational design; do not expose admin grants through this first service.
-      if(permission==='system.admin')throw Error('Administrator assignment requires a separate bootstrap/recovery workflow.');
+      if(permission==='system.admin')throw Error(t("worker-accounts:administrator_assignment_requires_a_separate_bootstrap_c9c9e9f4"));
       await db.batch([
         enabled?statement('INSERT INTO app_grants (user_id,permission) VALUES (?,?) ON CONFLICT DO NOTHING',targetId,permission):
           statement('DELETE FROM app_grants WHERE user_id=? AND permission=?',targetId,permission),
@@ -50,7 +51,7 @@ export function accountService(db){
     },
     async createRoute(actorId,title){
       await user(actorId);
-      if(typeof title!=='string'||!title.trim()||title.trim().length>200)throw Error('Route title must contain 1–200 characters.');
+      if(typeof title!=='string'||!title.trim()||title.trim().length>200)throw Error(t("worker-accounts:route_title_must_contain_1_200_characters_715253da"));
       const id=crypto.randomUUID();
       await db.batch([
         statement('INSERT INTO routes (id,owner_user_id,title,created_at) VALUES (?,?,?,?)',id,actorId,title.trim(),stamp()),
@@ -61,8 +62,8 @@ export function accountService(db){
     async readRoute(actorId,routeId){return authorizedRoute(actorId,routeId,'route.read');},
     async setRouteMember(actorId,routeId,targetId,role){
       const route=await authorizedRoute(actorId,routeId,'route.share');await user(targetId);
-      if(targetId===route.owner_user_id)throw Error('Route ownership cannot be changed through membership.');
-      if(role!==null&&!['viewer','contributor','editor'].includes(role))throw Error('Invalid route role.');
+      if(targetId===route.owner_user_id)throw Error(t("worker-accounts:route_ownership_cannot_be_changed_through_membership_bf15e4e8"));
+      if(role!==null&&!['viewer','contributor','editor'].includes(role))throw Error(t("worker-accounts:invalid_route_role_f7e4577f"));
       await db.batch([
         role===null?statement('DELETE FROM route_members WHERE route_id=? AND user_id=?',routeId,targetId):
           statement('INSERT INTO route_members (route_id,user_id,role) VALUES (?,?,?) ON CONFLICT(route_id,user_id) DO UPDATE SET role=excluded.role',routeId,targetId,role),
@@ -71,7 +72,7 @@ export function accountService(db){
     },
     async setRouteVisibility(actorId,routeId,visibility){
       await authorizedRoute(actorId,routeId,'route.visibility');
-      if(!['private','public'].includes(visibility))throw Error('Invalid visibility.');
+      if(!['private','public'].includes(visibility))throw Error(t("worker-accounts:invalid_visibility_871d15aa"));
       await db.batch([
         statement('UPDATE routes SET visibility=? WHERE id=?',visibility,routeId),
         audit(actorId,'route.visibility','route',routeId,{visibility})

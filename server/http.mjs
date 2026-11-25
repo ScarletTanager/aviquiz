@@ -1,3 +1,4 @@
+import {t} from '../dist/i18n.mjs';
 import http from 'node:http';
 import {randomUUID} from 'node:crypto';
 import application from '../dist/server/index.js';
@@ -5,8 +6,8 @@ import {authConfig as defaults} from '../dist/auth-config.mjs';
 import {createDatabaseEnvironment} from './database/index.mjs';
 export function publicAuthConfig(config){
   const origin=new URL(config.PUBLIC_ORIGIN);
-  if(origin.pathname!=='/'||origin.search||origin.hash||origin.username||origin.password)throw Error('PUBLIC_ORIGIN must be an origin.');
-  if(origin.protocol!=='https:'&&!['127.0.0.1','localhost'].includes(origin.hostname))throw Error('Production requires HTTPS.');
+  if(origin.pathname!=='/'||origin.search||origin.hash||origin.username||origin.password)throw Error(t("server-http:public_origin_must_be_an_origin_766e8c93"));
+  if(origin.protocol!=='https:'&&!['127.0.0.1','localhost'].includes(origin.hostname))throw Error(t("server-http:production_requires_https_5e0d4bcf"));
   return {enabled:config.AUTH_ENABLED==='true',authority:config.AUTH_ISSUER||defaults.authority,
     client_id:config.AUTH_CLIENT_ID||defaults.client_id,cognitoDomain:config.AUTH_DOMAIN||defaults.cognitoDomain,
     redirect_uri:origin.origin+'/auth/callback',post_logout_redirect_uri:origin.origin+'/'};
@@ -53,7 +54,7 @@ export function createHttpServer(env,{app=application}={}){
     }catch{
       console.error(JSON.stringify({event:'request_failed',requestId:id}));
       if(!res.headersSent)res.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});
-      res.end('{"error":"Service temporarily unavailable."}');
+      res.end(JSON.stringify({error:t("server-http:service_temporarily_unavailable_9a6e032d")}));
     }
   });
   server.maxConnections=128;
@@ -61,7 +62,7 @@ export function createHttpServer(env,{app=application}={}){
 }
 export async function startServer(config){
   const host=config.HOST||'127.0.0.1',port=Number(config.PORT||3000);
-  if(host!=='127.0.0.1')throw Error('The application must bind to loopback behind its proxy.');
+  if(host!=='127.0.0.1')throw Error(t("server-http:the_application_must_bind_to_loopback_behind_its_proxy_6a13b5fb"));
   const env=await createDatabaseEnvironment(config);
   const server=createHttpServer(env);
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,host,resolve);});

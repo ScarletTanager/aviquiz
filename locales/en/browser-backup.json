@@ -1,0 +1,17 @@
+{
+  "import_could_not_be_saved_your_previous_data_was_restor_0900a897": "Import could not be saved. Your previous data was restored. Check browser storage and try again.",
+  "import_stopped_reload_aviquiz_to_recover_your_previous_47e53acf": "Import stopped. Reload AviQuiz to recover your previous data before taking another quiz.",
+  "saved_data_recovery_is_incomplete_0b4b49fe": "Saved data recovery is incomplete.",
+  "photos_marked_reviewed_08e348ee": " photos marked reviewed.",
+  "audio_8adb1903": ". Audio — ",
+  "visual_65ee1508": "Visual — ",
+  "saved_answers_b1b0b7ed": " saved answers",
+  "species_with_c11eeb0b": " species with ",
+  "this_is_not_a_supported_aviquiz_backup_6241ff2d": "This is not a supported AviQuiz backup.",
+  "this_file_is_not_valid_json_choose_an_aviquiz_export_6c5b8102": "This file is not valid JSON. Choose an AviQuiz export.",
+  "choose_an_aviquiz_backup_smaller_than_5_mb_40148042": "Choose an AviQuiz backup smaller than 5 MB.",
+  "the_file_contains_invalid_photo_review_marks_ccb2084c": "The file contains invalid photo review marks.",
+  "the_file_contains_unsupported_or_invalid_quiz_history_55144ad3": "The file contains unsupported or invalid quiz history.",
+  "the_file_contains_invalid_quiz_history_315dbc19": "The file contains invalid quiz history.",
+  "the_file_contains_unsupported_aggregate_statistics_72985024": "The file contains unsupported aggregate statistics."
+}

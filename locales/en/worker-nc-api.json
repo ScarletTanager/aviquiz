@@ -1,0 +1,12 @@
+{
+  "nc_seasonal_data_could_not_load_please_retry_later_e168a2c2": "NC seasonal data could not load. Please retry later.",
+  "complete_eligible_checklists_grouped_into_independent_o_5c57db94": "Complete eligible checklists, grouped into independent outings; 2017\u20132025. Species reported in only one sampled season are excluded by default when at least two seasons were sampled. This reduces one-time rarities but is not a guarantee of occurrence. Photo coverage is still being expanded. Geography quizzes do not change saved statistics.",
+  "invalid_artifact_length_4f1baab3": "Invalid artifact length",
+  "invalid_stored_artifact_7ed2b96c": "Invalid stored artifact",
+  "nc_seasonal_data_is_not_loaded_yet_63c2494d": "NC seasonal data is not loaded yet.",
+  "no_nc_seasonal_data_for_this_place_760bf011": "No NC seasonal data for this place.",
+  "invalid_query_e7a90c1f": "Invalid query.",
+  "method_not_allowed_5765cf56": "Method not allowed.",
+  "artifact_verification_failed_f5db8ef3": "Artifact verification failed.",
+  "body_required_707a0b3a": "Body required."
+}

@@ -1,0 +1,17 @@
+{
+  "seasonal_data_could_not_load_please_retry_later_903f6286": "Seasonal data could not load. Please retry later.",
+  "complete_eligible_checklists_grouped_into_independent_o_bd1af591": "Complete eligible checklists grouped into independent outings; historical coverage {{v0}}. Single-season species are excluded by default when multiple seasons were sampled. Historical coverage can include partial years and does not guarantee occurrence. Photos from the selected quarter(s) are preferred; other dates are used when matching coverage is unavailable. Geography quizzes do not change saved statistics.",
+  "invalid_species_reference_e9944eed": "Invalid species reference",
+  "incomplete_record_66b0f2b7": "Incomplete record",
+  "oversized_record_105ecfe8": "Oversized record",
+  "missing_package_object_3d598e01": "Missing package object",
+  "seasonal_data_is_not_loaded_yet_676c7f11": "Seasonal data is not loaded yet.",
+  "no_seasonal_data_for_this_place_f90fef5f": "No seasonal data for this place.",
+  "invalid_query_e7a90c1f": "Invalid query.",
+  "method_not_allowed_5765cf56": "Method not allowed.",
+  "storage_is_read_only_or_unavailable_48555b36": "Storage is read-only or unavailable.",
+  "artifact_verification_failed_f5db8ef3": "Artifact verification failed.",
+  "body_required_707a0b3a": "Body required.",
+  "storage_unavailable_ef97fa10": "Storage unavailable.",
+  "unknown_artifact_d95fea41": "Unknown artifact."
+}

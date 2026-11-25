@@ -1,13 +1,13 @@
 import {build} from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
+import './build-i18n.mjs';
 const root=path.resolve(import.meta.dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const types={'.html':'text/html; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.csv':'text/csv; charset=utf-8','.txt':'text/plain; charset=utf-8'};
 const assets=Object.fromEntries(fs.readdirSync(path.join(root,'dist')).filter(n=>types[path.extname(n)]).map(n=>['/'+n,{type:types[path.extname(n)],body:read('dist/'+n)}]));
 const legacy=await import('../dist/id-tips.mjs');
-const core=read('dist/review-core.mjs').replace(/export /g,'');
-const worker=`const ASSETS=${JSON.stringify(assets)};\nconst CATALOG=JSON.parse(ASSETS['/data.json'].body);\nconst LEGACY_TIPS=${JSON.stringify(legacy.ID_TIPS)};\nconst LEGACY_SPECIES=${JSON.stringify(legacy.SPECIES_TIPS)};\n${core}\n${read('worker/index.mjs')}`;
+const worker=`import {reviewCoverage,validateReview} from '../dist/review-core.mjs';\nconst ASSETS=${JSON.stringify(assets)};\nconst CATALOG=JSON.parse(ASSETS['/data.json'].body);\nconst LEGACY_TIPS=${JSON.stringify(legacy.ID_TIPS)};\nconst LEGACY_SPECIES=${JSON.stringify(legacy.SPECIES_TIPS)};\n${read('worker/index.mjs')}`;
 fs.mkdirSync(path.join(root,'dist/server'),{recursive:true});fs.mkdirSync(path.join(root,'dist/.openai'),{recursive:true});
 const bundled=await build({stdin:{contents:worker,resolveDir:path.join(root,'worker'),sourcefile:'index.mjs',loader:'js'},bundle:true,format:'esm',platform:'browser',target:'es2022',write:false});
 fs.writeFileSync(path.join(root,'dist/server/index.js'),bundled.outputFiles[0].text);fs.copyFileSync(path.join(root,'.openai/hosting.json'),path.join(root,'dist/.openai/hosting.json'));

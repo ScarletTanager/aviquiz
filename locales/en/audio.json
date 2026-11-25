@@ -1,0 +1,23 @@
+{
+  "non_vocal_recordings_do_not_belong_in_a_vocalization_qu_77e49c84": "Non-vocal recordings do not belong in a vocalization quiz.",
+  "invalid_recording_provenance_8c9dff39": "Invalid recording provenance.",
+  "unknown_audio_species_585518c7": "Unknown audio species.",
+  "invalid_audio_catalog_b2f8c728": "Invalid audio catalog.",
+  "no_closer_recording_is_catalogued_use_this_as_species_l_3cd98266": "No closer recording is catalogued. Use this as species-level practice; it may differ from the trip’s vocalizations. {{v0}}",
+  "distant_fallback_geographic_match_unverified_196e656e": "Distant fallback · geographic match unverified",
+  "no_closer_recording_is_catalogued_country_proximity_doe_b9bb74ec": "No closer recording is catalogued. Country proximity does not verify the same population, habitat, or subspecies. {{v0}}",
+  "neighboring_country_fallback_c80ca721": "Neighboring-country fallback",
+  "this_site_s_location_is_not_yet_resolved_ae63ef68": "; this site’s location is not yet resolved",
+  "no_closer_recording_is_present_in_this_quiz_s_catalog_a_1f92a66d": "No closer recording is present in this quiz’s catalog{{v0}}. A Colombian locality is a broad fallback, not a verified regional or subspecies match.",
+  "the_all_sites_scope_spans_several_regions_this_recordin_88b83704": "The all-sites scope spans several regions; this recording represents one locality. {{v0}}",
+  "colombia_fallback_outside_matched_site_area_f6ad2d3e": "Colombia fallback · outside matched site area",
+  "colombia_recording_broad_trip_scope_c44b1ea9": "Colombia recording · broad trip scope",
+  "department_level_match_only_habitat_elevation_slope_and_d2e1d75d": "Department-level match only; habitat, elevation, slope, and subspecies have not been matched. {{v0}}",
+  "same_department_regional_approximation_926a3f37": "Same department · regional approximation",
+  "location_name_matches_the_site_area_the_exact_trail_ele_3b45f038": "Location name matches the site area; the exact trail, elevation, and subspecies may differ. {{v0}}",
+  "same_named_site_area_c01656fc": "Same named site area",
+  "same_general_site_area_595aa2f2": "Same general site area",
+  "the_catalog_identifies_this_site_00d54e20": "The catalog identifies this site. {{v0}}",
+  "recording_from_this_site_2ece18c2": "Recording from this site",
+  "subspecies_is_unconfirmed_for_this_quiz_site_geographic_9966c8c0": "Subspecies is unconfirmed for this quiz site. Geographic proximity does not establish a subspecies match."
+}

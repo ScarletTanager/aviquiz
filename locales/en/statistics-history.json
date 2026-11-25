@@ -1,0 +1,16 @@
+{
+  "statistics_capacity_exceeded_86cfcd46": "Statistics capacity exceeded.",
+  "invalid_synchronization_cursor_223e8efd": "Invalid synchronization cursor.",
+  "inconsistent_contribution_76977f9e": "Inconsistent contribution.",
+  "invalid_statistics_identity_64b9fe3c": "Invalid statistics identity.",
+  "invalid_completion_time_d32b46ff": "Invalid completion time.",
+  "invalid_comparison_result_0ce8e2b4": "Invalid comparison result.",
+  "invalid_quiz_scope_02d57ef6": "Invalid quiz scope.",
+  "invalid_historical_format_b2b0e39d": "Invalid historical format.",
+  "invalid_historical_snapshot_b13ea318": "Invalid historical snapshot.",
+  "invalid_site_893b8f7b": "Invalid site.",
+  "invalid_aggregate_history_a0ed2d77": "Invalid aggregate history.",
+  "invalid_statistics_totals_1220917d": "Invalid statistics totals.",
+  "invalid_recent_review_state_f1e0d0a1": "Invalid recent review state.",
+  "invalid_species_totals_f43292b5": "Invalid species totals."
+}

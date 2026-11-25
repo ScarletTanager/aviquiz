@@ -90,11 +90,11 @@ if(import.meta.main){
   assert.equal(commands[1].MessageAction,'RESEND');assert.equal(commands[1].Username,'new@example.org');
   assert.ok(commands.every(c=>c.ForceAliasCreation===false&&c.DesiredDeliveryMediums[0]==='EMAIL'&&!('TemporaryPassword' in c)));
   console.log('Passed mocked provider commands. No AWS requests or emails sent.');
-  const source=(await fs.readFile('dist/invite.mjs','utf8')).replace("import {accountFetch} from './auth-session.mjs';",'');
+  const source=(await fs.readFile('dist/invite.mjs','utf8')).replace(/^import .*;\n/gm,'');
   async function ui(status=200,available=true){
     const elements=Object.fromEntries(['invite-form','invite-email','invite-send','invite-access','invite-result','invite-introduction','invite-reference'].map(id=>[id,{hidden:id==='invite-form',textContent:'',value:'friend@example.org',listeners:{},addEventListener(name,fn){this.listeners[name]=fn;},reportValidity(){return true;},reset(){elements['invite-email'].value='';}}]));
     const calls=[];let release;
-    const context=vm.createContext({document:{getElementById:id=>elements[id]},crypto,accountFetch:async(url,options)=>{calls.push({url,options});return options?new Promise(resolve=>{release=resolve;}):{ok:status===200,status,json:async()=>({available})};}});
+    const context=vm.createContext({t:(await import("./dist/i18n.mjs")).t,document:{getElementById:id=>elements[id]},crypto,accountFetch:async(url,options)=>{calls.push({url,options});return options?new Promise(resolve=>{release=resolve;}):{ok:status===200,status,json:async()=>({available})};}});
     vm.runInContext(source,context);await new Promise(r=>setImmediate(r));
     return {elements,calls,finish:response=>release(response)};
   }

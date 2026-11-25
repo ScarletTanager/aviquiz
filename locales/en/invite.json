@@ -1,0 +1,15 @@
+{
+  "the_connection_was_interrupted_before_we_received_the_r_ebb5870e": "The connection was interrupted before we received the result. The account or invitation email may already exist. Check its status before trying again.",
+  "the_invitation_could_not_be_confirmed_cd12202b": "The invitation could not be confirmed.",
+  "invitation_sent_to_they_can_follow_the_instructions_in_91bb0dcb": "Invitation sent to {{v0}}. They can follow the instructions in the email to sign in at aviquiz.org.",
+  "sending_invitation_04bbb6e0": "Sending invitation…",
+  "could_not_check_invitation_access_reload_to_try_again_b41d1bab": "Could not check invitation access. Reload to try again.",
+  "you_can_invite_people_to_aviquiz_9729a199": "You can invite people to AviQuiz.",
+  "invitations_are_not_enabled_on_this_site_yet_11dfcf5b": "Invitations are not enabled on this site yet.",
+  "invitations_are_unavailable_please_try_again_later_ea6ca828": "Invitations are unavailable. Please try again later.",
+  "sign_in_with_an_account_that_has_invitation_permission_1ebccef5": "Sign in with an account that has invitation permission to use this page.",
+  "please_sign_in_again_to_invite_someone_a698a992": "Please sign in again to invite someone.",
+  "support_reference_678a98f6": "Support reference: ",
+  "please_ask_an_aviquiz_administrator_to_check_this_invit_826d189e": "Please ask an AviQuiz administrator to check this invitation.",
+  "check_this_invitation_before_sending_it_again_c8c96367": "Check this invitation before sending it again."
+}

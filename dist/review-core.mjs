@@ -1,3 +1,4 @@
+import {t} from './i18n.mjs';
 export const REVIEW_SCHEMA=1;
 const approvedRows=rows=>rows.filter(r=>r.approved).map(r=>r.approved);
 export function reviewCoverage(birds,rows){
@@ -20,24 +21,24 @@ export function reviewQueue(birds,rows,{family='all',site='all',limit=20}={}){
     }).slice(0,limit);
 }
 export function validateReview(input,birds,{approve=false}={}){
-  if(!input||typeof input!=='object')throw Error('A review document is required.');
+  if(!input||typeof input!=='object')throw Error(t("review-core:a_review_document_is_required_322d4e2b"));
   const bird=birds.find(b=>b.id===input.speciesId),photo=bird?.photos.find(p=>String(p.id)===String(input.photoId));
-  if(!photo)throw Error('Choose a photograph from this checklist’s Macaulay records.');
-  const text=(v,max)=>{if(typeof v!=='string'||v.length>max)throw Error('Review text is missing or too long.');return v.trim();};
+  if(!photo)throw Error(t("review-core:choose_a_photograph_from_this_checklist_s_macaulay_reco_19312966"));
+  const text=(v,max)=>{if(typeof v!=='string'||v.length>max)throw Error(t("review-core:review_text_is_missing_or_too_long_ee2ffcad"));return v.trim();};
   const source=`https://ebird.org/species/${bird.id}`;
-  if(input.source!==source)throw Error('The source must be this species’ eBird account.');
+  if(input.source!==source)throw Error(t("review-core:the_source_must_be_this_species_ebird_account_f1666827"));
   const tips=input.tips||[],features=input.features||[];
-  if(!Array.isArray(tips)||tips.length>6||!Array.isArray(features)||features.length>2)throw Error('Use up to six general tips and two photo callouts.');
+  if(!Array.isArray(tips)||tips.length>6||!Array.isArray(features)||features.length>2)throw Error(t("review-core:use_up_to_six_general_tips_and_two_photo_callouts_2c1cf78b"));
   const cleanTips=tips.map(t=>text(t,350)).filter(Boolean);
   const cleanFeatures=features.map(f=>{
-    if(!Array.isArray(f.point)||f.point.length!==2||!f.point.every(n=>Number.isFinite(n)&&n>=0&&n<=1))throw Error('Arrow points must be within the photograph.');
-    if(!Array.isArray(f.lines)||f.lines.length>2)throw Error('Use at most two short lines per callout.');
+    if(!Array.isArray(f.point)||f.point.length!==2||!f.point.every(n=>Number.isFinite(n)&&n>=0&&n<=1))throw Error(t("review-core:arrow_points_must_be_within_the_photograph_5b2e37b3"));
+    if(!Array.isArray(f.lines)||f.lines.length>2)throw Error(t("review-core:use_at_most_two_short_lines_per_callout_08a4f668"));
     const title=text(f.title,26),lines=f.lines.map(t=>text(t,29));
-    if(approve&&(!title||!lines.length||lines.some(t=>!t)))throw Error('Each callout needs a title and explanation.');
+    if(approve&&(!title||!lines.length||lines.some(t=>!t)))throw Error(t("review-core:each_callout_needs_a_title_and_explanation_14de089d"));
     return {title,lines,point:f.point};
   });
   const width=Number(input.width)||0,height=Number(input.height)||0;
-  if(width<0||height<0||width>20000||height>20000)throw Error('Invalid photograph dimensions.');
-  if(approve&&(!width||!height||!cleanFeatures.length||!cleanTips.length||!input.photoChecked||!input.sourceChecked))throw Error('Approval requires visible photo features, general tips, image dimensions, and both review checks.');
+  if(width<0||height<0||width>20000||height>20000)throw Error(t("review-core:invalid_photograph_dimensions_4faeaea8"));
+  if(approve&&(!width||!height||!cleanFeatures.length||!cleanTips.length||!input.photoChecked||!input.sourceChecked))throw Error(t("review-core:approval_requires_visible_photo_features_general_tips_i_1655f053"));
   return {schema:REVIEW_SCHEMA,speciesId:bird.id,photoId:String(photo.id),source,width,height,tips:cleanTips,features:cleanFeatures,notes:text(input.notes||'',2000),photoChecked:input.photoChecked===true,sourceChecked:input.sourceChecked===true};
 }

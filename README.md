@@ -55,3 +55,5 @@ Each species page offers a question count and a regular-quiz launch button. Site
 Validation: all 13 site and 72 family species sets match their corresponding quiz scopes, and individual answer counts reconcile with group summary totals. Browser tests checked Chicaque's 261 species, Furnariidae's 51 species, all six species sort/direction combinations, direct-link reload, home navigation, a two-question site launch clearing previously selected review/lifer/family filters, and a three-question family launch scoped to all sites.
 
 Quizzes started with experimental ID tips enabled do not write any answers to learning history, including correct, incorrect, and revealed answers and species without tips. Session results and review of that session remain available. Previously saved answers are retained because older records do not identify experimental sessions.
+
+Application messages and canonical page templates: [Internationalization](I18N.md).

@@ -1,0 +1,20 @@
+{
+  "account_setup_could_not_be_completed_no_invitation_emai_6c11a50a": "Account setup could not be completed. No invitation email was requested. Please have this invitation checked before trying again.",
+  "the_account_was_created_but_we_could_not_confirm_that_i_f113d435": "The account was created, but we could not confirm that its invitation email was sent. Check with the recipient before sending another invitation.",
+  "the_account_was_created_but_its_invitation_email_could_f65ef569": "The account was created, but its invitation email could not be sent. Please have this invitation checked before trying again.",
+  "the_invitation_email_was_accepted_for_sending_but_aviqu_a22afac3": "The invitation email was accepted for sending, but AviQuiz could not save its status. Check with the recipient before sending another invitation.",
+  "invalid_invitation_identity_1cb8cf49": "Invalid invitation identity.",
+  "the_daily_invitation_limit_has_been_reached_try_again_l_7fefba38": "The daily invitation limit has been reached. Try again later.",
+  "an_account_already_exists_for_this_email_address_eda7d7b5": "An account already exists for this email address.",
+  "this_address_already_has_an_unfinished_invitation_check_d095ea7c": "This address already has an unfinished invitation. Check its status before sending another email.",
+  "an_invitation_has_already_been_sent_to_this_address_no_5f7895b0": "An invitation has already been sent to this address. No additional email was sent.",
+  "enter_one_valid_email_address_5f14c6b1": "Enter one valid email address.",
+  "invalid_invitation_ba186bde": "Invalid invitation.",
+  "send_one_email_address_fec1ece0": "Send one email address.",
+  "invitations_are_not_enabled_here_yet_2a4cf8e9": "Invitations are not enabled here yet.",
+  "invitation_permission_is_required_269236af": "Invitation permission is required.",
+  "sign_in_again_to_verify_your_account_18e5667f": "Sign in again to verify your account.",
+  "account_storage_is_unavailable_4dd57e46": "Account storage is unavailable.",
+  "use_the_invitation_form_on_this_site_bfff4fec": "Use the invitation form on this site.",
+  "method_not_allowed_5765cf56": "Method not allowed."
+}

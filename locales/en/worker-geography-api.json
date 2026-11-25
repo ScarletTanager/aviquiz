@@ -1,0 +1,18 @@
+{
+  "ebird_lookup_unavailable_showing_any_previously_loaded_867b914e": "eBird lookup unavailable. Showing any previously loaded locations and existing pilot sites.",
+  "refresh_failed_the_previous_directory_has_been_retained_a2798353": "Refresh failed. The previous directory has been retained.",
+  "ebird_subregions_some_countries_do_not_have_both_admini_04ab6bfb": "eBird subregions. Some countries do not have both administrative levels.",
+  "public_ebird_hotspots_and_existing_pilot_sites_location_687eccd9": "Public eBird hotspots and existing pilot sites. Location metadata does not imply seasonal species coverage.",
+  "directory_capacity_reached_16dbc270": "Directory capacity reached.",
+  "bundled_country_directory_grouped_using_un_geographic_r_8f9d3cf1": "Bundled country directory grouped using UN geographic regions; these are not eBird listing continents.",
+  "country_lookup_unavailable_showing_the_bundled_country_ba29d284": "Country lookup unavailable; showing the bundled country directory.",
+  "country_metadata_from_ebird_grouped_using_un_geographic_6ccea96d": "Country metadata from eBird, grouped using UN geographic regions. These groups differ from eBird listing continents.",
+  "limited_location_directory_ebird_api_access_has_not_bee_41ab1bfa": "Limited location directory: eBird API access has not been configured.",
+  "ebird_metadata_access_is_not_configured_393a3dc6": "eBird metadata access is not configured.",
+  "administrator_permission_is_required_to_refresh_metadat_d5f72892": "Administrator permission is required to refresh metadata.",
+  "sign_in_again_to_verify_your_account_18e5667f": "Sign in again to verify your account.",
+  "use_the_location_controls_on_this_site_d259f342": "Use the location controls on this site.",
+  "select_a_location_from_the_directory_first_1fa01f5a": "Select a location from the directory first.",
+  "invalid_location_lookup_68b674f5": "Invalid location lookup.",
+  "method_not_allowed_5765cf56": "Method not allowed."
+}

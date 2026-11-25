@@ -1,0 +1,10 @@
+{
+  "invalid_visibility_871d15aa": "Invalid visibility.",
+  "invalid_route_role_f7e4577f": "Invalid route role.",
+  "route_ownership_cannot_be_changed_through_membership_bf15e4e8": "Route ownership cannot be changed through membership.",
+  "route_title_must_contain_1_200_characters_715253da": "Route title must contain 1–200 characters.",
+  "administrator_assignment_requires_a_separate_bootstrap_c9c9e9f4": "Administrator assignment requires a separate bootstrap/recovery workflow.",
+  "invalid_grant_82a01c26": "Invalid grant.",
+  "a_provider_verified_email_is_required_97f313ce": "A provider-verified email is required.",
+  "access_denied_278f003d": "Access denied."
+}

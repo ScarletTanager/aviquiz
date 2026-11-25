@@ -1,0 +1,5 @@
+{
+  "missing_app_client_id_922b89a1": "Missing app client ID.",
+  "authentication_return_urls_must_match_this_site_origin_e41296b2": "Authentication return URLs must match this site origin and have no query or fragment.",
+  "https_authentication_endpoints_required_8cfc2d96": "HTTPS authentication endpoints required."
+}

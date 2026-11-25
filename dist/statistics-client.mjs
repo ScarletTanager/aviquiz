@@ -1,3 +1,4 @@
+import {t} from './i18n.mjs';
 import {accountFetch} from './auth-session.mjs';
 import {initializeStorageConsent} from './browser-storage-consent.mjs';
 import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,emptyProgress} from './progress.mjs';
@@ -14,7 +15,7 @@ export class StatisticsStore{
  loadCache(){
   try{const cache=JSON.parse(this.storage.getItem(RECENT_QUIZZES_KEY)||'[]');if(!Array.isArray(cache))throw Error();
    this.records=cache.slice(-RECENT_QUIZ_LIMIT).map(r=>{if(typeof r.owner!=='string')throw Error();return {owner:r.owner,event:validateQuiz(r.event,{requireCursor:true}),pending:r.pending===true,stored:r.stored===true};});
-  }catch{this.message='Recent browser statistics could not be read. Older browser history has been preserved.';}
+  }catch{this.message=t("statistics-client:recent_browser_statistics_could_not_be_read_older_brows_85957b89");}
  }
  persist(){
   if(this.consent!=='allow')return;
@@ -25,7 +26,7 @@ export class StatisticsStore{
    const latest=[...merged.values()].sort((a,b)=>a.event.finishedAt.localeCompare(b.event.finishedAt)||a.event.id.localeCompare(b.event.id)).slice(-RECENT_QUIZ_LIMIT);
    this.storage.setItem(RECENT_QUIZZES_KEY,JSON.stringify(latest));
   }
-  catch{this.message='Browser storage is unavailable. New results remain in memory for this visit.';}
+  catch{this.message=t("statistics-client:browser_storage_is_unavailable_new_results_remain_in_me_b33edd06");}
  }
  send(url,options={},owner=this.owner){return this.request(url,{...options,headers:{...options.headers,...(owner!=='guest'?{'x-statistics-account':owner}:{})}});}
  query(){return this.request('/api/statistics');}
@@ -50,10 +51,10 @@ export class StatisticsStore{
    this.account=true;this.owner=result.userId;this.enabled=result.enabled;this.server=parseLegacy(result.histories);this.imported=result.imported;this.acknowledge(result);this.rebuild();
    const prior=this.syncing;if(prior)await prior;
    if(generation===this.generation)await this.sync();
-  }catch{if(generation===this.generation)this.notify('Account statistics could not load. Recent results and unimported browser history have been kept.');}
+  }catch{if(generation===this.generation)this.notify(t("statistics-client:account_statistics_could_not_load_recent_results_and_un_fec3ed3b"));}
  }
  record(event,owner=this.owner){
-  if(!event||owner!==this.owner){if(event)this.notify('The account changed during this quiz, so its result was not uploaded.');return;}
+  if(!event||owner!==this.owner){if(event)this.notify(t("statistics-client:the_account_changed_during_this_quiz_so_its_result_was_a1261d16"));return;}
   if(this.records.some(r=>r.event.id===event.id))return;
   event=validateQuiz({...event,stream:this.stream,sequence:++this.sequence},{requireCursor:true});
   this.records.push({owner,event,pending:this.account&&this.enabled,stored:false});
@@ -64,7 +65,7 @@ export class StatisticsStore{
   this.persist();
   if(this.account){this.histories=replayHistory([event],this.histories);this.notify();void this.sync();}
   else this.rebuild();
-  if(pending.length>RECENT_QUIZ_LIMIT)this.notify('More than five quizzes are waiting to upload. Keep this tab open and reconnect; only five can survive a reload.');
+  if(pending.length>RECENT_QUIZ_LIMIT)this.notify(t("statistics-client:more_than_five_quizzes_are_waiting_to_upload_keep_this_12f386ba"));
  }
  async sync(){
   if(this.syncing)return this.syncing;
@@ -75,7 +76,7 @@ export class StatisticsStore{
    for(const row of this.records.filter(r=>r.owner===owner&&r.pending).sort((a,b)=>a.event.stream.localeCompare(b.event.stream)||a.event.sequence-b.event.sequence)){
     if(this.owner!==owner||this.generation!==generation)return;
     const response=await this.send('/api/statistics/quiz',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(row.event)},owner);
-    if(!response.ok)throw Error();const result=await response.json();if(!result.stored){row.pending=false;this.persist();this.notify('Historical storage is off. This quiz remains in recent browser history only.');continue;}
+    if(!response.ok)throw Error();const result=await response.json();if(!result.stored){row.pending=false;this.persist();this.notify(t("statistics-client:historical_storage_is_off_this_quiz_remains_in_recent_b_ece514b5"));continue;}
     row.pending=false;row.stored=true;this.persist();
    }
    if(this.owner!==owner||this.generation!==generation)return;
@@ -83,29 +84,29 @@ export class StatisticsStore{
    if(this.owner!==owner||this.generation!==generation)return;
    this.server=parseLegacy(result.histories);this.enabled=result.enabled;this.acknowledge(result);
    const unarchived=this.records.filter(r=>r.owner===owner&&!r.stored).map(r=>r.event);
-   this.histories=replayHistory(unarchived,this.server);this.notify('Account statistics synchronized. The browser keeps at most five recent quizzes when allowed.');
-  })().catch(()=>{failed=true;this.notify('Statistics have not synchronized. Keep this tab open and retry when connected; pending results are retained within the browser limit.');}).finally(()=>{this.syncing=null;if(!failed&&this.account&&this.enabled&&this.records.some(r=>r.owner===this.owner&&r.pending))queueMicrotask(()=>this.sync());});
+   this.histories=replayHistory(unarchived,this.server);this.notify(t("statistics-client:account_statistics_synchronized_the_browser_keeps_at_mo_95ecbeba"));
+  })().catch(()=>{failed=true;this.notify(t("statistics-client:statistics_have_not_synchronized_keep_this_tab_open_and_e254f926"));}).finally(()=>{this.syncing=null;if(!failed&&this.account&&this.enabled&&this.records.some(r=>r.owner===this.owner&&r.pending))queueMicrotask(()=>this.sync());});
   return this.syncing;
  }
  async setEnabled(enabled){
-  if(!this.account)throw Error('Sign in first.');
+  if(!this.account)throw Error(t("statistics-client:sign_in_first_1ba0ae88"));
   const response=await this.send('/api/statistics/preferences',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({enabled})});
-  if(!response.ok)throw Error('The preference could not be saved. Please retry.');
+  if(!response.ok)throw Error(t("statistics-client:the_preference_could_not_be_saved_please_retry_ee1e8e4e"));
   this.enabled=enabled;
   if(!enabled)for(const row of this.records)if(row.owner===this.owner)row.pending=false;
-  this.persist();this.notify(enabled?'New completed quizzes will be saved to your account.':'New quizzes will not be saved to your account. Existing account history is retained.');
+  this.persist();this.notify(enabled?t("statistics-client:new_completed_quizzes_will_be_saved_to_your_account_ecc6d5c8"):t("statistics-client:new_quizzes_will_not_be_saved_to_your_account_existing_a6663d9a"));
  }
  legacy(){const raw={photo:JSON.parse(this.storage.getItem(PROGRESS_KEY)||'null')||emptyProgress(),audio:JSON.parse(this.storage.getItem(AUDIO_PROGRESS_KEY)||'null')||emptyProgress()};parseLegacy(raw);return raw;}
  async importLegacy(){
-  if(!this.account)throw Error('Sign in first.');
-  if(!this.enabled)throw Error('Turn on historical statistics storage before importing.');
+  if(!this.account)throw Error(t("statistics-client:sign_in_first_1ba0ae88"));
+  if(!this.enabled)throw Error(t("statistics-client:turn_on_historical_statistics_storage_before_importing_cda778fb"));
   const original=[this.storage.getItem(PROGRESS_KEY),this.storage.getItem(AUDIO_PROGRESS_KEY)],snapshot=this.legacy();
-  if(!Object.keys(snapshot.photo.species).length&&!Object.keys(snapshot.audio.species).length)throw Error('No older browser statistics were found to import.');
+  if(!Object.keys(snapshot.photo.species).length&&!Object.keys(snapshot.audio.species).length)throw Error(t("statistics-client:no_older_browser_statistics_were_found_to_import_c2100cd6"));
   const response=await this.send('/api/statistics/import',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(snapshot)}),result=await response.json();
-  if(!response.ok||!result.imported)throw Error(result.error||'Import failed. Browser history was kept.');
+  if(!response.ok||!result.imported)throw Error(result.error||t("statistics-client:import_failed_browser_history_was_kept_7be8828b"));
   // Only remove the acknowledged bytes; another tab may still have an older app.
   for(const [i,key] of [PROGRESS_KEY,AUDIO_PROGRESS_KEY].entries())if(this.storage.getItem(key)===original[i])this.storage.removeItem(key);
-  await this.refresh();this.notify('Older browser statistics were imported into your account. They contain rolling answers and latest results, not dated quiz sessions.');
+  await this.refresh();this.notify(t("statistics-client:older_browser_statistics_were_imported_into_your_accoun_0f368611"));
  }
 }
 
@@ -114,7 +115,7 @@ export function statisticsControls({changed,request,storage:providedStorage}){
  const $=id=>document.getElementById(id);let storage=providedStorage;try{storage??=localStorage;}catch{}
  const store=new StatisticsStore({storage,request,changed:s=>{
   $('account-statistics-controls').hidden=!s.account;$('save-account-statistics').checked=s.enabled;$('statistics-sync-status').textContent=s.message;
-  $('statistics-history-scope').textContent=s.account?'Showing cumulative account statistics, plus any unsaved recent practice from this device. Latest results provide a comparison point.':'Full historical statistics are available only to signed-in users. Guest statistics aggregate the most recent five quizzes; without browser storage they last only for this visit.';
+  $('statistics-history-scope').textContent=s.account?t("statistics-client:showing_cumulative_account_statistics_plus_any_unsaved_f1e011a9"):t("statistics-client:full_historical_statistics_are_available_only_to_signed_7f4762ce");
   changed(s);
  }});
  const open=id=>{if(!$(id).open)$(id).showModal();};
@@ -133,6 +134,6 @@ export function statisticsControls({changed,request,storage:providedStorage}){
  $('statistics-retry-sync').addEventListener('click',()=>store.refresh());
  window.addEventListener('online',()=>store.refresh());
  window.addEventListener('aviquiz-account-changed',()=>store.refresh());
- window.addEventListener('storage',event=>{if(event.key===STATISTICS_CONSENT_KEY){store.consent=event.newValue==='allow'?'allow':'decline';}if([RECENT_QUIZZES_KEY,STATISTICS_CONSENT_KEY].includes(event.key))store.notify('Browser history changed in another tab. Refresh this page when your quiz is finished.');});
+ window.addEventListener('storage',event=>{if(event.key===STATISTICS_CONSENT_KEY){store.consent=event.newValue==='allow'?'allow':'decline';}if([RECENT_QUIZZES_KEY,STATISTICS_CONSENT_KEY].includes(event.key))store.notify(t("statistics-client:browser_history_changed_in_another_tab_refresh_this_pag_5591df42"));});
  store.notify();void store.refresh();return store;
 }

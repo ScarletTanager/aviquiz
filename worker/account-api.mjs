@@ -1,3 +1,4 @@
+import {t} from '../dist/i18n.mjs';
 import {databaseForEnvironment,usesSitesIdentity} from './database.mjs';
 import {verifierForEnvironment} from './cognito.mjs';
 import {accountService} from './accounts.mjs';
@@ -19,16 +20,16 @@ function bootstrapOwner(request,env,identity){
 }
 export async function accountApi(request,env,{verifyIdentity}={}){
   const url=new URL(request.url),path=url.pathname;
-  if(!['/api/account','/api/account/enroll','/api/account/bootstrap'].includes(path))return json({error:'Not found.'},404);
+  if(!['/api/account','/api/account/enroll','/api/account/bootstrap'].includes(path))return json({error:t("worker-account-api:not_found_0802559d")},404);
   const write=path!=='/api/account';
-  if(request.method!==(write?'POST':'GET'))return json({error:'Method not allowed.'},405);
-  if(write&&(request.headers.get('origin')!==url.origin||request.headers.get('content-type')!=='application/json'))return json({error:'Use account controls on this site.'},403);
+  if(request.method!==(write?'POST':'GET'))return json({error:t("worker-account-api:method_not_allowed_5765cf56")},405);
+  if(write&&(request.headers.get('origin')!==url.origin||request.headers.get('content-type')!=='application/json'))return json({error:t("worker-account-api:use_account_controls_on_this_site_1885ac30")},403);
   let db;
-  try{db=databaseForEnvironment(env);}catch{return json({error:'Account storage unavailable.'},503);}
+  try{db=databaseForEnvironment(env);}catch{return json({error:t("worker-account-api:account_storage_unavailable_bb718d57")},503);}
   let identity;
-  try{identity=await (verifyIdentity||verifierForEnvironment(env))(request);}catch{return json({error:'Sign in again to verify your account.'},401);}
-  if(!identity)return path==='/api/account'?json({kind:'guest',permissions:[]}):json({error:'Sign in required.'},401);
-  if(path==='/api/account/enroll'&&!identity.emailVerified)return json({error:'A verified email is required.'},403);
+  try{identity=await (verifyIdentity||verifierForEnvironment(env))(request);}catch{return json({error:t("worker-account-api:sign_in_again_to_verify_your_account_18e5667f")},401);}
+  if(!identity)return path==='/api/account'?json({kind:'guest',permissions:[]}):json({error:t("worker-account-api:sign_in_required_301f2d8e")},401);
+  if(path==='/api/account/enroll'&&!identity.emailVerified)return json({error:t("worker-account-api:a_verified_email_is_required_7a1c1c70")},403);
   try{
     let mapping=await db.prepare('SELECT user_id FROM app_identities WHERE issuer=? AND subject=?').bind(identity.issuer,identity.subject).first();
     if(!mapping&&path==='/api/account/enroll'){
@@ -41,11 +42,11 @@ export async function accountApi(request,env,{verifyIdentity}={}){
     }
     if(!mapping)return json({kind:'unregistered',permissions:[]});
     let principal=await principalForUser(db,mapping.user_id);
-    if(principal.kind!=='user')return json({error:'This AviQuiz account is disabled.'},403);
+    if(principal.kind!=='user')return json({error:t("worker-account-api:this_aviquiz_account_is_disabled_c219dba4")},403);
     const initialized=await db.prepare('SELECT user_id FROM app_bootstrap WHERE id=1').first();
     const canBootstrap=!initialized&&bootstrapOwner(request,env,identity);
     if(path==='/api/account/bootstrap'){
-      if(!canBootstrap)return json({error:'Administrator setup is unavailable.'},403);
+      if(!canBootstrap)return json({error:t("worker-account-api:administrator_setup_is_unavailable_b2ed4a18")},403);
       const attempt=crypto.randomUUID(),now=new Date().toISOString();
       await db.batch([
         db.prepare("INSERT INTO app_bootstrap (id,user_id,attempt,created_at) SELECT 1,?,?,? WHERE NOT EXISTS (SELECT 1 FROM app_bootstrap) AND NOT EXISTS (SELECT 1 FROM app_grants WHERE permission='system.admin') ON CONFLICT DO NOTHING").bind(principal.userId,attempt,now),
@@ -53,9 +54,9 @@ export async function accountApi(request,env,{verifyIdentity}={}){
         db.prepare("INSERT INTO audit_events (id,actor_user_id,action,resource_type,resource_id,details_json,created_at) SELECT ?,user_id,'admin.bootstrap','grant',user_id,'{}',? FROM app_bootstrap WHERE attempt=?").bind(crypto.randomUUID(),now,attempt)
       ]);
       principal=await principalForUser(db,principal.userId);
-      if(!hasPermission(principal,'system.admin'))return json({error:'Administrator setup is already complete.'},409);
+      if(!hasPermission(principal,'system.admin'))return json({error:t("worker-account-api:administrator_setup_is_already_complete_0ad881a4")},409);
     }
     return json({kind:'user',userId:principal.userId,permissions:principal.grants,
       administrator:hasPermission(principal,'system.admin'),canBootstrap:path!=='/api/account/bootstrap'&&canBootstrap});
-  }catch{return json({error:'Account storage could not complete this request.'},503);}
+  }catch{return json({error:t("worker-account-api:account_storage_could_not_complete_this_request_a543d846")},503);}
 }

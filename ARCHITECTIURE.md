@@ -282,3 +282,12 @@ Certificate-based sender preparation now lives in [deploy/roles-anywhere/README.
 See [GEOGRAPHY.md](GEOGRAPHY.md) for `/explore`, persistent region/hotspot
 metadata, administrator refresh behavior, season selection, pilot coverage
 limits, and preservation of the original Colombia quiz through December 18.
+
+### Application messages
+
+Browser and server share pinned i18next with local English message bundles.
+`pages/` and `locales/en/` generate committed English assets through
+`scripts/build-i18n.mjs`, which also runs as part of the Worker build. The
+standalone release includes the shared runtime for server adapters. This keeps
+message ownership separate from application behavior without adding a remote
+translation service or language selection. See [I18N.md](I18N.md).

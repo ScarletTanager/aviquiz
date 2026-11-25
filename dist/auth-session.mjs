@@ -1,3 +1,4 @@
+import {t} from './i18n.mjs';
 import {authConfig} from './auth-config.mjs';
 import {managerSettings} from './auth-core.mjs';
 let managerPromise;
@@ -11,7 +12,7 @@ export async function getUserManager(){
   return managerPromise;
 }
 export function accountRequestHeaders(url,origin,options,user){
-  if(new URL(url,origin).origin!==origin)throw Error('Account requests must stay on this site.');
+  if(new URL(url,origin).origin!==origin)throw Error(t("auth-session:account_requests_must_stay_on_this_site_71ab48a0"));
   const headers=new Headers(options?.headers);
   if(user&&!user.expired&&user.id_token)headers.set('authorization',`Bearer ${user.id_token}`);
   return headers;
