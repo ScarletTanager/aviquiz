@@ -7,7 +7,7 @@
 </head>
 <body>
 <a id="skip-main" class="skip-link" href="#main-content">Skip to content</a>
-<header class="site-header"><a id="nav-home" href="/" class="wordmark" aria-label="AviQuiz home"><span class="birdmark"><svg viewBox="0 0 48 36" aria-hidden="true" focusable="false"><path d="M4 22C14 7 23 6 24 20C29 11 39 9 44 12C33 14 28 23 24 29C17 18 12 18 4 22Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>AviQuiz</a><nav class="site-nav" aria-label="Main navigation"><a href="/explore">Take a quiz</a><a id="nav-practice" href="/quiz">Practice</a><a id="nav-routes" href="/trips">Trips</a><a id="nav-statistics" href="/statistics">Statistics</a><a id="invite-link" href="/invite" hidden>Invite a birder</a><button id="account-action" type="button" class="text-button" hidden>Sign in</button></nav><span class="edition">A FIELD GUIDE TO KNOWING MORE</span></header>
+<header class="site-header"><a id="nav-home" href="/" class="wordmark" aria-label="AviQuiz home"><span class="birdmark"><svg viewBox="0 0 48 36" aria-hidden="true" focusable="false"><path d="M4 22C14 7 23 6 24 20C29 11 39 9 44 12C33 14 28 23 24 29C17 18 12 18 4 22Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>AviQuiz</a><nav class="site-nav" aria-label="Main navigation"><a href="/explore">Take a quiz</a><a id="nav-practice" href="/quiz">Practice</a><a id="nav-routes" href="/trips">Trips</a><a id="nav-statistics" href="/statistics">Statistics</a><a id="invite-link" href="/invite" hidden>Invite a birder</a><button id="account-action" type="button" class="text-button" hidden>Sign in</button></nav><span class="edition">A FIELD GUIDE TO KNOWING MORE</span><label class="language-control" for="interface-language"><span>Language</span><select id="interface-language" name="interface-language"><option value="en" selected>English</option><option value="es-CO">Español (Colombia)</option></select></label></header>
 <p id="account-status" class="field-help" role="status"></p>
 <main id="main-content" tabindex="-1">
 <section id="landing" aria-labelledby="landing-heading">
@@ -98,6 +98,6 @@
 <p>Older statistics already present in this browser are preserved until you explicitly import them into your account. They contain rolling answers and latest results, not a complete dated quiz log. New quizzes do not grow that old snapshot. Export it before clearing browser data if you want an additional backup.</p>
 <p>You can change browser statistics permission on the Statistics page. Declining removes the recent-quiz cache; existing unimported history is preserved to avoid accidental loss.</p>
 <form method="dialog"><button type="submit">Close</button></form>
-</dialog>
+<p class="field-help">Your selected interface language is remembered in a preference cookie, separate from statistics storage.</p></dialog>
 <script type="module" src="/browser-storage-consent.mjs"></script>
-</body></html>
+<script type="module" src="/language.mjs"></script></body></html>

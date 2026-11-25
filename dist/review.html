@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AviQuiz · Photo review</title><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/review.css"></head>
-<body><header><a href="/" class="wordmark">← AviQuiz</a><span class="edition">SHARED PHOTO REVIEW</span></header><main>
+<body><header class="site-header"><a href="/" class="wordmark">← AviQuiz</a><span class="edition">SHARED PHOTO REVIEW</span><label class="language-control" for="interface-language"><span>Language</span><select id="interface-language" name="interface-language"><option value="en" selected>English</option><option value="es-CO">Español (Colombia)</option></select></label></header><main>
 <section class="review-intro"><p class="eyebrow">ONE SPECIES AT A TIME</p><h1>A closer look.</h1><p class="lede">Build the field guide behind your quiz. Drafts stay here; approved tips become available in the quiz immediately.</p><p id="review-message" role="status">Connecting to shared reviews…</p></section>
 <section id="review-workspace" hidden>
 <div id="review-counts" class="review-counts"></div>
@@ -25,6 +25,6 @@
 <p>Older statistics already present in this browser are preserved until you explicitly import them into your account. They contain rolling answers and latest results, not a complete dated quiz log. New quizzes do not grow that old snapshot. Export it before clearing browser data if you want an additional backup.</p>
 <p>You can change browser statistics permission on the Statistics page. Declining removes the recent-quiz cache; existing unimported history is preserved to avoid accidental loss.</p>
 <form method="dialog"><button type="submit">Close</button></form>
-</dialog>
+<p class="field-help">Your selected interface language is remembered in a preference cookie, separate from statistics storage.</p></dialog>
 <script type="module" src="/browser-storage-consent.mjs"></script>
-</body></html>
+<script type="module" src="/language.mjs"></script></body></html>

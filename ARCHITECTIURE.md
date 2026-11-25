@@ -285,9 +285,13 @@ limits, and preservation of the original Colombia quiz through December 18.
 
 ### Application messages
 
-Browser and server share pinned i18next with local English message bundles.
-`pages/` and `locales/en/` generate committed English assets through
+Browser and server share pinned i18next with local English and Colombian Spanish
+message bundles. A header selector stores an explicit host-specific preference
+cookie; English remains the default. Static HTML is generated for each language
+and selected per request. Browser messages and formatting use the document locale;
+API display messages are localized without changing shared translator state.
+`pages/` and `locales/{en,es-CO}/` generate committed localized assets through
 `scripts/build-i18n.mjs`, which also runs as part of the Worker build. The
 standalone release includes the shared runtime for server adapters. This keeps
 message ownership separate from application behavior without adding a remote
-translation service or language selection. See [I18N.md](I18N.md).
+translation service. See [I18N.md](I18N.md).

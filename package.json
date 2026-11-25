@@ -8,7 +8,8 @@
     "test:database": "node scripts/build-worker.mjs && node scripts/test-local-postgres.mjs",
     "build:i18n": "node scripts/build-i18n.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
-    "test:i18n": "node test-i18n.mjs"
+    "test:i18n": "node test-i18n.mjs",
+    "test:language": "node scripts/build-worker.mjs && node test-language.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "3.1172.0",

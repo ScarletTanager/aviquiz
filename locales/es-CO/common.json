@@ -35,5 +35,10 @@
   "badRecord": "Registro comprimido no válido",
   "badLength": "Tamaño de registro no válido",
   "otherAreas": "Otros países / áreas",
-  "badChunk": "Bloque de datos no válido."
+  "badChunk": "Bloque de datos no válido.",
+  "languageLabel": "Idioma",
+  "englishLanguage": "English",
+  "spanishLanguage": "Español (Colombia)",
+  "changeLanguageWarning": "Cambiar el idioma recarga esta página. Puede perder un cuestionario sin terminar o cambios sin guardar. ¿Desea continuar?",
+  "languagePreferenceDetails": "El idioma seleccionado de la interfaz se recuerda en una cookie de preferencias, independiente del almacenamiento de estadísticas."
 }

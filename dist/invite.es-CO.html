@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es-CO"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invitar a una persona a observar aves · AviQuiz</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header class="site-header"><a class="wordmark" href="/">AviQuiz</a><nav class="site-nav" aria-label="Navegación principal"><a href="/quiz">Práctica</a><a href="/trips">Viajes</a><a href="/statistics">Estadísticas</a><button id="account-action" class="text-button" type="button" hidden>Iniciar sesión</button></nav><label class="language-control" for="interface-language"><span>Idioma</span><select id="interface-language" name="interface-language"><option value="en">English</option><option value="es-CO" selected>Español (Colombia)</option></select></label></header>
+<p id="account-status" class="field-help" role="status"></p>
+<main style="max-width:42rem;margin:3rem auto;padding:0 1.5rem">
+<p class="eyebrow">OBSERVAR AVES ES MEJOR EN COMPAÑÍA</p><h1>Invitar a una persona</h1>
+<div id="invite-introduction"><p>Envíe una invitación a AviQuiz a una sola persona. Recibirá un correo con instrucciones para iniciar sesión y una contraseña temporal, y elegirá su propia contraseña cuando ingrese.</p>
+<p>Las cuentas invitadas tienen acceso de usuario común. Invitar a alguien no le otorga permiso para invitar a otras personas, revisar fotos ni administrar AviQuiz. Los cuestionarios para visitantes siguen abiertos a todo el mundo.</p></div>
+<p id="invite-access" role="status">Verificando el acceso a las invitaciones…</p>
+<form id="invite-form" hidden>
+<label for="invite-email">Correo electrónico</label>
+<input id="invite-email" name="email" type="email" autocomplete="email" maxlength="254" required style="display:block;width:100%;box-sizing:border-box;margin:.5rem 0 1rem">
+<button id="invite-send" type="submit">Enviar invitación</button>
+<p class="field-help">Una dirección a la vez. Hasta 5 invitaciones por persona y 20 en todo AviQuiz en cualquier período de 24 horas. Revise cuidadosamente la dirección antes de enviar.</p>
+</form>
+<p id="invite-result" role="status" aria-live="polite"></p><p id="invite-reference" class="field-help" hidden></p><a href="/">Volver al inicio</a>
+</main><script type="module" src="/auth.mjs"></script><script type="module" src="/invite.mjs"></script>
+
+<dialog id="statistics-consent" class="statistics-dialog" aria-labelledby="statistics-consent-title">
+<h2 id="statistics-consent-title">¿Desea guardar estadísticas recientes de práctica en este navegador?</h2>
+<p>Con su permiso, AviQuiz conserva estadísticas agregadas de los cinco cuestionarios completados más recientes en este dispositivo. Los pequeños totales de contribución mantienen esta ventana móvil y permiten reintentos si falla la conexión; no constituyen un archivo de cuestionarios. Puede hacer cuestionarios sin permitir el almacenamiento de estadísticas en el navegador.</p>
+<p>El historial de la cuenta con sesión iniciada tiene una configuración independiente en la página de estadísticas. No se usan cookies publicitarias ni de seguimiento para estas estadísticas. Recordamos su elección de almacenamiento incluso si no lo permite.</p>
+<div class="statistics-actions"><button id="statistics-allow" type="button">Permitir estadísticas recientes</button><button id="statistics-decline" type="button" class="secondary-button">Continuar sin estadísticas en el navegador</button><button id="statistics-storage-details" type="button" class="text-button">¿Qué se guarda?</button></div>
+</dialog>
+<dialog id="statistics-details" class="statistics-dialog" aria-labelledby="statistics-details-title">
+<h2 id="statistics-details-title">Qué guarda AviQuiz en su navegador</h2>
+<p>Si lo permite, conservamos conteos de aciertos e intentos por especie para una ventana móvil de cinco cuestionarios entre práctica visual y de audio, un registro limitado de errores recientes y los últimos resultados de comparación. Los pequeños totales de contribución, el alcance, la modalidad y los identificadores de sincronización permiten eliminar contribuciones anteriores y evitar cargas duplicadas. No conservamos un archivo de cuestionarios pregunta por pregunta, sus respuestas escritas, contraseñas ni archivos de fotos o audio.</p>
+<p>Conservamos un pequeño indicador de su elección de almacenamiento para respetar su decisión. El inicio de sesión usa almacenamiento de sesión esencial. Las marcas personales de revisión de fotos se guardan por separado mediante la función de revisión. El permiso de estadísticas del navegador no controla esos registros ni el historial de la cuenta.</p>
+<p>Las estadísticas anteriores que ya están en este navegador se conservan hasta que las importe explícitamente a su cuenta. Contienen respuestas de una ventana móvil y los últimos resultados, no un registro completo de cuestionarios con fecha. Los cuestionarios nuevos no amplían esa copia anterior. Expórtela antes de borrar los datos del navegador si desea una copia de seguridad adicional.</p>
+<p>Puede cambiar el permiso de estadísticas del navegador en la página de estadísticas. Al rechazarlo se elimina la caché de cuestionarios recientes; el historial existente sin importar se conserva para evitar pérdidas accidentales.</p>
+<form method="dialog"><button type="submit">Cerrar</button></form>
+<p class="field-help">El idioma seleccionado de la interfaz se recuerda en una cookie de preferencias, independiente del almacenamiento de estadísticas.</p></dialog>
+<script type="module" src="/browser-storage-consent.mjs"></script>
+<script type="module" src="/language.mjs"></script></body></html>

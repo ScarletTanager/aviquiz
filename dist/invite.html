@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invite a birder · AviQuiz</title><link rel="stylesheet" href="/style.css"></head>
 <body>
-<header class="site-header"><a class="wordmark" href="/">AviQuiz</a><nav class="site-nav" aria-label="Main navigation"><a href="/quiz">Practice</a><a href="/trips">Trips</a><a href="/statistics">Statistics</a><button id="account-action" class="text-button" type="button" hidden>Sign in</button></nav></header>
+<header class="site-header"><a class="wordmark" href="/">AviQuiz</a><nav class="site-nav" aria-label="Main navigation"><a href="/quiz">Practice</a><a href="/trips">Trips</a><a href="/statistics">Statistics</a><button id="account-action" class="text-button" type="button" hidden>Sign in</button></nav><label class="language-control" for="interface-language"><span>Language</span><select id="interface-language" name="interface-language"><option value="en" selected>English</option><option value="es-CO">Español (Colombia)</option></select></label></header>
 <p id="account-status" class="field-help" role="status"></p>
 <main style="max-width:42rem;margin:3rem auto;padding:0 1.5rem">
 <p class="eyebrow">BIRDING IS BETTER TOGETHER</p><h1>Invite a birder</h1>
@@ -30,6 +30,6 @@
 <p>Older statistics already present in this browser are preserved until you explicitly import them into your account. They contain rolling answers and latest results, not a complete dated quiz log. New quizzes do not grow that old snapshot. Export it before clearing browser data if you want an additional backup.</p>
 <p>You can change browser statistics permission on the Statistics page. Declining removes the recent-quiz cache; existing unimported history is preserved to avoid accidental loss.</p>
 <form method="dialog"><button type="submit">Close</button></form>
-</dialog>
+<p class="field-help">Your selected interface language is remembered in a preference cookie, separate from statistics storage.</p></dialog>
 <script type="module" src="/browser-storage-consent.mjs"></script>
-</body></html>
+<script type="module" src="/language.mjs"></script></body></html>

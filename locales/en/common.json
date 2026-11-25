@@ -35,5 +35,10 @@
   "badRecord": "Invalid compressed record",
   "badLength": "Invalid record size",
   "otherAreas": "Other countries / areas",
-  "badChunk": "Invalid chunk."
+  "badChunk": "Invalid chunk.",
+  "languageLabel": "Language",
+  "englishLanguage": "English",
+  "spanishLanguage": "Español (Colombia)",
+  "changeLanguageWarning": "Changing language reloads this page. An unfinished quiz or unsaved edits may be lost. Continue?",
+  "languagePreferenceDetails": "Your selected interface language is remembered in a preference cookie, separate from statistics storage."
 }

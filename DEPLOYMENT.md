@@ -636,18 +636,21 @@ conflict with this procedure, inspect current source/live state and record the
 resolution; don't execute obsolete one-off commands simply because they appear
 in an earlier deployment record.
 
-## English message assets
+## Language message assets
 
-Application wording is authored in `locales/en/*.json`; page structure is
+Application wording is authored in `locales/{en,es-CO}/*.json`; page structure is
 authored in `pages/*.html`. See [I18N.md](I18N.md). Before either staging or
 production packaging, run `npm run test:i18n`; `node scripts/build-worker.mjs`
-automatically generates the message resources and English pages. Commit the
+automatically generates the message resources and both language variants. Commit the
 generated assets together with their canonical sources before release-source
 verification. Do not edit generated `dist/*.html` directly.
 
 The Worker contains the browser message resources and its own server runtime.
 The standalone DigitalOcean package additionally includes `dist/i18n.mjs`,
-`dist/messages-en.mjs`, `dist/i18next.mjs`, and `dist/i18next-LICENSE.txt` for
+`dist/messages-en.mjs`, `dist/messages-es-CO.mjs`, `dist/locale-preference.mjs`,
+`dist/i18next.mjs`, and `dist/i18next-LICENSE.txt` for
 server adapter imports. `scripts/package-do.mjs` adds these files to the release
-manifest and digest. Deployment scripts must retain them. No language preference
-or extra runtime service is required; the only enabled language is English.
+manifest and digest. Deployment scripts must retain them. No extra runtime service is required. English is the default; the header selector
+sets a host-specific language preference cookie. The Worker embeds both generated
+HTML variants and message bundles. Run `npm run test:language` before promotion
+and have native speakers review the Spanish interface in staging.

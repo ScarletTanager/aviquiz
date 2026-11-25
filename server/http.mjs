@@ -1,4 +1,5 @@
-import {t} from '../dist/i18n.mjs';
+import {t,resourcesFor} from '../dist/i18n.mjs';
+import {cookieLocale} from '../dist/locale-preference.mjs';
 import http from 'node:http';
 import {randomUUID} from 'node:crypto';
 import application from '../dist/server/index.js';
@@ -33,7 +34,7 @@ export function createHttpServer(env,{app=application}={}){
       if(url.pathname==='/healthz'){
         if(req.method!=='GET'){res.writeHead(405);res.end();return;}
         await env.DB.prepare('SELECT 1 AS ready').first();
-        res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});res.end('{"status":"ok"}');return;
+        res.writeHead(200,{'content-type':'application/json','cache-control':'no-store','content-language':cookieLocale(req.headers.cookie),'vary':'Cookie'});res.end('{"status":"ok"}');return;
       }
       const headers=new Headers();
       for(const [name,value] of Object.entries(req.headers)){
@@ -53,8 +54,8 @@ export function createHttpServer(env,{app=application}={}){
       res.end(req.method==='HEAD'?undefined:Buffer.from(await response.arrayBuffer()));
     }catch{
       console.error(JSON.stringify({event:'request_failed',requestId:id}));
-      if(!res.headersSent)res.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});
-      res.end(JSON.stringify({error:t("server-http:service_temporarily_unavailable_9a6e032d")}));
+      if(!res.headersSent)res.writeHead(503,{'content-type':'application/json','cache-control':'no-store','content-language':cookieLocale(req.headers.cookie),'vary':'Cookie'});
+      res.end(JSON.stringify({error:resourcesFor(cookieLocale(req.headers.cookie))["server-http"].service_temporarily_unavailable_9a6e032d}));
     }
   });
   server.maxConnections=128;

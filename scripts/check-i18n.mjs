@@ -9,7 +9,7 @@ const root=path.resolve(import.meta.dirname,'..');
 const placeholders=value=>[...new Set([...value.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map(m=>m[1]))].sort();
 let uses=0;
 function lookup(key){const colon=key.indexOf(':'),ns=key.slice(0,colon),id=key.slice(colon+1);return messages[ns]?.[id]??messages[ns]?.[id+'_other'];}
-const excluded=new Set(['i18n.mjs','i18next.mjs','messages-en.mjs','oidc-client-ts.mjs','jwt-decode.mjs','audio-areas.mjs','route-extra-data.mjs','route-photo-references-data.mjs']);
+const excluded=new Set(['i18n.mjs','i18next.mjs','messages-en.mjs','messages-es-CO.mjs','oidc-client-ts.mjs','jwt-decode.mjs','audio-areas.mjs','route-extra-data.mjs','route-photo-references-data.mjs']);
 for(const dir of ['dist','worker','server'])for(const file of await fs.readdir(path.join(root,dir))){
  if(!file.endsWith('.mjs')||excluded.has(file))continue;
  const source=await fs.readFile(path.join(root,dir,file),'utf8'),ast=parse(source,{sourceType:'module'});
