@@ -202,9 +202,14 @@ class Runner:
         return False
 
     def collect(self, page):
+        manual_recovery = getattr(self.args, 'manual_verification', False)
         while not self.stopping and (not self.args.max_requests or self.requests < self.args.max_requests):
             host = self.c.execute('select * from browser_photo_control where id=1').fetchone()
-            if host['blocked']:
+            # Explicit manual restart allows one visit for the owner to verify
+            # access. Persist the block until a catalog is actually validated.
+            recovering = manual_recovery and host['challenges'] > 0
+            manual_recovery = False
+            if host['blocked'] and not recovering:
                 self.report('blocked', reason='Repeated browser challenge; explicit owner review required')
                 return
             jobs = seasonal.plan(self.c, 1)
@@ -212,7 +217,7 @@ class Runner:
                 self.report('finished', reason='No pending quarter jobs; inspect coverage for partial or review gaps')
                 return
             job = jobs[0]
-            until = max(host['retry_at'], host['last_request'] + self.args.interval)
+            until = max(0 if recovering else host['retry_at'], host['last_request'] + self.args.interval)
             if until > time.time():
                 self.report('waiting', next_request_at=until)
                 self.wait(until)
