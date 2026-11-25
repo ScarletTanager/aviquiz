@@ -96,3 +96,5 @@
 #settings input,#settings select,.geography-page input,.geography-page select{font-weight:400}
 .geography-page{font-size:1rem}
 #setup .field-help,.geography-page .field-help{font-size:.875rem;line-height:1.6}
+
+.statistics-dialog{width:min(38rem,calc(100vw - 3rem));max-height:85vh;overflow:auto;padding:1.5rem;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:var(--white);font-family:inherit}.statistics-dialog::backdrop{background:#0007}.statistics-dialog p{line-height:1.6}.statistics-dialog h2{margin-top:0}.statistics-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0}.statistics-actions form{margin:0}.statistics-storage{border:1px solid var(--line);padding:20px;margin:20px 0}.statistics-storage[hidden]{display:none}

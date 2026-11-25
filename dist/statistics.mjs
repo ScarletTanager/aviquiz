@@ -7,13 +7,14 @@ export function accuracyStatistics(birds,sites,progress,{siteOnly=false}={}){
   for(const bird of birds){
     const family=familyName(bird.family);
     if(!familiesById.has(family))familiesById.set(family,{id:family,name:family,order:familiesById.size,correct:0,total:0});
-    const attempts=progress.species[bird.id]?.attempts||[];
-    const correct=attempts.filter(Boolean).length;
-    const familyRow=familiesById.get(family);familyRow.correct+=correct;familyRow.total+=attempts.length;
+    const record=progress.species[bird.id],attempts=record?.attempts||[];
+    const correct=record?.correct??attempts.filter(Boolean).length,total=record?.total??attempts.length;
+    const familyRow=familiesById.get(family);familyRow.correct+=correct;familyRow.total+=total;
     for(const site of new Set(bird.sites)){
       const row=sitesById.get(site);if(!row)continue;
       const siteAttempts=siteOnly?progress.siteSpecies?.[site]?.[bird.id]?.attempts||[]:attempts;
-      row.correct+=siteAttempts.filter(Boolean).length;row.total+=siteAttempts.length;
+      const record=siteOnly?progress.siteSpecies?.[site]?.[bird.id]:progress.species[bird.id];
+      row.correct+=record?.correct??siteAttempts.filter(Boolean).length;row.total+=record?.total??siteAttempts.length;
     }
   }
   const finish=rows=>rows.map(row=>({...row,rate:row.total?row.correct/row.total:null}));
@@ -34,8 +35,8 @@ export function speciesAccuracy(birds,progress,kind,id,{siteOnly=false}={}){
   if(!['site','family'].includes(kind))return [];
   return birds.map((bird,order)=>({bird,order})).filter(({bird})=>kind==='site'?bird.sites.includes(id):familyName(bird.family)===id).map(({bird,order})=>{
     const attempts=siteOnly&&kind==='site'?progress.siteSpecies?.[id]?.[bird.id]?.attempts||[]:progress.species[bird.id]?.attempts||[];
-    const correct=attempts.filter(Boolean).length;
-    return {id:bird.id,name:bird.name,scientificName:bird.scientificName,order,correct,total:attempts.length,rate:attempts.length?correct/attempts.length:null};
+    const record=siteOnly&&kind==='site'?progress.siteSpecies?.[id]?.[bird.id]:progress.species[bird.id],correct=record?.correct??attempts.filter(Boolean).length,total=record?.total??attempts.length;
+    return {id:bird.id,name:bird.name,scientificName:bird.scientificName,order,correct,total,rate:total?correct/total:null};
   });
 }
 

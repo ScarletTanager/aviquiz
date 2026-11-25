@@ -5,15 +5,19 @@ export const TABLES=Object.freeze({
   app_grants:['user_id','permission'],
   app_bootstrap:['id','user_id','attempt','created_at'],
   audit_events:['id','actor_user_id','action','resource_type','resource_id','details_json','created_at'],
-  photo_reviews:['photo_id','species_id','status','revision','document_json','approved_json','updated_at']
+  photo_reviews:['photo_id','species_id','status','revision','document_json','approved_json','updated_at'],
+  user_statistics_settings:['user_id','enabled','updated_at'],
+  user_statistics_summary:['user_id','revision','payload_json','updated_at']
 });
-const keys={app_users:['id'],app_identities:['issuer','subject'],app_grants:['user_id','permission'],app_bootstrap:['id'],audit_events:['id'],photo_reviews:['photo_id']};
+const keys={app_users:['id'],app_identities:['issuer','subject'],app_grants:['user_id','permission'],app_bootstrap:['id'],audit_events:['id'],photo_reviews:['photo_id'],user_statistics_settings:['user_id'],user_statistics_summary:['user_id']};
 export function tableDigest(rows){
   const normalized=rows.map(row=>JSON.stringify(Object.fromEntries(Object.entries(row).sort(([a],[b])=>a.localeCompare(b))))).sort();
   return createHash('sha256').update(JSON.stringify(normalized)).digest('hex');
 }
 export function validateSnapshot(snapshot){
   if(snapshot?.format!=='aviquiz-database-snapshot'||snapshot.version!==1)throw Error('Unsupported database snapshot.');
+  // Backward-compatible imports of pre-statistics snapshots start these tables empty.
+  for(const name of ['user_statistics_settings','user_statistics_summary'])if(snapshot.tables&&!Object.hasOwn(snapshot.tables,name))snapshot.tables[name]=[];
   if(JSON.stringify(Object.keys(snapshot.tables||{}).sort())!==JSON.stringify(Object.keys(TABLES).sort()))throw Error('Unexpected snapshot tables.');
   for(const [table,columns] of Object.entries(TABLES)){
     const rows=snapshot.tables[table];if(!Array.isArray(rows))throw Error('Invalid table rows.');

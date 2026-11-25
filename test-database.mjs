@@ -1,4 +1,5 @@
 import {runLocationCacheTests} from './test-geography.mjs';
+import {runStatisticsTests} from './test-statistics-api.mjs';
 import {runInvitationTests} from './test-invitations.mjs';
 import {importSnapshot,readTables,tableDigest,TABLES} from './server/database/snapshot.mjs';
 import {resolveDatabaseConfig} from './server/database/config.mjs';
@@ -44,7 +45,7 @@ let adminClient;
 try {
   adminClient=new pg.Client({connectionString:pgURL});await adminClient.connect();
   for(const config of configs) {
-    assert.equal((await migrateDatabase(config)).applied.length,config.DB_DRIVER==='sqlite'?4:3);
+    assert.equal((await migrateDatabase(config)).applied.length,config.DB_DRIVER==='sqlite'?5:4);
     assert.equal((await migrateDatabase(config)).applied.length,0);
     const env=await createDatabaseEnvironment({...config,REVIEW_OWNER_EMAIL:'owner@example.org',REVIEW_AGENT_KEY:'local-review-test-only'});
     const db=databaseForEnvironment(env),service=accountService(db);
@@ -133,12 +134,14 @@ try {
     assert.equal(failure.status,503);assert.ok(!(await failure.text()).includes('private database detail'));
     await runInvitationTests(db);
     await runLocationCacheTests(db);
+    await runStatisticsTests(db);
     await db.close();
     console.log(`Passed ${config.DB_DRIVER}: migrations/idempotence, permanent identities, grant isolation/revocation, atomic audit rollback, immutable audit, staged trip permissions, parameter binding, guest quiz, protected reviews, revisions, cross-origin denial, concurrent approval guard, standalone header/bootstrapping denial.`);
   }
   await adminClient.query('CREATE SCHEMA transfer_test');
   await adminClient.query('SET search_path TO transfer_test');
   await adminClient.query(await fs.readFile('migrations/postgres/0001_reviews_accounts.sql','utf8'));
+  await adminClient.query(await fs.readFile('migrations/postgres/0004_user_statistics.sql','utf8'));
   const fixture={format:'aviquiz-database-snapshot',version:1,tables:{
     app_users:[{id:'u1',email:'test@example.org',status:'active',created_at:'2026-11-19T00:00:00Z'}],
     app_identities:[{issuer:'https://identity.example',subject:'subject1',user_id:'u1'}],

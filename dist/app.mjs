@@ -1,3 +1,5 @@
+import {statisticsControls} from './statistics-client.mjs';
+import {quizEvent} from './statistics-history.mjs';
 import {audioBirds,validateAudioCatalog} from './audio.mjs';
 import {offersSiteClue,chooseSiteClue} from './site-clue.mjs';
 import {ANNOTATION_REVIEW_KEY,ORIGINAL_REVIEW_PHOTOS,parseReviewedPhotos,unreviewedPhotos} from './annotation-review.mjs';
@@ -20,6 +22,7 @@ function renderSiteClue(){
   $('site-clue').textContent=currentSiteClue?`Checklist site: ${currentSiteClue.name}`:'No named checklist site is available for this species.';
 }
 const histories={photo:emptyProgress(),audio:emptyProgress()},storageUsable={photo:true,audio:true};
+let accountStatistics=null;
 try{recoverImport(localStorage);}catch{
   storageUsable.photo=false;storageUsable.audio=false;
   $('storage-status').textContent='Saved data recovery could not finish. Reload AviQuiz before taking a quiz.';
@@ -65,8 +68,10 @@ function renderStatistics(){
   if(!data)return;
   $('accuracy-title').textContent=`Your ${mediumName(statsMedium())} ID accuracy`;
   $('stats-medium-help').textContent=statsMedium()==='audio'?'Audio history only. Audio site rates do not measure mastery of a local dialect; recording locality can differ from quiz scope.':'Visual history only. Existing photo-quiz history is retained. Audio answers do not affect these rates.';
-  $('site-stats-help').textContent=siteOnlyStats()?'Site-only quizzes: answers from this exact site with All families selected, including site-scoped mistake reviews. Family and all-sites quizzes are excluded. Each species retains its last 20 qualifying answers per site and medium. Tracking starts with this update; older answers have no site context.':'All quiz scopes: use each target species’ last 20 answers from any quiz. A shared species can contribute to multiple sites. Family statistics always use all quiz scopes.';
+  $('site-stats-help').textContent=siteOnlyStats()?'Site-only quizzes: answers from this exact site with All families selected, including site-scoped mistake reviews. Family and all-sites quizzes are excluded. All available scored correct and attempted counts contribute independently for this site and medium. Imported answers without site context are excluded from this view.':'All quiz scopes: use each target species’ correct and attempted counts from any quiz in the available history. A shared species can contribute to multiple sites. Family statistics always use all quiz scopes.';
   const progress=histories[statsMedium()];
+  const last=progress.latestOverall;
+  $('statistics-latest-summary').textContent=last?`Latest quiz: ${last.correct} / ${last.scored} correct · ${formatRate(last.scored?last.correct/last.scored:null)} · ${last.questions} questions · ${last.species} / ${last.eligibleSpecies} species shown.`:'Latest quiz: no comparison result yet.';
   const stats=accuracyStatistics(data.birds,data.sites,progress,{siteOnly:siteOnlyStats()});
   const rowsHTML=(rows,kind)=>{
     const latest=progress.latestQuizzes?.[kind==='family'?'families':siteOnlyStats()?'siteOnly':'sites'];
@@ -99,8 +104,8 @@ function renderSpeciesList(){
   const scoped=eligibleBirds(data.birds,settings.site,'none',settings.family);
   const ready=speciesScope.medium==='audio'?audioBirds(scoped,audioCatalog,settings.site):scoped;
   $('species-start').disabled=!ready.some(b=>b.photos.length);
-  $('species-explanation').textContent=`${mediumName(speciesScope.medium)==='audio'?'Audio':'Visual'} correct IDs ÷ scored attempts, using each species’ last 20 attempts in this medium. Regular quizzes and mistake reviews count, except sessions with experimental ID tips enabled. Revealed answers count as misses; unavailable media do not count. — means no answers yet.${speciesScope.medium==='audio'?` ${ready.filter(b=>b.photos.length).length} of these species currently have audio in this quiz’s catalog.`:''}`;
-  if(siteOnly)$('species-explanation').textContent+=' Only answers from this exact site with All families selected count here, using the last 20 qualifying answers per species at this site. Family/all-sites quizzes and older history without site context are excluded.';
+  $('species-explanation').textContent=`${mediumName(speciesScope.medium)==='audio'?'Audio':'Visual'} correct IDs ÷ scored attempts, using the available aggregate counts in this medium. Regular quizzes and mistake reviews count, except sessions with experimental ID tips enabled. Revealed answers count as misses; unavailable media do not count. — means no answers yet.${speciesScope.medium==='audio'?` ${ready.filter(b=>b.photos.length).length} of these species currently have audio in this quiz’s catalog.`:''}`;
+  if(siteOnly)$('species-explanation').textContent+=' Only answers from this exact site with All families selected count here, using aggregate qualifying counts per species at this site. Family/all-sites quizzes and older history without site context are excluded.';
   $('species-start').textContent=kind==='site'?'Start site quiz →':'Start family quiz →';
 }
 function navigateSpeciesHash(){
@@ -126,20 +131,16 @@ function pool(settings=formSettings()){
   return settings.pilotTips?annotatedBirds(birds):birds;
 }
 function readProgress(medium=selectedMedium()){
-  if(!storageUsable[medium])return;
-  try{histories[medium]=parseProgress(localStorage.getItem(progressKey(medium)));}
-  catch{storageUsable[medium]=false;$('storage-status').textContent=`Saved ${mediumName(medium)} progress could not be read. This visit will still track your answers.`;}
+  if(accountStatistics)histories[medium]=accountStatistics.histories[medium];
 }
 function saveProgress(medium,progress){
   histories[medium]=progress;
-  if(storageUsable[medium])try{localStorage.setItem(progressKey(medium),JSON.stringify(histories[medium]));$('storage-status').textContent='Visual and audio progress are saved separately in this browser. Other browsers and devices have separate histories.';}
-  catch{storageUsable[medium]=false;$('storage-status').textContent=`Browser storage is unavailable for ${mediumName(medium)} practice. Progress is tracked for this visit.`;}
+  $('storage-status').textContent='Statistics storage is managed on the Statistics page. Completed eligible quizzes synchronize with your account when enabled.';
   renderStatistics();
 }
 function rememberAnswer(bird,correct){
   if(activeSettings.experimentalTips||activeSettings.route)return;
   const medium=activeSettings.medium;
-  readProgress(medium);
   saveProgress(medium,recordAttempt(histories[medium],bird.id,correct,activeSettings));
 }
 function updatePool(){
@@ -263,7 +264,7 @@ async function begin(settings=formSettings()){
   settings.count=count;
   queue=settings.mode==='annotations'||review?buildQuestions(birds,count,familyMode):buildQuestionRounds(birds,count,familyMode);
   if(!queue.length){showView('setup');updatePool();$('settings-error').textContent=review?'No species currently need review with these settings. Choose a regular quiz or change your filters.':'No species match these settings.';return;}
-  activeSettings={...settings,eligibleSpecies:new Set(questionPool(birds,familyMode).map(bird=>bird.id)).size};
+  activeSettings={...settings,statisticsId:crypto.randomUUID(),statisticsOwner:accountStatistics?.owner||'guest',eligibleSpecies:new Set(questionPool(birds,familyMode).map(bird=>bird.id)).size};
   index=0;answers=[];showView('session');
   const siteLabel=settings.route?settings.route.title:settings.site==='all'?'Entire trip checklist':data.sites.find(s=>s.code===settings.site)?.name||settings.site;
   $('session-label').textContent=mediumName(settings.medium).toUpperCase()+' · '+(review?(settings.mistakeIds?'Review this quiz’s mistakes':'Review recent mistakes'):'Regular quiz')+' · '+siteLabel+(settings.family!=='all'?' · '+settings.family:'')+(review?'':' · '+({none:'All species',world:'Worldwide lifers',colombia:'Colombia lifers'}[settings.filter]));
@@ -348,10 +349,11 @@ function advance(){if(index+1<queue.length){index++;nextQuestion();}else finish(
 function finish(){
   showView('results');sessionToken++;
   const medium=activeSettings.medium;
-  readProgress(medium);
   const progress=histories[medium];
   const updated=recordQuizResult(progress,activeSettings,answers,activeSettings.eligibleSpecies);
   if(updated!==progress)saveProgress(medium,updated);
+  const event=quizEvent(activeSettings,answers,activeSettings.statisticsId);
+  if(event)accountStatistics?.record(event,activeSettings.statisticsOwner);
   const audio=activeSettings.medium==='audio';
   const scored=answers.filter(a=>!a.unavailable),correct=scored.filter(a=>a.correct).length;
   $('result-title').textContent=`${correct} / ${scored.length} identified.`;
@@ -433,7 +435,8 @@ let previewState='';
 $('export-progress').addEventListener('click',()=>{
   let url;
   try{
-    const backup=createBackup(localStorage,location.origin);
+    const snapshotStorage={getItem:key=>key===PROGRESS_KEY?JSON.stringify(histories.photo):key===AUDIO_PROGRESS_KEY?JSON.stringify(histories.audio):localStorage.getItem(key)};
+    const backup=createBackup(snapshotStorage,location.origin);
     const text=JSON.stringify(backup,null,2);
     if(new TextEncoder().encode(text).length>MAX_BACKUP_BYTES)throw Error('This backup exceeds the 5 MB import limit.');
     url=URL.createObjectURL(new Blob([text],{type:'application/json'}));
@@ -471,7 +474,7 @@ $('import-progress').addEventListener('click',()=>{
     updatePool();renderStatistics();renderSpeciesList();
     pendingBackup=null;$('import-progress').disabled=true;
     $('import-progress-file').value='';$('import-preview').hidden=true;
-    $('backup-status').textContent='Import complete. Your statistics and photo review marks are saved in this browser.';
+    $('backup-status').textContent='Backup restored. Older statistics are preserved for account import; use Import older browser statistics while signed in to add them to account history. Photo review marks were restored.';
   }catch(error){
     try{recoverImport(localStorage);}catch{storageUsable.photo=false;storageUsable.audio=false;}
     $('backup-status').textContent=error.message;
@@ -513,3 +516,8 @@ try{
   readProgress('photo');readProgress('audio');updatePool();renderStatistics();
   navigateLocation();
 }catch(error){$('pool').textContent='Could not load the checklist. Please reload the page.';$('settings-error').textContent=error.message;}
+
+accountStatistics=statisticsControls({changed:store=>{
+  if($('session').hidden){histories.photo=store.histories.photo;histories.audio=store.histories.audio;}
+  if(data){renderStatistics();if(speciesScope)renderSpeciesList();}
+}});

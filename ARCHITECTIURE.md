@@ -4,6 +4,18 @@ Status: current implementation, updated November 18, 2026; standalone PostgreSQL
 
 ## System context
 
+### Personal statistics MVP on dev (not deployed)
+
+`worker/statistics-api.mjs` binds cumulative statistics to the verified application
+user ID through the existing SQLite/D1/PostgreSQL adapters. Two tables store the
+preference and one aggregate document per user. Completed practice contributes
+species/site counters and overwrites latest comparison results; no quiz archive
+is retained. Small session cursors provide retry safety, while revision guards
+serialize concurrent additions. Browser consent and optional account persistence
+are independent. A bounded five-quiz contribution window provides local aggregate
+statistics, with a protected one-time legacy migration path. See
+[STATISTICS.md](STATISTICS.md) for data retention, exclusions, import and deployment.
+
 ### Common geography integration on dev (November 25, 2026; not deployed)
 
 The geography launcher and quiz sessions share `/api/geography/quiz` for NC and

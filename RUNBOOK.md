@@ -19,6 +19,12 @@ Use `git status --short` and `git log -1 --oneline` to identify local changes an
 
 See [ARCHITECTIURE.md](ARCHITECTIURE.md) for boundaries, components, and future plans.
 
+The dev statistics MVP is documented in [STATISTICS.md](STATISTICS.md). It is not
+deployed: apply migration 0004 and the explicit PostgreSQL runtime grants before
+deploying compatible code. The feature stores cumulative personal totals and latest
+comparisons, with no quiz archive. Existing browser history is kept until explicit
+account import succeeds; do not clear testers' browser data as a deployment step.
+
 ## Page navigation checks
 
 After deployment, check `/` (landing), `/quiz` (configuration), `/statistics` (accuracy), and `/review` (shared review). Refresh `/quiz/` and `/statistics/` directly to verify Worker aliases; assets use absolute paths. A plain static-file server previews navigation from `/`, but cannot resolve these extensionless paths on refresh. Use the built Worker for route checks (`test-review.mjs`). Check that browser Back/Forward works and existing photo/audio history remains present. Never rename storage keys as part of a display-brand change.

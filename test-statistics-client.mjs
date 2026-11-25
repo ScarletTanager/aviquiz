@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {StatisticsStore} from './dist/statistics-client.mjs';
+import {RECENT_QUIZZES_KEY,STATISTICS_CONSENT_KEY,quizEvent} from './dist/statistics-history.mjs';
+import {PROGRESS_KEY,emptyProgress,recordAttempt} from './dist/progress.mjs';
+import {statisticsApi} from './worker/statistics-api.mjs';
+import {createDatabase} from './server/database/index.mjs';
+import {migrateDatabase} from './server/database/migrate.mjs';
+import {accountService} from './worker/accounts.mjs';
+import {accuracyStatistics,speciesAccuracy} from './dist/statistics.mjs';
+const memory=()=>{const map=new Map();return {map,getItem:k=>map.get(k)||null,setItem:(k,v)=>map.set(k,String(v)),removeItem:k=>map.delete(k)};};
+let sequence=0;
+const event=(correct=true)=>quizEvent({medium:'photo',site:'BG',family:'all',mode:'regular',filter:'none',eligibleSpecies:1},[{bird:{id:'norcar'},correct}],crypto.randomUUID(),new Date(1700000000000+(sequence++)*1000).toISOString());
+const storage=memory(),guest=new StatisticsStore({storage,request:async()=>new Response('',{status:401})});
+const baseline={version:2,quizzes:100,species:{norcar:{total:100,correct:75,attempts:Array(20).fill(false)}}};
+const sampleBirds=[{id:'norcar',name:'Northern Cardinal',scientificName:'Cardinalis cardinalis',family:'Cardinalidae',sites:['BG']}];
+assert.equal(accuracyStatistics(sampleBirds,[{code:'BG',name:'Guajira'}],baseline).sites[0].rate,.75);
+assert.equal(speciesAccuracy(sampleBirds,baseline,'site','BG')[0].rate,.75);
+guest.record(event());assert.equal(storage.map.has(RECENT_QUIZZES_KEY),false);
+guest.chooseConsent('allow');for(let i=0;i<8;i++)guest.record(event(i%2===0));
+assert.equal(JSON.parse(storage.getItem(RECENT_QUIZZES_KEY)).length,5);assert.equal(guest.histories.photo.species.norcar.attempts.length,5);
+guest.chooseConsent('decline');assert.equal(storage.getItem(RECENT_QUIZZES_KEY),null);guest.record(event());assert.equal(storage.getItem(RECENT_QUIZZES_KEY),null);
+assert.equal(new StatisticsStore({storage}).histories.photo.species.norcar,undefined);
+const excluded={medium:'photo',site:'BG',family:'all',mode:'regular',filter:'none',eligibleSpecies:1};
+for(const context of [{route:{}},{experimentalTips:true},{pilotTips:true},{mode:'annotations'}])assert.equal(quizEvent({...excluded,...context},[{bird:{id:'norcar'},correct:true}],crypto.randomUUID()),null);
+const root=await fs.mkdtemp(path.join(os.tmpdir(),'aviquiz-statistics-client-'));let db;
+try{
+ const config={DB_DRIVER:'sqlite',SQLITE_PATH:path.join(root,'app.sqlite')};await migrateDatabase(config);db=await createDatabase(config);
+ const claims=['one','two'].map(subject=>({issuer:'https://client.example',subject,email:subject+'@example.org',emailVerified:true}));
+ const users=[];for(const claim of claims)users.push(await accountService(db).registerVerifiedUser(claim));
+ let actor=0,offline=false;const request=(url,options={})=>{
+  if(offline)throw Error('offline');
+  return statisticsApi(new Request('https://quiz.example'+url,{...options,headers:{...options.headers,origin:'https://quiz.example'}}),{DB:db,DB_DRIVER:'sqlite'},{verifyIdentity:async()=>actor===null?null:claims[actor]});
+ };
+ const disk=memory();disk.setItem(STATISTICS_CONSENT_KEY,'allow');const legacy=JSON.stringify(recordAttempt(emptyProgress(),'norcar',true));disk.setItem(PROGRESS_KEY,legacy);
+ const store=new StatisticsStore({storage:disk,request});await store.refresh();assert.equal(store.account,true);assert.equal(store.enabled,true);
+ const first=event(false);store.record(first);await store.sync();assert.equal(store.histories.photo.species.norcar.attempts.length,1);
+ await store.importLegacy();assert.equal(disk.getItem(PROGRESS_KEY),null);assert.deepEqual(store.histories.photo.species.norcar.attempts,[true,false]);
+ // Replaying a persisted pending ID whose server response was lost must not double count.
+ disk.setItem(RECENT_QUIZZES_KEY,JSON.stringify([{owner:users[0],event:store.records.find(r=>r.event.id===first.id).event,pending:true,stored:false}]));
+ const reloaded=new StatisticsStore({storage:disk,request});await reloaded.refresh();assert.deepEqual(reloaded.histories.photo.species.norcar.attempts,[true,false]);
+ await store.setEnabled(false);store.record(event(true));await store.sync();assert.equal(store.histories.photo.species.norcar.attempts.length,3);
+ await store.setEnabled(true);await store.refresh();assert.equal(store.histories.photo.species.norcar.attempts.length,3);
+ assert.equal(JSON.parse((await db.prepare('SELECT payload_json FROM user_statistics_summary WHERE user_id=?').bind(users[0]).first()).payload_json).histories.photo.quizzes,1);
+ offline=true;store.record(event());await store.sync();assert.ok(store.records.some(r=>r.pending));assert.match(store.message,/not synchronized/);
+ offline=false;await store.refresh();assert.equal(store.records.filter(r=>r.pending).length,0);
+ const before=store.histories.photo.species.norcar.attempts.length;
+ store.chooseConsent('decline');store.record(event());await store.sync();assert.equal(disk.getItem(RECENT_QUIZZES_KEY),null);assert.equal(store.histories.photo.species.norcar.attempts.length,before+1);
+ actor=1;await store.refresh();assert.equal(store.owner,users[1]);assert.equal(store.histories.photo.species.norcar,undefined);
+ store.record(event(),users[0]);assert.equal(Number((await db.prepare('SELECT COUNT(*) n FROM user_statistics_summary WHERE user_id=?').bind(users[1]).first()).n),0);
+ actor=null;await store.refresh();assert.equal(store.account,false);assert.equal(store.histories.photo.species.norcar,undefined);
+ console.log('Passed browser consent, combined five-quiz limit, protected legacy import, offline retries, idempotent reload, opt-out, exclusions, no-consent account save, and account isolation.');
+}finally{await db?.close();await fs.rm(root,{recursive:true,force:true});}

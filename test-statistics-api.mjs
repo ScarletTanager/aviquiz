@@ -1,0 +1,61 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {statisticsApi} from './worker/statistics-api.mjs';
+import {accountService} from './worker/accounts.mjs';
+import {createDatabase} from './server/database/index.mjs';
+import {migrateDatabase} from './server/database/migrate.mjs';
+import {quizEvent} from './dist/statistics-history.mjs';
+import {emptyProgress,recordAttempt} from './dist/progress.mjs';
+let sequence=0;const stream=crypto.randomUUID();
+export const event=(medium='photo',correct=true)=>({...quizEvent({medium,site:'BG',family:'all',mode:'regular',filter:'none',eligibleSpecies:1},[{bird:{id:'norcar'},correct}],crypto.randomUUID(),new Date(1700000000000+(sequence++)*1000).toISOString()),stream,sequence});
+export async function runStatisticsTests(db){
+ const claim=subject=>({issuer:'https://statistics.example',subject,email:subject+'@example.org',emailVerified:true}),prefix=crypto.randomUUID();
+ const claims=[claim(prefix+'a'),claim(prefix+'b'),claim(prefix+'c')];
+ const users=[];for(const c of claims)users.push(await accountService(db).registerVerifiedUser(c));
+ const env={DB:db,DB_DRIVER:db.dialect},origin='https://quiz.example';
+ const call=(route='',payload,actor=0,headers={})=>statisticsApi(new Request(origin+'/api/statistics'+route,{method:payload===undefined?'GET':'POST',headers:{...(payload===undefined?{}:{origin,'content-type':'application/json'}),...headers},...(payload===undefined?{}:{body:JSON.stringify(payload)})}),env,{verifyIdentity:async()=>actor===null?null:claims[actor]});
+ assert.equal((await call('',undefined,null)).status,401);
+ assert.equal((await call('/preferences',{enabled:false},0,{origin:'https://evil.example'})).status,403);
+ assert.equal((await call('/quiz',event(),1,{'x-statistics-account':users[0]})).status,409);
+ let result=await (await call()).json();assert.equal(result.enabled,true);assert.equal(result.histories.photo.quizzes+result.histories.audio.quizzes,0);
+ const events=Array.from({length:7},(_,i)=>event('photo',i%2===0));
+ for(const e of events)assert.equal((await call('/quiz',e)).status,200);
+ assert.equal((await call('/quiz',events[0])).status,200);
+ assert.equal((await call('/quiz',{...events[6],species:{norcar:{total:1,correct:0,attempts:[false]}},summary:{...events[6].summary,correct:0}})).status,409);
+ result=await (await call()).json();assert.equal(result.histories.photo.quizzes+result.histories.audio.quizzes,7);assert.equal(result.histories.photo.species.norcar.attempts.length,7);
+ assert.equal((await (await call('',undefined,1)).json()).histories.photo.quizzes,0);
+ const baseline={photo:recordAttempt(emptyProgress(),'norcar',true),audio:recordAttempt(emptyProgress(),'norcar',false)};
+ assert.equal((await call('/import',baseline)).status,200);assert.equal((await call('/import',baseline)).status,200);
+ result=await (await call()).json();assert.equal(result.histories.photo.quizzes+result.histories.audio.quizzes,7);assert.equal(result.histories.photo.species.norcar.attempts.length,8);assert.deepEqual(result.histories.audio.species.norcar.attempts,[false]);
+ assert.equal((await call('/import',{photo:emptyProgress(),audio:emptyProgress()})).status,409);
+ assert.equal((await call('/preferences',{enabled:false})).status,200);
+ const off=event();assert.equal((await (await call('/quiz',off)).json()).stored,false);
+ assert.equal((await (await call()).json()).histories.photo.quizzes,7);
+ assert.equal((await call('/preferences',{enabled:true})).status,200);
+ const audio=event('audio');assert.equal((await call('/quiz',audio)).status,200);
+ result=await (await call()).json();assert.equal(result.histories.photo.quizzes+result.histories.audio.quizzes,8);assert.equal(result.histories.audio.species.norcar.attempts.length,2);
+ const known=await (await call()).json();assert.ok(known.cursors[stream]>=audio.sequence);
+ const foreign=await (await call('',undefined,1)).json();assert.deepEqual(foreign.cursors,{});
+ assert.equal((await call('/quiz',{...event(),medium:'video'})).status,400);
+ assert.equal((await call('/quiz',{...event(),species:{norcar:{total:2,correct:1,attempts:[true,false]}}})).status,400);
+ assert.equal((await call('/preferences',{enabled:'false'})).status,400);
+ const malformed=new Request(origin+'/api/statistics/quiz',{method:'POST',headers:{origin,'content-type':'application/json'},body:'not JSON'});
+ assert.equal((await statisticsApi(malformed,env,{verifyIdentity:async()=>claims[0]})).status,400);
+ for(let i=0;i<205;i++)assert.equal((await call('/quiz',event(),2)).status,200);
+ const aggregate=await (await call('',undefined,2)).json();assert.equal(aggregate.histories.photo.quizzes,205);assert.equal(aggregate.histories.photo.species.norcar.total,205);assert.equal(aggregate.histories.photo.species.norcar.attempts.length,20);
+ assert.equal(Number((await db.prepare('SELECT COUNT(*) n FROM user_statistics_summary WHERE user_id=?').bind(users[2]).first()).n),1);
+ const stored=await db.prepare('SELECT payload_json FROM user_statistics_summary WHERE user_id=?').bind(users[2]).first();assert.ok(!stored.payload_json.includes('"answers"'));assert.ok(!stored.payload_json.includes('"events"'));
+ const d1=await statisticsApi(new Request(origin+'/api/statistics'),{DB:{...db,dialect:undefined}},{verifyIdentity:async()=>claims[0]});assert.equal(d1.status,200);
+ const statements=Array.from({length:8},()=>call('/quiz',events[1]));assert.ok((await Promise.all(statements)).every(r=>r.status===200));
+ assert.equal((await (await call()).json()).histories.photo.quizzes,7);
+ const devices=Array.from({length:8},()=>({...event(),stream:crypto.randomUUID(),sequence:1}));
+ assert.ok((await Promise.all(devices.map(e=>call('/quiz',e,1)))).every(r=>r.status===200));
+ assert.equal((await (await call('',undefined,1)).json()).histories.photo.species.norcar.total,8);
+ console.log('Passed',db.dialect,'statistics authentication, ownership, opt-out, idempotency, import, media separation, cumulative-only storage and concurrent retries.');
+}
+if(import.meta.main){
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'aviquiz-statistics-'));let db;
+ try{const config={DB_DRIVER:'sqlite',SQLITE_PATH:path.join(root,'app.sqlite')};await migrateDatabase(config);db=await createDatabase(config);await runStatisticsTests(db);}finally{await db?.close();await fs.rm(root,{recursive:true,force:true});}
+}

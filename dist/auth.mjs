@@ -23,7 +23,7 @@ async function initialize() {
     const signedIn = user && !user.expired;
     if(!signedIn){const link=document.getElementById('invite-link');if(link)link.hidden=true;}
     button.textContent = signedIn ? 'Sign out' : 'Sign in';
-    if (signedIn) status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}. Quiz progress is still stored in this browser.`;
+    if (signedIn) status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}. Manage quiz history storage on the Statistics page.`;
   }
   render();
   if (user && !user.expired) {
@@ -42,16 +42,17 @@ async function initialize() {
         account = await response.json();
       }
       if (account.kind !== 'user') throw Error('Account registration unavailable.');
+      window.dispatchEvent(new Event('aviquiz-account-changed'));
       const inviteLink=document.getElementById('invite-link');
       if(inviteLink)inviteLink.hidden=!(account.administrator||account.permissions?.includes('users.invite'));
-      status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}${account.administrator ? ' · AviQuiz administrator' : ''}. Quiz progress is still stored in this browser.`;
+      status.textContent = `Signed in${user.profile.email ? ' as ' + user.profile.email : ''}${account.administrator ? ' · AviQuiz administrator' : ''}. Manage quiz history storage on the Statistics page.`;
     } catch {
       status.dataset.accountSetupStage = setupStage;
       status.dataset.accountSetupStatus = String(setupStatus || 'network');
       status.textContent = `Sign-in succeeded, but AviQuiz ${setupStage.toLowerCase()} could not finish. ${setupStatus===401 ? 'Sign out and sign in again.' : 'Reload to retry.'} Guest quizzes remain available.`;
     }
   }
-  manager.events.addAccessTokenExpired(() => { user = null; render(); status.textContent = 'Your session expired. Sign in again when needed.'; });
+  manager.events.addAccessTokenExpired(() => { user = null; window.dispatchEvent(new Event('aviquiz-account-changed')); render(); status.textContent = 'Your session expired. Sign in again when needed.'; });
   button.addEventListener('click', async () => {
     button.disabled = true;
     try {

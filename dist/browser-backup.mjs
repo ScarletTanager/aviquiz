@@ -1,5 +1,6 @@
 import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,emptyProgress,parseProgress} from './progress.mjs';
 import {ANNOTATION_REVIEW_KEY} from './annotation-review.mjs';
+import {parseAggregateProgress} from './statistics-history.mjs';
 
 export const MAX_BACKUP_BYTES=5*1024*1024;
 const RECOVERY_KEY='aviquiz:import-recovery:v1';
@@ -12,6 +13,7 @@ function canonical(value){
 }
 function same(a,b){return JSON.stringify(canonical(a))===JSON.stringify(canonical(b));}
 function validateProgress(value){
+  if(value?.version===2){const parsed=parseAggregateProgress(value);if(!same(value,parsed))throw Error('The file contains unsupported aggregate statistics.');return parsed;}
   if(!object(value)||value.version!==1||!object(value.species))throw Error('The file contains invalid quiz history.');
   const parsed=parseProgress(JSON.stringify(value));
   if(!same(value,parsed))throw Error('The file contains unsupported or invalid quiz history.');

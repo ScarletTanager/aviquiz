@@ -41,8 +41,9 @@ export function createHttpServer(env,{app=application}={}){
       }
       let body;
       if(!['GET','HEAD'].includes(req.method)){
-        if(Number(req.headers['content-length'])>200000){res.writeHead(413);res.end();req.resume();return;}
-        try{body=await bodyFor(req,200000);}catch{res.writeHead(413);res.end();return;}
+        const limit=url.pathname.startsWith('/api/statistics/')?1000000:200000;
+        if(Number(req.headers['content-length'])>limit){res.writeHead(413);res.end();req.resume();return;}
+        try{body=await bodyFor(req,limit);}catch{res.writeHead(413);res.end();return;}
       }
       let response;
       if(url.pathname==='/auth-config.mjs'&&['GET','HEAD'].includes(req.method))response=new Response('export const authConfig=Object.freeze('+JSON.stringify(auth)+');\n',{headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store'}});

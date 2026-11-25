@@ -16,4 +16,20 @@
 </form>
 <p id="invite-result" role="status" aria-live="polite"></p><p id="invite-reference" class="field-help" hidden></p><a href="/">Back to home</a>
 </main><script type="module" src="/auth.mjs"></script><script type="module" src="/invite.mjs"></script>
+
+<dialog id="statistics-consent" class="statistics-dialog" aria-labelledby="statistics-consent-title">
+<h2 id="statistics-consent-title">Keep recent practice statistics in this browser?</h2>
+<p>With your permission, AviQuiz keeps aggregate statistics covering your five most recent completed quizzes on this device. Small contribution totals keep that rolling window accurate and support retries if the connection fails; this is not a quiz archive. You can take quizzes without allowing browser statistics storage.</p>
+<p>Signed-in account history is a separate setting on the Statistics page. No advertising or tracking cookies are used for these statistics. We remember your storage choice even if you decline.</p>
+<div class="statistics-actions"><button id="statistics-allow" type="button">Allow recent statistics</button><button id="statistics-decline" type="button" class="secondary-button">Continue without browser statistics</button><button id="statistics-storage-details" type="button" class="text-button">What is stored?</button></div>
+</dialog>
+<dialog id="statistics-details" class="statistics-dialog" aria-labelledby="statistics-details-title">
+<h2 id="statistics-details-title">What AviQuiz stores in your browser</h2>
+<p>If allowed, we keep species-level correct and attempted counts for a rolling window of five quizzes across visual and audio practice, a bounded recent-mistake buffer, and the latest comparison results. Small contribution totals, scope, medium, and synchronization identifiers let us remove old contributions and avoid duplicate uploads. We do not keep a question-by-question quiz archive, your guesses, passwords, or media files.</p>
+<p>We retain one small storage-choice flag so we can honor your decision. Sign-in uses essential session storage. Personal photo review marks are stored separately by the review feature. Browser statistics permission does not control those records or account history.</p>
+<p>Older statistics already present in this browser are preserved until you explicitly import them into your account. They contain rolling answers and latest results, not a complete dated quiz log. New quizzes do not grow that old snapshot. Export it before clearing browser data if you want an additional backup.</p>
+<p>You can change browser statistics permission on the Statistics page. Declining removes the recent-quiz cache; existing unimported history is preserved to avoid accidental loss.</p>
+<form method="dialog"><button type="submit">Close</button></form>
+</dialog>
+<script type="module" src="/browser-storage-consent.mjs"></script>
 </body></html>

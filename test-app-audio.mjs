@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {setImmediate as tick} from 'node:timers/promises';
+import {RECENT_QUIZZES_KEY,STATISTICS_CONSENT_KEY,replayHistory} from './dist/statistics-history.mjs';
 import {PROGRESS_KEY,AUDIO_PROGRESS_KEY,emptyProgress,recordAttempt} from './dist/progress.mjs';
 import {ID_TIPS,SPECIES_TIPS} from './dist/id-tips.mjs';
 import {ANNOTATION_REVIEW_KEY,parseReviewedPhotos,unreviewedPhotos} from './dist/annotation-review.mjs';
@@ -26,6 +27,7 @@ class Element{
   replaceChildren(...children){this.options=children;}
   get lastChild(){return this.options.at(-1);}
   select(){}
+  showModal(){this.open=true;} close(){this.open=false;}
   focus(){} scrollIntoView(){} pause(){this.paused=true;} load(){}
   querySelector(q){const value=q.match(/value=['"]?([^'"\]]+)/)?.[1];return this.options.find(o=>o.value===value);}
 }
@@ -47,11 +49,12 @@ globalThis.document={getElementById:id=>{assert.ok(elements.has(id),'Missing DOM
  querySelector:q=>{const name=q.match(/name="([^"]+)"/)?.[1],value=q.match(/value="([^"]+)"/)?.[1];return radios.find(r=>r.name===name&&(value?r.value===value:r.checked));},
  querySelectorAll:q=>q.includes('input[name="filter"]')?radios.filter(r=>r.name==='filter'):q==='#review audio'?[]:q==='audio'?[$('question-audio')]:[],
  addEventListener:(name,fn)=>(documentEvents[name]??=[]).push(fn)};
-globalThis.window={scrollTo(){},addEventListener:(name,fn)=>(windowEvents[name]??=[]).push(fn)};
+globalThis.window={dispatchEvent(event){for(const fn of windowEvents[event.type]||[])fn(event);},scrollTo(){},addEventListener:(name,fn)=>(windowEvents[name]??=[]).push(fn)};
 globalThis.location={origin:'https://aviquiz.test',hash:'',pathname:'/',search:''};globalThis.history={pushState(_s,_t,url){const u=new URL(url,'https://aviquiz.test');Object.assign(location,{pathname:u.pathname,search:u.search,hash:u.hash});},replaceState(s,t,url){this.pushState(s,t,url);}};
-const existing=recordAttempt(emptyProgress(),data.birds[0].id,true),visualInitial=JSON.stringify(existing),store=new Map([[PROGRESS_KEY,visualInitial]]);
+const existing=recordAttempt(emptyProgress(),data.birds[0].id,true),visualInitial=JSON.stringify(existing),store=new Map([[PROGRESS_KEY,visualInitial],[STATISTICS_CONSENT_KEY,'allow']]);
 globalThis.localStorage={getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
 globalThis.fetch=async url=>{url=url.replace(/^\//,'');return {ok:!(process.env.AUDIO_CATALOG_FAIL==='1'&&url==='audio.json'),json:async()=>url==='data.json'?data:url==='audio.json'?audio:url==='route-pilot.json'?routeCatalog:{annotations:sharedAnnotations,coverage:{covered:3,approved:6}}};};
+function recentHistory(){return replayHistory(JSON.parse(store.get(RECENT_QUIZZES_KEY)||'[]').map(r=>r.event));}
 async function settle(){await tick();await tick();}
 assert.ok($('site').options[0],'Site option fixture');
 await import('./dist/app.mjs');await settle();
@@ -87,7 +90,7 @@ await $('reveal').fire('click');assert.equal(store.has(AUDIO_PROGRESS_KEY),false
 $('question-audio').oncanplay();assert.equal($('check').disabled,true);
 $('question-audio').onplaying();assert.equal($('check').disabled,false);
 await $('reveal').fire('click');
-assert.deepEqual(JSON.parse(store.get(AUDIO_PROGRESS_KEY)).species[first.id].attempts,[false]);assert.equal(store.get(PROGRESS_KEY),visualInitial);
+assert.equal(store.has(AUDIO_PROGRESS_KEY),false);assert.equal(store.get(PROGRESS_KEY),visualInitial);
 assert.ok($('audio-credit').innerHTML.includes('Macaulay Library'));assert.ok($('audio-credit').innerHTML.includes('Location:'));assert.equal($('show-id-features').hidden,true);
 await $('next').fire('click');assert.equal($('question-audio').attrs['aria-label'],'Bird vocalization to identify');
 const second=lookup();$('question-audio').onplaying();$('answer').value=second.name;await $('answer-form').fire('submit');await $('next').fire('click');
@@ -101,11 +104,11 @@ assert.equal($('unavailable').hidden,false);await $('unavailable').fire('click')
 await $('new-quiz').fire('click');assert.equal($('medium').value,'photo');assert.equal(store.get(PROGRESS_KEY),visualInitial);
 location.hash=`#species/audio/family/${encodeURIComponent(first.family.replace(/\s*\(\d+\)\s*$/,''))}`;for(const fn of windowEvents.hashchange)fn();await settle();
 assert.equal($('species-page').hidden,false);assert.match($('species-subtitle').textContent,/audio statistics/);$('species-count').value='1';await $('species-quiz').fire('submit');assert.equal($('audio-question').hidden,false);await $('exit').fire('click');
-// Visual practice still updates only the original key.
+// Visual practice enters the bounded recent-quiz cache; legacy keys remain untouched.
 $('medium').value='photo';await $('medium').fire('change');radio('mode','regular').checked=true;$('site').value='all';$('family').value='all';$('count').value='1';await $('settings').fire('submit');
 assert.equal($('photo-question').hidden,false);assert.equal($('audio-question').hidden,true);
 const photoId=$('question-image').src.match(/asset\/(\d+)/)[1],photoBird=data.birds.find(b=>b.photos.some(p=>p.id===photoId));$('question-image').onload();$('answer').value=photoBird.name;await $('answer-form').fire('submit');await $('next').fire('click');
-assert.match($('result-summary').textContent,/visual practice · 100%/);assert.equal(store.get(AUDIO_PROGRESS_KEY),audioAfter);assert.notEqual(store.get(PROGRESS_KEY),visualInitial);
+assert.match($('result-summary').textContent,/visual practice · 100%/);assert.equal(store.get(AUDIO_PROGRESS_KEY),audioAfter);assert.equal(store.get(PROGRESS_KEY),visualInitial);assert.ok(recentHistory().photo.species[photoBird.id]);
 await $('new-quiz').fire('click');
 // The in-tab zoom uses the current photo and closes when the session is left.
 {
@@ -186,11 +189,11 @@ $('medium').value='photo';await $('medium').fire('change');$('site').value=data.
 assert.equal($('site-clue-control').hidden,true);assert.equal($('site-clue').hidden,true);
 $('question-image').onload();const scopedPhoto=$('question-image').src.match(/asset\/(\d+)/)[1],scopedBird=data.birds.find(b=>b.photos.some(p=>p.id===scopedPhoto));
 await $('reveal').fire('click');await $('next').fire('click');await $('exit').fire('click');
-const scopedHistory=store.get(PROGRESS_KEY),siteCode=data.sites[0].code;
+const scopedHistory=JSON.stringify(recentHistory().photo),siteCode=data.sites[0].code;
 assert.deepEqual(JSON.parse(scopedHistory).siteSpecies[siteCode][scopedBird.id].attempts,[false]);
 const familySummary=$('family-accuracy-list').innerHTML;
 $('site-only-stats').checked=true;await $('site-only-stats').fire('change');
-assert.equal(store.get(PROGRESS_KEY),scopedHistory);assert.equal($('family-accuracy-list').innerHTML,familySummary);
+assert.equal(JSON.stringify(recentHistory().photo),scopedHistory);assert.equal($('family-accuracy-list').innerHTML,familySummary);
 assert.match($('site-accuracy-list').innerHTML,/\/site-only/);
 location.hash=`#species/photo/site/${siteCode}/site-only`;for(const fn of windowEvents.hashchange)fn();await settle();
 assert.equal($('species-page').hidden,false);assert.match($('species-subtitle').textContent,/Site-only quizzes/);assert.match($('species-explanation').textContent,/older history/);
@@ -199,7 +202,7 @@ await $('exit').fire('click');
 $('family').value=scopedBird.family.replace(/\s*\(\d+\)\s*$/,'');$('count').value='1';await $('settings').fire('submit');
 assert.equal($('site-clue-control').hidden,false);assert.equal($('site-clue-toggle').checked,true);
 $('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');
-assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)).siteSpecies,JSON.parse(scopedHistory).siteSpecies);
+assert.deepEqual(recentHistory().photo.siteSpecies,JSON.parse(scopedHistory).siteSpecies);
 await $('exit').fire('click');
 // Audio gets its own scoped history and retains the clue preference.
 $('medium').value='audio';await $('medium').fire('change');$('site').value='all';$('family').value='all';$('count').value='1';await $('settings').fire('submit');
@@ -207,8 +210,8 @@ assert.equal($('site-clue-control').hidden,false);assert.equal($('site-clue-togg
 $('site-clue-toggle').checked=false;await $('site-clue-toggle').fire('change');await $('exit').fire('click');
 $('site').value=data.sites.find(s=>data.birds.some(b=>b.sites.includes(s.code)&&audio.recordings[b.id]?.length)).code;
 await $('settings').fire('submit');const scopedAudioBird=lookup();$('question-audio').onplaying();await $('reveal').fire('click');await $('next').fire('click');
-assert.deepEqual(JSON.parse(store.get(AUDIO_PROGRESS_KEY)).siteSpecies[$('site').value][scopedAudioBird.id].attempts,[false]);
-assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)).siteSpecies,JSON.parse(scopedHistory).siteSpecies);
+assert.deepEqual(recentHistory().audio.siteSpecies[$('site').value][scopedAudioBird.id].attempts,[false]);
+assert.deepEqual(recentHistory().photo.siteSpecies,JSON.parse(scopedHistory).siteSpecies);
 await $('exit').fire('click');
 const emptyFamily=[...new Set(data.birds.map(b=>b.family))].find(f=>!data.birds.some(b=>b.family===f&&audio.recordings[b.id]));
 if(emptyFamily){$('medium').value='audio';await $('medium').fire('change');
@@ -363,11 +366,11 @@ console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, a
  const chicaque=data.sites.find(s=>/chicaque/i.test(s.name));
  assert.ok(chicaque);
  $('site').value=chicaque.code;$('count').value='1';
- const priorLatest=JSON.parse(store.get(PROGRESS_KEY)).latestQuizzes;
+ const priorLatest=recentHistory().photo.latestQuizzes;
  await $('settings').fire('submit');$('question-image').onload();await $('reveal').fire('click');
- assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)).latestQuizzes,priorLatest);
+ assert.deepEqual(recentHistory().photo.latestQuizzes,priorLatest);
  await $('next').fire('click');
- const siteResult=JSON.parse(store.get(PROGRESS_KEY)).latestQuizzes.siteOnly[chicaque.code];
+ const siteResult=recentHistory().photo.latestQuizzes.siteOnly[chicaque.code];
  assert.equal(siteResult.scored,1);assert.equal(siteResult.correct,0);
 
  await $('new-quiz').fire('click');
@@ -376,7 +379,7 @@ console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, a
  const scopedPhoto=$('question-image').src.match(/asset\/(\d+)/)[1];
  $('answer').value=data.birds.find(b=>b.photos.some(p=>p.id===scopedPhoto)).name;
  await $('answer-form').fire('submit');await $('next').fire('click');await $('unavailable').fire('click');
- const recent=JSON.parse(store.get(PROGRESS_KEY)).latestQuizzes;
+ const recent=recentHistory().photo.latestQuizzes;
  assert.equal(recent.sites[chicaque.code].questions,2);
  assert.equal(recent.sites[chicaque.code].scored,1);
  assert.equal(recent.sites[chicaque.code].correct,1);
@@ -411,8 +414,8 @@ console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, a
  assert.match(download.name,/^aviquiz-backup-.*\.json$/);
  const serialized=await exportedBlob.text(),backup=JSON.parse(serialized);
  assert.equal(backup.app,'AviQuiz');
- assert.deepEqual(backup.photo,JSON.parse(store.get(PROGRESS_KEY)));
- assert.deepEqual(backup.audio,JSON.parse(store.get(AUDIO_PROGRESS_KEY)));
+ assert.deepEqual(backup.photo,recentHistory().photo);
+ assert.deepEqual(backup.audio,recentHistory().audio);
  const beforeImport=new Map(store);
  $('import-progress-file').files=[{size:3,text:async()=>'bad'}];
  await $('import-progress-file').fire('change');
@@ -428,7 +431,7 @@ console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, a
  await $('import-progress').fire('click');
  assert.match($('backup-status').textContent,/changed after the preview/);
  await $('import-progress-file').fire('change');await $('import-progress').fire('click');
- assert.match($('backup-status').textContent,/Import complete/);
+ assert.match($('backup-status').textContent,/Backup restored/);
  assert.deepEqual(JSON.parse(store.get(PROGRESS_KEY)),backup.photo);
  assert.deepEqual(JSON.parse(store.get(AUDIO_PROGRESS_KEY)),backup.audio);
  assert.deepEqual(JSON.parse(store.get(ANNOTATION_REVIEW_KEY)),backup.reviewedPhotos);
@@ -442,7 +445,7 @@ console.log('Passed Brazil itinerary capacity, mixed evidence, REGUA coverage, a
 // against the original Colombia statistics or replacing its settings page.
 const originalGeographyFetch=globalThis.fetch;
 const geographySeed=JSON.parse(fs.readFileSync('dist/geography-seed.json'));
-globalThis.fetch=async url=>url.startsWith('/api/nc/quiz')?{status:404,ok:false}:url==='/geography-seed.json'?{ok:true,json:async()=>geographySeed}:originalGeographyFetch(url);
+globalThis.fetch=async url=>url.startsWith('/api/geography/quiz')?{status:404,ok:false}:url==='/geography-seed.json'?{ok:true,json:async()=>geographySeed}:originalGeographyFetch(url);
 const beforeGeoHistory=store.get(PROGRESS_KEY);
 history.pushState(null,'','/quiz?geo=CO-CAL&from=2027-02-01&to=2027-02-28&questions=1&single=true');
 for(const fn of windowEvents.popstate||[])await fn();
@@ -452,7 +455,7 @@ $('question-image').onload();await $('reveal').fire('click');await $('next').fir
 assert.equal(store.get(PROGRESS_KEY),beforeGeoHistory);assert.match($('result-summary').textContent,/Geography pilot/);
 globalThis.location.assign=url=>{globalThis.__geoReturn=url;};await $('new-quiz').fire('click');assert.match(globalThis.__geoReturn,/^\/explore\?/);
 const ncBirds=JSON.parse(fs.readFileSync('dist/nc-birds.json')).birds.filter(b=>b.photos.length);
-globalThis.fetch=async url=>url.startsWith('/api/nc/quiz')?{ok:true,status:200,json:async()=>({pool:ncBirds.slice(0,2)})}:url==='/nc-locations.json'?{ok:true,json:async()=>JSON.parse(fs.readFileSync('dist/nc-locations.json'))}:originalGeographyFetch(url);
+globalThis.fetch=async url=>url.startsWith('/api/geography/quiz')?{ok:true,status:200,json:async()=>({placeName:'Chatham',pool:ncBirds.slice(0,2)})}:url==='/nc-locations.json'?{ok:true,json:async()=>JSON.parse(fs.readFileSync('dist/nc-locations.json'))}:originalGeographyFetch(url);
 history.pushState(null,'','/quiz?geo=US-NC-037&from=2026-09-20&to=2026-10-10&questions=1&trail=world,continent:North%20America,US,US-NC,US-NC-037');
 for(const fn of windowEvents.popstate||[])await fn();
 for(let n=0;n<20&&$('session').hidden;n++)await settle();

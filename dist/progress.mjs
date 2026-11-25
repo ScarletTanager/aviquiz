@@ -54,10 +54,13 @@ export function parseProgress(serialized){
 export function recordAttempt(progress,speciesId,correct,context={}){
   if(context.experimentalTips||context.mode==='annotations')return progress;
   const attempts=[...(progress.species[speciesId]?.attempts||[]),Boolean(correct)].slice(-RECENT_ATTEMPTS);
-  const result={...progress,version:1,species:{...progress.species,[speciesId]:{attempts}}};
+  const aggregate=progress.version===2;
+  const counters=old=>aggregate?{correct:(old?.correct||0)+(correct?1:0),total:(old?.total||0)+1}:{};
+  const result={...progress,version:aggregate?2:1,species:{...progress.species,[speciesId]:{...counters(progress.species[speciesId]),attempts}}};
   if(scopedSite(context.site)&&context.family==='all'&&['regular','review'].includes(context.mode||'regular')&&!context.pilotTips){
     const records=progress.siteSpecies?.[context.site]||{};
     result.siteSpecies={...progress.siteSpecies,[context.site]:{...records,[speciesId]:{
+      ...counters(records[speciesId]),
       attempts:[...(records[speciesId]?.attempts||[]),Boolean(correct)].slice(-RECENT_ATTEMPTS)
     }}};
   }

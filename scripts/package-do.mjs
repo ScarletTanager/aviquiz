@@ -14,6 +14,8 @@ if(build.status!==0)throw Error('Worker build failed; production artifact was no
 const digest=createHash('sha256');
 digest.update(source.commit);
 const files=['package.json','package-lock.json','server/http.mjs','server/invitation-provider.mjs','server/ebird-locations.mjs','server/location-cache.mjs','server/ebd-files.mjs','dist/server/index.js','dist/auth-config.mjs'];
+files.push('deploy/statistics-runtime-grants.sql');
+for(const directory of ['drizzle','migrations/postgres'])for(const name of (await fs.readdir(path.join(root,directory))).sort())if(/^\d{4}_[a-z0-9_]+\.sql$/.test(name))files.push(directory+'/'+name);
 for(const name of (await fs.readdir(path.join(root,'server/database'))).sort())files.push('server/database/'+name);
 for(const file of files){digest.update(file);digest.update(await fs.readFile(path.join(root,file)));}
 const artifacts=[];
