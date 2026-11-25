@@ -1,5 +1,9 @@
 # DigitalOcean production deployment
 
+For routine releases, use [DEPLOYMENT.md](DEPLOYMENT.md). This file retains the
+infrastructure inventory and dated deployment evidence; verify current live state
+before using a historical release or rollback path.
+
 Updated November 19, 2026. **https://aviquiz.org is live** on DigitalOcean.
 ChatGPT staging remains active, unchanged, and protected by its existing access
 control. Both environments use the existing Cognito pool/client; their application

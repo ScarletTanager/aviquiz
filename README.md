@@ -2,7 +2,7 @@
 
 Security automation and reporting: [SECURITY.md](SECURITY.md). GitHub Actions runs CodeQL, full-history secret detection, dependency auditing, and the application/security regression suite. The owner confirmed secret scanning, push protection, and Dependabot alerts are enabled. Weekly dependency version-update PRs are enabled; automatic security-update PRs and automatic merging are not enabled.
 
-System documentation: [Architecture](ARCHITECTIURE.md) and [Operations runbook](RUNBOOK.md). These describe the current implementation and separate it from planned account and route capabilities.
+System documentation: [Architecture](ARCHITECTIURE.md), [Operations runbook](RUNBOOK.md), and [Packaging and deployment](DEPLOYMENT.md). The deployment guide covers both staging and production, including data packages, migrations, approval gates, and rollback.
 
 The dormant, provider-independent account and route-permission foundation is described in [AAA.md](AAA.md). Run `node test-accounts.mjs` with Node 24+ to validate it in isolated SQLite. It has no activated provider, production migration, or public endpoints.
 

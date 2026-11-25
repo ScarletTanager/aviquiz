@@ -1,5 +1,11 @@
 # AviQuiz runbook
 
+For the current end-to-end staging and production release procedure, use
+[DEPLOYMENT.md](DEPLOYMENT.md). It consolidates packaging, data publication,
+migrations, approval gates, verification and rollback. Older deployment examples
+below remain operational context; prefer the consolidated procedure and the
+current Sites skill when their workflow details differ.
+
 Updated November 19, 2026. Production runs at https://aviquiz.org on DigitalOcean with PostgreSQL; ChatGPT staging remains on Sites/D1 behind its existing access control. Commands below run from the repository root unless stated otherwise.
 
 ## Identify the system before changing it
