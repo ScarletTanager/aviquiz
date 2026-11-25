@@ -227,5 +227,12 @@
   "if_allowed_we_keep_species_level_correct_and_attempted_23b138ef": "Si lo permite, conservamos conteos de aciertos e intentos por especie para una ventana móvil de cinco cuestionarios entre práctica visual y de audio, un registro limitado de errores recientes y los últimos resultados de comparación. Los pequeños totales de contribución, el alcance, la modalidad y los identificadores de sincronización permiten eliminar contribuciones anteriores y evitar cargas duplicadas. No conservamos un archivo de cuestionarios pregunta por pregunta, sus respuestas escritas, contraseñas ni archivos de fotos o audio.",
   "we_retain_one_small_storage_choice_flag_so_we_can_honor_cacd60e2": "Conservamos un pequeño indicador de su elección de almacenamiento para respetar su decisión. El inicio de sesión usa almacenamiento de sesión esencial. Las marcas personales de revisión de fotos se guardan por separado mediante la función de revisión. El permiso de estadísticas del navegador no controla esos registros ni el historial de la cuenta.",
   "older_statistics_already_present_in_this_browser_are_pr_3f85f032": "Las estadísticas anteriores que ya están en este navegador se conservan hasta que las importe explícitamente a su cuenta. Contienen respuestas de una ventana móvil y los últimos resultados, no un registro completo de cuestionarios con fecha. Los cuestionarios nuevos no amplían esa copia anterior. Expórtela antes de borrar los datos del navegador si desea una copia de seguridad adicional.",
-  "you_can_change_browser_statistics_permission_on_the_sta_a1166799": "Puede cambiar el permiso de estadísticas del navegador en la página de estadísticas. Al rechazarlo se elimina la caché de cuestionarios recientes; el historial existente sin importar se conserva para evitar pérdidas accidentales."
+  "you_can_change_browser_statistics_permission_on_the_sta_a1166799": "Puede cambiar el permiso de estadísticas del navegador en la página de estadísticas. Al rechazarlo se elimina la caché de cuestionarios recientes; el historial existente sin importar se conserva para evitar pérdidas accidentales.",
+  "collectionHeading": "La colección actual",
+  "collectionTitle": "Más lugares.<br>Más aves por descubrir.",
+  "knownSpecies": "especies conocidas",
+  "knownGeographies": "estados y subregiones nacionales",
+  "knownSites": "sitios conocidos",
+  "collectionDescription": "Explore listas de especies por temporada de las ubicaciones que tenemos disponibles.",
+  "collectionCounting": "Cada especie se cuenta una sola vez entre los paquetes de datos instalados, incluidas las que aún no tienen fotos. Las ubicaciones cuentan estados de Estados Unidos y subregiones de primer nivel de otros países; los sitios cuentan lugares con datos de especies procesados."
 }

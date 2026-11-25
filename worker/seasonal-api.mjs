@@ -3,6 +3,7 @@ import registry from './seasonal-packages.json' with {type:'json'};
 import {seasonalSpecies,seasonalPhotos} from '../dist/seasonal-core.mjs';
 import {seasonRange} from '../dist/geography-core.mjs';
 import {familyName} from '../dist/quiz.mjs';
+import {packageCoverage} from '../dist/coverage-core.mjs';
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json','cache-control':'no-store','x-content-type-options':'nosniff'}});
 const digest=async bytes=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(n=>n.toString(16).padStart(2,'0')).join('');
 export const seasonalPackages=registry.packages;
@@ -23,7 +24,7 @@ export async function seasonalApi(request,env){
  if(request.method!=='GET')return json({error:t("worker-seasonal-api:method_not_allowed_5765cf56")},405);
  if(url.pathname==='/api/geography/catalog'){
   const families=new Map();for(const p of packages)for(const b of p.catalog.birds){const name=familyName(b.family),order=Math.min(families.get(name)?.order??Infinity,b.taxonOrder);families.set(name,{name,order});}
-  return json({families:[...families.values()].sort((a,b)=>a.order-b.order),geographies:packages.map(p=>({id:p.package.geography,years:p.index.years,revision:p.package.revision}))});
+  return json({coverage:packageCoverage(packages).stats,families:[...families.values()].sort((a,b)=>a.order-b.order),geographies:packages.map(p=>({id:p.package.geography,years:p.index.years,revision:p.package.revision}))});
  }
  if([...url.searchParams.keys()].some(k=>!['place','from','to','single','family'].includes(k)))return json({error:t("worker-seasonal-api:invalid_query_e7a90c1f")},400);
  const place=url.searchParams.get('place'),pkg=packages.filter(p=>Object.hasOwn(p.index.places,place)).sort((a,b)=>b.package.geography.length-a.package.geography.length||a.package.geography.localeCompare(b.package.geography))[0];

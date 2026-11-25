@@ -23,5 +23,8 @@
   "seasonal_species_after_filters_with_verified_photos_sam_a6b0af5c": "{{v0}} especies de temporada después de aplicar los filtros; {{v1}} con fotos verificadas; {{v2}} temporadas muestreadas. {{v3}}",
   "quiz_scope_7b66aa20": "Alcance del cuestionario: ",
   "eligible_species_with_photos_sets_questions_to_one_per_925b51e8": "{{v0}} especies disponibles con fotos. Ajusta el número de preguntas a una por especie y se actualiza al cambiar el lugar, las fechas o los filtros.",
-  "all_families_01eee2b5": "Todas las familias"
+  "all_families_01eee2b5": "Todas las familias",
+  "unsupportedLocation": "Aún no hay datos de cuestionarios por temporada para este lugar.",
+  "collectionUnavailable": "Los conteos de la colección no están disponibles temporalmente.",
+  "chooseCoveredSubregion": "Seleccione una subregión o un sitio disponible para crear un cuestionario. Esta ubicación más amplia aún no tiene datos propios de especies."
 }

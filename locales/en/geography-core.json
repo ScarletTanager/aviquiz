@@ -3,5 +3,6 @@
   "select_a_location_5079fb02": "Select a location.",
   "choose_a_valid_year_and_month_9dbc8897": "Choose a valid year and month.",
   "choose_a_seasonal_range_of_no_more_than_366_days_6bad84cb": "Choose a seasonal range of no more than 366 days.",
-  "choose_valid_start_and_end_dates_with_the_end_on_or_aft_e3a4a0c2": "Choose valid start and end dates, with the end on or after the start."
+  "choose_valid_start_and_end_dates_with_the_end_on_or_aft_e3a4a0c2": "Choose valid start and end dates, with the end on or after the start.",
+  "validCalendarDates": "Choose valid start and end months and days."
 }

@@ -227,5 +227,12 @@
   "if_allowed_we_keep_species_level_correct_and_attempted_23b138ef": "If allowed, we keep species-level correct and attempted counts for a rolling window of five quizzes across visual and audio practice, a bounded recent-mistake buffer, and the latest comparison results. Small contribution totals, scope, medium, and synchronization identifiers let us remove old contributions and avoid duplicate uploads. We do not keep a question-by-question quiz archive, your guesses, passwords, or media files.",
   "we_retain_one_small_storage_choice_flag_so_we_can_honor_cacd60e2": "We retain one small storage-choice flag so we can honor your decision. Sign-in uses essential session storage. Personal photo review marks are stored separately by the review feature. Browser statistics permission does not control those records or account history.",
   "older_statistics_already_present_in_this_browser_are_pr_3f85f032": "Older statistics already present in this browser are preserved until you explicitly import them into your account. They contain rolling answers and latest results, not a complete dated quiz log. New quizzes do not grow that old snapshot. Export it before clearing browser data if you want an additional backup.",
-  "you_can_change_browser_statistics_permission_on_the_sta_a1166799": "You can change browser statistics permission on the Statistics page. Declining removes the recent-quiz cache; existing unimported history is preserved to avoid accidental loss."
+  "you_can_change_browser_statistics_permission_on_the_sta_a1166799": "You can change browser statistics permission on the Statistics page. Declining removes the recent-quiz cache; existing unimported history is preserved to avoid accidental loss.",
+  "collectionHeading": "The current collection",
+  "collectionTitle": "More places.<br>More birds to discover.",
+  "knownSpecies": "known species",
+  "knownGeographies": "states and national subregions",
+  "knownSites": "known sites",
+  "collectionDescription": "Explore seasonal species lists from the geographies we currently support.",
+  "collectionCounting": "Species are counted once across installed data packages, including species awaiting photos. Geographies count US states and first-level subregions elsewhere; sites count locations with processed species data."
 }

@@ -40,5 +40,6 @@
   "englishLanguage": "English",
   "spanishLanguage": "Español (Colombia)",
   "changeLanguageWarning": "Cambiar el idioma recarga esta página. Puede perder un cuestionario sin terminar o cambios sin guardar. ¿Desea continuar?",
-  "languagePreferenceDetails": "El idioma seleccionado de la interfaz se recuerda en una cookie de preferencias, independiente del almacenamiento de estadísticas."
+  "languagePreferenceDetails": "El idioma seleccionado de la interfaz se recuerda en una cookie de preferencias, independiente del almacenamiento de estadísticas.",
+  "day": "Día"
 }

@@ -1,3 +1,4 @@
+import {calendarWindowLabel} from './geography-core.mjs';
 import {t,locale} from './i18n.mjs';
 import {statisticsControls} from './statistics-client.mjs';
 import {quizEvent} from './statistics-history.mjs';
@@ -213,7 +214,7 @@ async function openGeographyQuiz(token){
       const nc=await ncResponse.json();if(!ncResponse.ok)throw Error(nc.error);
       if(!nc.pool.length)throw Error(t("app:no_species_with_verified_photos_match_this_location_sea_91302e95"));
       const scope={name:nc.placeName||selection.id};
-      const route={geography:true,title:(scope?.name||selection.id)+' · '+t("common:dateRange",{start:selection.start,end:selection.end}),pool:nc.pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:selection.id,from:selection.start,to:selection.end,trail:query.get('trail')||'',allSpecies:String(selection.allSpecies),questions:String(selection.count),family:selection.family,single:String(selection.single)})};
+      const route={geography:true,title:(scope?.name||selection.id)+' · '+calendarWindowLabel(selection.start,selection.end),pool:nc.pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:selection.id,from:selection.start,to:selection.end,trail:query.get('trail')||'',allSpecies:String(selection.allSpecies),questions:String(selection.count),family:selection.family,single:String(selection.single)})};
       begin({route,count:selection.count,allSpecies:selection.allSpecies,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});return;
     }
     const responses=await Promise.all(['/geography-seed.json','/route-pilot.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error(t("app:geography_pilot_data_is_unavailable_464284b9"));
@@ -222,7 +223,7 @@ async function openGeographyQuiz(token){
     const candidates=geographyPool({scope,nodes:seed.nodes,catalog,birds:data.birds,...selection});
     const pool=candidates.pool.filter(b=>selection.family==='all'||familyName(b.family)===selection.family);
     if(!pool.length)throw Error(t("app:no_pilot_species_with_photos_match_this_location_date_r_d61e0bbc"));
-    const route={geography:true,title:scope.name+' · '+t("common:dateRange",{start:selection.start,end:selection.end}),pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:scope.id,from:selection.start,to:selection.end,allSpecies:String(selection.allSpecies),questions:String(selection.count),family:selection.family,single:String(selection.single)})};
+    const route={geography:true,title:scope.name+' · '+calendarWindowLabel(selection.start,selection.end),pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:scope.id,from:selection.start,to:selection.end,allSpecies:String(selection.allSpecies),questions:String(selection.count),family:selection.family,single:String(selection.single)})};
     begin({route,count:selection.count,allSpecies:selection.allSpecies,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});
   }catch(error){if(token===navigationToken)$('settings-error').textContent=error.message;}
 }
@@ -242,7 +243,7 @@ function navigateLocation(){
 $('skip-main').addEventListener('click',event=>{
   if(!$('routes').hidden&&!event.metaKey&&!event.ctrlKey&&!event.shiftKey&&!event.altKey){event.preventDefault();$('main-content').focus();}
 });
-for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav-routes':'/trips','nav-statistics':'/statistics','landing-practice':'/quiz','landing-statistics':'/statistics','landing-sight':'/quiz?medium=photo','landing-audio':'/quiz?medium=audio','practice-statistics':'/statistics','statistics-practice':'/quiz','species-back':'/statistics','results-statistics':'/statistics'})){
+for(const [id,url] of Object.entries({'nav-home':'/','nav-practice':'/quiz','nav-routes':'/trips','nav-statistics':'/statistics','landing-statistics':'/statistics','practice-statistics':'/statistics','statistics-practice':'/quiz','species-back':'/statistics','results-statistics':'/statistics'})){
   $(id).addEventListener('click',event=>{
     if(event.button>0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     event.preventDefault();if(location.pathname+location.search+location.hash!==url)history.pushState(null,'',url);
@@ -508,7 +509,7 @@ try{
   for(const site of data.sites){const count=eligibleBirds(data.birds,site.code).length;const option=document.createElement('option');option.value=site.code;option.textContent=`${site.code} · ${site.name} (${count})`;$('site').append(option);}
   // Bird records follow the checklist's taxonomic order; preserve each family's first occurrence.
   for(const family of new Set(data.birds.map(b=>familyName(b.family)))){const option=document.createElement('option');option.value=family;option.textContent=familyLabel(family);$('family').append(option);}
-  $('collection-sites').textContent=data.sites.length;$('total').textContent=data.summary.species;$('world-total').textContent=data.summary.worldLifers;$('co-total').textContent=data.summary.colombiaLifers;
+  $('world-total').textContent=data.summary.worldLifers;$('co-total').textContent=data.summary.colombiaLifers;
   const covered=data.birds.filter(b=>b.photos.length).length;$('coverage').textContent=t("app:macaulay_photo_records_of_species_image_availability_de_423e2f4d", {v0:(covered),v1:(data.birds.length),v2:(covered<data.birds.length?t("app:species_without_a_photo_record_are_excluded_from_questi_8964c0a3"):'')});
   const hero=data.birds.find(b=>b.name==='Multicolored Tanager'&&b.photos.length)||data.birds.find(b=>b.photos.length);
   if(hero){$('hero-photo').onerror=()=>{$('hero-photo').hidden=true;$('hero-label').textContent=t("app:macaulay_photograph_unavailable_946efa16");$('hero-credit').textContent=t("app:the_image_server_could_not_deliver_this_photo_please_tr_8849b24a");};$('hero-photo').src=hero.photos[0].url;$('hero-photo').alt=hero.name;$('hero-label').textContent=hero.name;$('hero-credit').textContent=t("app:macaulay_library_ml_c5606ff1", {v0:(hero.photos[0].photographer),v1:(hero.photos[0].id)});}
@@ -522,3 +523,11 @@ accountStatistics=statisticsControls({changed:store=>{
   if($('session').hidden){histories.photo=store.histories.photo;histories.audio=store.histories.audio;}
   if(data){renderStatistics();if(speciesScope)renderSpeciesList();}
 }});
+
+// The home collection describes installed geographic data, not the legacy itinerary.
+try{
+ const response=await fetch('/api/geography/catalog');if(!response.ok)throw Error();
+ const {coverage}=await response.json();
+ if(!coverage||['species','geographies','sites'].some(key=>!Number.isSafeInteger(coverage[key])||coverage[key]<0))throw Error();
+ for(const key of ['species','geographies','sites'])$('collection-'+key).textContent=new Intl.NumberFormat(locale).format(coverage[key]);
+}catch{$('collection-coverage-note').textContent=t('geography-ui:collectionUnavailable');}

@@ -109,3 +109,28 @@ AVIQUIZ_PYTHON=python3.13 node scripts/test-seasonal-daily.mjs
 ```
 
 The daily comparison check uses the existing private NC and Colombia analytical databases. No eBird, Macaulay, AWS, or DigitalOcean calls are made. Geography quizzes continue to exclude responses from saved statistics.
+
+### Launcher activation and collection counts
+
+After the generated common package registry is included in a deployment,
+`/api/geography/catalog` derives collection counts from all installed packages:
+unique species IDs (including species without photos), represented first-level
+subregions (US states or national equivalents such as Colombian departments),
+and unique processed hotspot/site IDs. Cached directory entries alone do not
+count. A first-level subregion with processed descendants counts even if it lacks
+its own aggregate. Counties and country roots are not extra first-level regions.
+
+`/api/geography` marks each directory entry with `supported` for navigation and
+`quizSupported` for its own processed species list. The launcher disables and
+grays out entries without coverage or covered descendants. Installing a new
+package automatically enables its locations and ancestor path; there is no
+separate country/continent allowlist to edit. A country may be navigable to reach
+a supported state without offering a whole-country quiz. Upload the referenced
+objects as part of the same staged release so enabled locations can serve data.
+Run `node test-collection.mjs` in addition to the checks above.
+
+The launcher selects recurring months and days, not travel years. Earlier end
+dates span New Year; February 29 remains available. Internal reference years
+serialize this calendar window for the existing shared reader and are not shown
+in the date controls or quiz titles. The legacy itinerary/trip editor still has
+real visit dates and remains independent.

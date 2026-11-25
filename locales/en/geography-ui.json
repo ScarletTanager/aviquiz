@@ -23,5 +23,8 @@
   "seasonal_species_after_filters_with_verified_photos_sam_a6b0af5c": "{{v0}} seasonal species after filters; {{v1}} with verified photos; {{v2}} sampled seasons. {{v3}}",
   "quiz_scope_7b66aa20": "Quiz scope: ",
   "eligible_species_with_photos_sets_questions_to_one_per_925b51e8": "{{v0}} eligible species with photos. Sets Questions to one per species and updates when your location, dates, or filters change.",
-  "all_families_01eee2b5": "All families"
+  "all_families_01eee2b5": "All families",
+  "unsupportedLocation": "Seasonal quiz data is not available here yet.",
+  "collectionUnavailable": "Collection counts are temporarily unavailable.",
+  "chooseCoveredSubregion": "Choose a supported subregion or site to create a quiz. This broader geography does not yet have its own species data."
 }

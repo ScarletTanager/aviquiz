@@ -7,7 +7,7 @@ import {locationCache} from './server/location-cache.mjs';
 import {createSqliteDatabase} from './server/database/sqlite.mjs';
 import {migrateDatabase} from './server/database/migrate.mjs';
 import {geographyApi} from './worker/geography-api.mjs';
-import {seasonRange,monthRange,geographyPool,geographySelection} from './dist/geography-core.mjs';
+import {seasonRange,monthRange,geographyPool,geographySelection,calendarWindow} from './dist/geography-core.mjs';
 const seed=JSON.parse(await fs.readFile('dist/geography-seed.json')),catalog=JSON.parse(await fs.readFile('dist/route-pilot.json')),data=JSON.parse(await fs.readFile('dist/data.json'));
 assert.equal(monthRange(2028,2).end,'2028-02-29');assert.equal(monthRange(2027,2).end,'2027-02-28');
 assert.deepEqual(seasonRange('2026-12-31','2027-01-02'),['12-31','01-01','01-02']);
@@ -76,6 +76,9 @@ if(import.meta.main){
  let assigned='';const location={search:'?from=2027-02-01&to=2027-02-28',assign(url){assigned=url;}};
  const browserNodes=[...seed.nodes,{id:'EC-P',name:'Pichincha',kind:'subnational1',parent:'EC'},{id:'L9999999999',name:'Ecuador test hotspot',kind:'hotspot',parent:'EC-P'}];
  const {seasonalApi:sharedApi,seasonalPackages}=await import('./worker/seasonal-api.mjs');
+ const {packageCoverage}=await import('./dist/coverage-core.mjs');
+ const coverage=packageCoverage(seasonalPackages,browserNodes);
+ const describe=n=>({...n,supported:coverage.navigable.has(n.id),quizSupported:coverage.places.has(n.id)});
  const {fileEbdBucket}=await import('./server/ebd-files.mjs');const commonBucket=await fileEbdBucket('../../outputs/ebd_common/objects');
  const apiRequest=[];let ncFixture=null;let commonMode=false;let holdParent=null;const releaseHeld=[];
  const fetcher=async url=>{
@@ -85,12 +88,12 @@ if(import.meta.main){
   const u=new URL(url,'https://quiz.example'),id=u.searchParams.get('parent'),type=u.searchParams.get('type'),parent=browserNodes.find(n=>n.id===id);apiRequest.push(id+':'+type);
   if(id===holdParent)await new Promise(resolve=>releaseHeld.push(resolve));
   const ancestors=[];let n=parent;while(n){ancestors.unshift(n);n=browserNodes.find(x=>x.id===n.parent);}
-  return {ok:true,json:async()=>({parent,ancestors,children:browserNodes.filter(n=>n.parent===id&&(type==='hotspots'?['hotspot','site'].includes(n.kind):!['hotspot','site'].includes(n.kind))),notice:'Pilot directory',fetchedAt:null})};
+  return {ok:true,json:async()=>({parent:describe(parent),ancestors:ancestors.map(describe),children:browserNodes.filter(n=>n.parent===id&&(type==='hotspots'?['hotspot','site'].includes(n.kind):!['hotspot','site'].includes(n.kind))).map(describe),notice:'Pilot directory',fetchedAt:null})};
  };
  const document={getElementById:id=>elements[id],createElement:()=>new Element(),createDocumentFragment:()=>new Element(),createTextNode:text=>({textContent:text})};
  const history={pushState(a,b,url){location.search=new URL(url,'https://quiz.example').search;}};
  const windowEvents={};
- const context=vm.createContext({t:(await import("./dist/i18n.mjs")).t,locale:"en",document,location,history,fetch:fetcher,accountFetch:fetcher,URLSearchParams,Intl,Date,console,window:{addEventListener(name,fn){windowEvents[name]=fn;}},familyName:(await import('./dist/quiz.mjs')).familyName,familyLabel:(await import('./dist/quiz.mjs')).familyLabel,geographyPool,monthRange,seasonRange});
+ const context=vm.createContext({t:(await import("./dist/i18n.mjs")).t,locale:"en",document,location,history,fetch:fetcher,accountFetch:fetcher,URLSearchParams,Intl,Date,console,window:{addEventListener(name,fn){windowEvents[name]=fn;}},familyName:(await import('./dist/quiz.mjs')).familyName,familyLabel:(await import('./dist/quiz.mjs')).familyLabel,geographyPool,monthRange,seasonRange,calendarWindow});
  const source=(await fs.readFile('dist/geography-ui.mjs','utf8')).replace(/^import .*;\n/gm,'');
  await vm.runInContext('(async()=>{'+source+'})()',context);
  const leaves=e=>e.children.flatMap(n=>n instanceof Element?[n,...leaves(n)]:[]);
@@ -108,7 +111,7 @@ if(import.meta.main){
  await choose('Caldas');
  assert.equal(elements['geo-start-quiz'].disabled,true);
  elements['geo-sample'].checked=true;await elements['geo-sample'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,false);
- elements['geo-start-quiz'].listeners.click();assert.match(assigned,/geo=CO-CAL/);assert.match(assigned,/from=2027-02-01/);
+ elements['geo-start-quiz'].listeners.click();assert.match(assigned,/geo=CO-CAL/);assert.match(assigned,/from=2000-02-01/);
  elements['geo-all-species'].checked=true;elements['geo-all-species'].listeners.change();
  assert.equal(elements['geo-count'].readOnly,true);
  const launcherPool=geographyPool({scope,nodes:seed.nodes,catalog,birds:data.birds,start:'2027-02-01',end:'2027-02-28',single:false}).pool;
@@ -139,18 +142,20 @@ if(import.meta.main){
 
 
  elements['geo-start'].value='2027-06-01';elements['geo-end'].value='2027-06-30';elements['geo-end'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,true);
- elements['geo-year'].value='2028';elements['geo-month'].value='2';elements['geo-apply-month'].listeners.click();assert.equal(elements['geo-end'].value,'2028-02-29');
+ elements['geo-month'].value='2';elements['geo-apply-month'].listeners.click();assert.equal(elements['geo-end'].value,'2000-02-29');
+ elements['geo-start-month'].value='12';elements['geo-start-month'].listeners.change();elements['geo-start-day'].value='31';elements['geo-start-day'].listeners.change();
+ elements['geo-end-month'].value='1';elements['geo-end-month'].listeners.change();elements['geo-end-day'].value='2';elements['geo-end-day'].listeners.change();
+ assert.equal(elements['geo-start'].value,'1999-12-31');assert.equal(elements['geo-end'].value,'2000-01-02');
+
  await choose('North America');assert.equal(lists().length,2);assert.equal(lists()[1].value,'');assert.equal(elements['geo-configuration'].hidden,true);
  assert.ok(leaves(lists()[0]).some(e=>e.textContent==='South America')); // continents always available
  const search=leaves(elements['geo-children']).find(e=>e.type==='search');search.value='united';search.listeners.input();assert.ok(leaves(lists()[1]).some(e=>e.value==='US'));
- // Countries with provinces reveal only provinces, with no country-wide
- // hotspot request; the lowest region then reveals its hotspots.
- await choose('South America');await choose('Ecuador');
- assert.equal(lists().length,3);assert.ok(leaves(lists()[2]).some(e=>e.value==='EC-P'));
- assert.ok(!apiRequest.includes('EC:hotspots'));
- assert.ok(!leaves(lists()[2]).some(e=>e.label==='Hotspots / pilot sites'));
- await choose('Pichincha');assert.equal(lists().length,4);assert.ok(apiRequest.includes('EC-P:hotspots'));
- assert.ok(leaves(lists()[3]).some(e=>e.value==='L9999999999'));
+ // Unsupported continents/countries are visible but disabled, and synthetic
+ // change events cannot bypass that state or trigger directory calls.
+ const africa=leaves(lists()[0]).find(e=>e.value==='continent:Africa');assert.equal(africa.disabled,true);
+ await choose('South America');
+ const ecuador=leaves(lists()[1]).find(e=>e.value==='EC');assert.equal(ecuador.disabled,true);
+ const callsBefore=apiRequest.length;await choose('Ecuador');assert.equal(apiRequest.length,callsBefore);assert.equal(lists().length,2);
  // Restore a deep linked leaf, rebuilding all its ancestor lists.
  location.search='?geo='+firstSite.id+'&from=2027-02-01&to=2027-02-28&trail='+encodeURIComponent('world,continent:South America,CO,CO-CAL,'+firstSite.id);
  await windowEvents.popstate();assert.equal(lists().length,4);assert.equal(lists()[3].value,firstSite.id);assert.equal(lists()[0].value,'continent:South America');

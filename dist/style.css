@@ -104,3 +104,8 @@
 .language-control select{width:auto;max-width:13rem;height:auto;margin:0;padding:7px 9px;font:inherit}
 .site-header{flex-wrap:wrap;gap:14px}
 @media(max-width:700px){.language-control{margin-left:auto}.language-control select{max-width:11.5rem}}
+
+.collection-band>p{grid-column:1/-1;margin:0}
+#collection-coverage-note{font-size:11px;line-height:1.6;color:var(--muted);margin:12px 0}
+@media(min-width:851px){.collection-band{grid-template-columns:1.4fr repeat(3,minmax(0,.7fr))}}
+@media(max-width:850px){.collection-band{grid-template-columns:repeat(3,minmax(0,1fr))}.collection-band>div:first-child{grid-column:1/-1}.collection-number strong{font-size:clamp(29px,6vw,45px)}}

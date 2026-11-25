@@ -4,6 +4,7 @@ import {locationCache} from '../server/location-cache.mjs';
 import ncLocations from '../dist/nc-locations.json' with {type:'json'};
 import seed from '../dist/geography-seed.json' with {type:'json'};
 import {seasonalPackages} from './seasonal-api.mjs';
+import {packageCoverage} from '../dist/coverage-core.mjs';
 import {resolvePrincipal} from './identity.mjs';
 import {hasPermission} from './permissions.mjs';
 import {verifierForEnvironment} from './cognito.mjs';
@@ -56,5 +57,7 @@ export async function geographyApi(request,env,{verifyIdentity}={}){
   await db.prepare("INSERT INTO audit_events (id,actor_user_id,action,resource_type,resource_id,details_json,created_at) VALUES (?,?,'geography.refresh','user',?,?,?)").bind(crypto.randomUUID(),actor.userId,actor.userId,JSON.stringify({parent:id,type}),new Date().toISOString()).run();
  }
  const ancestors=[];let n=parent;const seen=new Set();while(n&&!seen.has(n.id)){ancestors.unshift(n);seen.add(n.id);n=registry.get(n.parent);}
- return json({parent,ancestors,children:children.sort((a,b)=>a.name.localeCompare(b.name)),source,notice,fetchedAt});
+ const coverage=packageCoverage(env.SEASONAL_PACKAGES||seasonalPackages,[...registry.values()]);
+ const describe=node=>({...node,supported:coverage.navigable.has(node.id),quizSupported:coverage.places.has(node.id)});
+ return json({parent:describe(parent),ancestors:ancestors.map(describe),children:children.sort((a,b)=>a.name.localeCompare(b.name)).map(describe),source,notice,fetchedAt});
 }

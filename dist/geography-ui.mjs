@@ -1,13 +1,25 @@
 import {t,locale} from './i18n.mjs';
 import {accountFetch} from './auth-session.mjs';
 import {familyName,familyLabel} from './quiz.mjs';
-import {geographyPool,monthRange,seasonRange} from './geography-core.mjs';
+import {geographyPool,monthRange,seasonRange,calendarWindow} from './geography-core.mjs';
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.search),today=new Date();
-const fallback=monthRange(today.getFullYear(),today.getMonth()+1);
-$('geo-start').value=params.get('from')||fallback.start;$('geo-end').value=params.get('to')||fallback.end;$('geo-year').value=today.getFullYear();
+const fallback=monthRange(2000,today.getMonth()+1);
+let initial=fallback,initialError='';try{initial=calendarWindow(params.get('from')||fallback.start,params.get('to')||fallback.end);}catch(error){initialError=error.message;}
+$('geo-start').value=initial.start;$('geo-end').value=initial.end;
 $('geo-all-species').checked=params.get('allSpecies')==='true';
 if(params.has('questions'))$('geo-count').value=params.get('questions');
-for(let m=1;m<=12;m++){const option=document.createElement('option');option.value=m;option.textContent=new Intl.DateTimeFormat(locale,{month:'long',timeZone:'UTC'}).format(new Date(Date.UTC(2024,m-1,1)));$('geo-month').append(option);}
+for(const id of ['geo-month','geo-start-month','geo-end-month'])for(let m=1;m<=12;m++){const option=document.createElement('option');option.value=String(m);option.textContent=new Intl.DateTimeFormat(locale,{month:'long',timeZone:'UTC'}).format(new Date(Date.UTC(2000,m-1,1)));$(id).append(option);}
+function fillDays(kind,day){
+ const month=Number($('geo-'+kind+'-month').value),last=Number(monthRange(2000,month).end.slice(8));
+ const options=Array.from({length:last},(_,i)=>{const option=document.createElement('option');option.value=String(i+1);option.textContent=String(i+1);return option;});
+ $('geo-'+kind+'-day').replaceChildren(...options);$('geo-'+kind+'-day').value=String(Math.min(Number(day)||1,last));
+}
+function showCalendar(range){for(const kind of ['start','end']){$('geo-'+kind).value=range[kind];$('geo-'+kind+'-month').value=String(Number(range[kind].slice(5,7)));fillDays(kind,Number(range[kind].slice(8)));}}
+showCalendar(initial);
+function readCalendar(){
+ const md=kind=>String($('geo-'+kind+'-month').value).padStart(2,'0')+'-'+String($('geo-'+kind+'-day').value).padStart(2,'0');
+ const range=calendarWindow(md('start'),md('end'));$('geo-start').value=range.start;$('geo-end').value=range.end;return range;
+}
 $('geo-month').value=String(today.getMonth()+1);
 let nodes=[],catalog,birds=[],selected=null,columns=[],request=0,previewRequest=0,preview={pool:[],places:[]};
 let eligibleCount=0;
@@ -30,6 +42,7 @@ async function updatePreview(){
  $('geo-error').textContent='';$('geo-start-quiz').disabled=true;eligibleCount=0;updateQuestionCount();
  if(!selected||['world','continent'].includes(selected.kind)){$('geo-configuration').hidden=true;return;}
  $('geo-configuration').hidden=false;$('geo-selected-heading').textContent=t("geography-ui:quiz_scope_7b66aa20")+selected.name;
+ if(selected.quizSupported===false){$('geo-coverage').textContent=t('geography-ui:chooseCoveredSubregion');$('geo-species-details').hidden=true;$('geo-coverage-help-row').hidden=true;return;}
  try{
   seasonRange($('geo-start').value,$('geo-end').value);
   const ncResponse=await fetch('/api/geography/quiz?'+new URLSearchParams({place:selected.id,from:$('geo-start').value,to:$('geo-end').value,single:String($('geo-single').checked),family:'all'}));
@@ -66,14 +79,14 @@ function renderColumns(){
    const filtered=column.children.filter(n=>normalize(n.name).includes(normalize(column.query||'')));
    const groups=index<2?[{label:null,rows:filtered}]:[{label:t("geography-ui:subregions_f296ff4f"),rows:filtered.filter(n=>!['hotspot','site'].includes(n.kind))},{label:t("geography-ui:hotspots_pilot_sites_95ddc88d"),rows:filtered.filter(n=>['hotspot','site'].includes(n.kind))}];
    const options=document.createDocumentFragment();
-   for(const group of groups){if(!group.rows.length)continue;const target=group.label?make('optgroup',''):options;if(group.label)target.label=group.label;for(const node of group.rows){const option=make('option',node.name);option.value=node.id;option.title=node.name;target.append(option);}if(group.label)options.append(target);}
+   for(const group of groups){if(!group.rows.length)continue;const target=group.label?make('optgroup',''):options;if(group.label)target.label=group.label;for(const node of group.rows){const option=make('option',node.name);option.value=node.id;option.disabled=node.supported!==true;option.title=option.disabled?t('geography-ui:unsupportedLocation'):node.name;option.setAttribute('aria-disabled',String(option.disabled));target.append(option);}if(group.label)options.append(target);}
    select.replaceChildren(options);select.value=column.selectedId||'';select.scrollTop=column.scrollTop||0;
    count.textContent=filtered.length?t("common:locationCount",{count:filtered.length}):t("geography-ui:no_matching_locations_c01ce55e");
   }
   const count=make('p','');count.className='field-help location-count';count.setAttribute('aria-live','polite');
   if(search)search.addEventListener('input',()=>{column.query=search.value;column.scrollTop=0;fill();});
   select.addEventListener('scroll',()=>{column.scrollTop=select.scrollTop;});
-  select.addEventListener('change',()=>{const node=column.children.find(n=>n.id===select.value);if(node)return choose(node,index);});
+  select.addEventListener('change',()=>{const node=column.children.find(n=>n.id===select.value);if(node?.supported===true)return choose(node,index);});
   fill();section.append(select,count);fragment.append(section);
  });
  $('geo-children').replaceChildren(fragment);
@@ -119,11 +132,12 @@ async function load(node,depth,{refresh=false,navigate=true}={}){
   $('geo-loading').textContent=children.length||node.kind==='world'?'':t("geography-ui:no_further_subregions_or_sites_are_listed_for_this_plac_6b756f3b");updatePreview();
  }catch(error){if(token===request){if(refresh){columns=prior;renderColumns();} $('geo-loading').textContent=error.message;}}
 }
-function choose(node,depth,options={}){return load(node,depth,options);}
+function choose(node,depth,options={}){if(node.supported!==true){$('geo-error').textContent=t('geography-ui:unsupportedLocation');return;}return load(node,depth,options);}
 function openWorld(options={}){return load(nodes.find(n=>n.id==='world'),-1,options);}
 for(const id of ['geo-start','geo-end','geo-family','geo-single','geo-sample','geo-show-all-families'])$(id).addEventListener('change',updatePreview);
 $('geo-all-species').addEventListener('change',updateQuestionCount);
-$('geo-apply-month').addEventListener('click',()=>{try{const range=monthRange(Number($('geo-year').value),Number($('geo-month').value));$('geo-start').value=range.start;$('geo-end').value=range.end;updatePreview();}catch(error){$('geo-error').textContent=error.message;}});
+for(const kind of ['start','end'])for(const part of ['month','day'])$('geo-'+kind+'-'+part).addEventListener('change',()=>{try{if(part==='month')fillDays(kind,$('geo-'+kind+'-day').value);readCalendar();updatePreview();}catch(error){$('geo-error').textContent=error.message;}});
+$('geo-apply-month').addEventListener('click',()=>{try{showCalendar(monthRange(2000,Number($('geo-month').value)));updatePreview();}catch(error){$('geo-error').textContent=error.message;}});
 $('geo-refresh').addEventListener('click',()=>load(selected||nodes.find(n=>n.id==='world'),Math.max(-1,columns.findIndex(c=>c.selectedId===selected?.id)),{refresh:true}));
 $('geo-start-quiz').addEventListener('click',()=>{
  if($('geo-start-quiz').disabled)return;
@@ -138,7 +152,7 @@ async function restoreLocation(){
  const path=trail.filter(value=>value!=='world');if(id!=='world'&&path.at(-1)!==id)path.push(id);
  for(const value of path){const depth=columns.findIndex(c=>c.children.some(n=>n.id===value));if(depth<0)break;await choose(columns[depth].children.find(n=>n.id===value),depth,{navigate:false});}
 }
-window.addEventListener('popstate',()=>{const query=new URLSearchParams(location.search);$('geo-start').value=query.get('from')||fallback.start;$('geo-end').value=query.get('to')||fallback.end;return restoreLocation();});
+window.addEventListener('popstate',()=>{const query=new URLSearchParams(location.search);try{showCalendar(calendarWindow(query.get('from')||fallback.start,query.get('to')||fallback.end));return restoreLocation();}catch(error){$('geo-error').textContent=error.message;}});
 try{
  const responses=await Promise.all(['/geography-seed.json','/route-pilot.json','/data.json','/api/geography/catalog'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error();
  const [seed,pilot,data,nc]=await Promise.all(responses.map(r=>r.json()));nodes=seed.nodes;catalog=pilot;birds=data.birds;
@@ -150,3 +164,5 @@ try{
  await restoreLocation();
 }catch{$('geo-loading').textContent=t("geography-ui:the_pilot_catalogs_could_not_load_please_reload_or_use_8efe4e1c");}
 try{const response=await accountFetch('/api/account');if(response.ok){const account=await response.json();$('account-trip-options').hidden=account.kind!=='user';$('geo-refresh').hidden=account.administrator!==true;}}catch{}
+
+if(initialError)$('geo-error').textContent=initialError;

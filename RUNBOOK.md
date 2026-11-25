@@ -707,3 +707,19 @@ widgets can render correctly. The browser may cache those resources; the worker
 still saves only reference metadata, not photo files. No personal browser profile
 or cookies are imported. This mode requires occasional human participation when
 the host requests verification; it is not a CAPTCHA solver or access bypass.
+
+## Geography launcher coverage
+
+The homepage collection and enabled launcher entries are derived from the
+installed common seasonal packages. If a location is gray, check that its
+package is present in `worker/seasonal-packages.json`, its place or descendants
+appear in the package index, and its ancestor relationships are correct. Directory
+metadata by itself does not enable quizzes. A navigable ancestor without its own
+aggregate directs users to a supported subregion. If a location is enabled but
+returns a storage error, check that the package objects were uploaded alongside
+the deployed registry. See [the CLI workflow](docs/ebd-geography-cli.md).
+
+Use `node test-collection.mjs` and `node test-geography.mjs` to verify counts,
+automatic activation, disabled selections, and year-free seasonal windows.
+The legacy Colombia material remains at `/quiz` through the header Practice link;
+the primary homepage links lead to `/explore`.
