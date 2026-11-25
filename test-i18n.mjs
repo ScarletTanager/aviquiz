@@ -33,3 +33,34 @@ const build=spawnSync(process.execPath,['scripts/build-i18n.mjs'],{encoding:'utf
 for(let i=0;i<files.length;i++)assert.deepEqual(await fs.readFile('dist/'+files[i]),before[i],'Nondeterministic generated asset '+files[i]);
 const check=spawnSync(process.execPath,['scripts/check-i18n.mjs'],{encoding:'utf8'});assert.equal(check.status,0,check.stderr);console.log(check.stdout.trim());
 console.log('Passed English-only initialization, strict keys, counts/plurals, interpolation isolation, annotation escaping, stable validation codes, safe bundles, and deterministic generation.');
+
+// Exercise Spanish in an isolated instance: the live application stays English.
+const {default:i18next}=await import('./dist/i18next.mjs');
+const {readLocale,validateLocale}=await import('./scripts/locale-parity.mjs');
+const spanish=await readLocale(new URL('./locales/',import.meta.url).pathname,'es-CO');
+assert.equal(validateLocale(messages,spanish,'es-CO'),Object.values(messages).reduce((n,bundle)=>n+Object.keys(bundle).length,0));
+const es=i18next.createInstance();
+await es.init({lng:'es-CO',fallbackLng:false,resources:{'es-CO':spanish},ns:Object.keys(spanish),defaultNS:'common',keySeparator:false,initAsync:false,interpolation:{escapeValue:false}});
+assert.equal(es.t('common:locationCount',{count:1}),'1 lugar');
+assert.equal(es.t('common:locationCount',{count:0}),'0 lugares');
+assert.equal(es.t('common:locationCount',{count:2}),'2 lugares');
+assert.equal(es.t('common:locationCount',{count:1000000}),'1000000 lugares');
+assert.equal(es.t('common:eligibleOutings',{count:1}),'1 salida disponible');
+assert.equal(es.t('common:eligibleOutings',{count:3}),'3 salidas disponibles');
+assert.equal(es.t('common:sampledMonths',{count:2,month:'febrero'}),'2 temporadas de febrero muestreadas');
+assert.equal(es.t('common:recordingFor',{species:'Plain Xenops'}),'Grabación de Plain Xenops');
+assert.equal(es.t('common:signedInAs',{email:'test@example.org'}),' como test@example.org');
+assert.equal(es.t('families:Furnariidae'),'Horneros, chamiceros y trepatroncos');
+for(const [ns,values]of Object.entries(spanish))for(const [key,value]of Object.entries(values)){
+ const params=Object.fromEntries([...value.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map(m=>[m[1],m[1]==='count'?2:'PRUEBA']));
+ const rendered=es.t(ns+':'+key,params);assert.ok(!/\{\{\s*\w+\s*\}\}/.test(rendered),'Unresolved Spanish interpolation '+ns+':'+key);
+}
+const invalid=structuredClone(spanish);delete invalid.common.recordingFor;
+assert.throws(()=>validateLocale(messages,invalid,'missing'),/keys/);
+const slotError=structuredClone(spanish);slotError.common.recordingFor='Grabación de {{bird}}';
+assert.throws(()=>validateLocale(messages,slotError,'slots'),/interpolation/);
+const htmlKey=Object.keys(spanish.app).find(k=>spanish.app[k].includes('href='));
+const changedLink=structuredClone(spanish);changedLink.app[htmlKey]=changedLink.app[htmlKey].replace('href=','data-url=');
+assert.throws(()=>validateLocale(messages,changedLink,'link'),/protected attributes/);
+assert.equal(locale,'en');assert.equal(t('common:locationCount',{count:2}),'2 locations');
+console.log('Passed isolated Colombian Spanish rendering for every message, plural forms, unchanged proper names, and rejection of missing keys, altered placeholders, and changed links. Live language remains English.');

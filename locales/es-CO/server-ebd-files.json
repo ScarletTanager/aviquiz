@@ -1,0 +1,8 @@
+{
+  "packaged_ebd_serving_data_is_read_only_25c6c4d3": "Los datos EBD empaquetados para consulta son de solo lectura.",
+  "incomplete_ebd_artifact_bee70f9b": "El archivo de datos EBD está incompleto.",
+  "invalid_ebd_range_ec042cdd": "El rango de datos EBD no es válido.",
+  "invalid_ebd_artifact_key_444f099e": "La clave del archivo de datos EBD no es válida.",
+  "ebd_serving_directory_is_unavailable_c0be8f0e": "El directorio de datos EBD para consulta no está disponible.",
+  "not_a_directory_83c54ca7": "No es un directorio"
+}

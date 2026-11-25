@@ -1,0 +1,18 @@
+{
+  "ebird_lookup_unavailable_showing_any_previously_loaded_867b914e": "La consulta a eBird no está disponible. Se muestran los lugares cargados anteriormente y los sitios piloto existentes.",
+  "refresh_failed_the_previous_directory_has_been_retained_a2798353": "La actualización falló. Se conservó el directorio anterior.",
+  "ebird_subregions_some_countries_do_not_have_both_admini_04ab6bfb": "Subregiones de eBird. Algunos países no tienen ambos niveles administrativos.",
+  "public_ebird_hotspots_and_existing_pilot_sites_location_687eccd9": "Sitios de interés públicos de eBird y sitios piloto existentes. Los metadatos de ubicación no implican que haya cobertura de especies por temporada.",
+  "directory_capacity_reached_16dbc270": "Se alcanzó la capacidad del directorio.",
+  "bundled_country_directory_grouped_using_un_geographic_r_8f9d3cf1": "Directorio de países incluido con la aplicación, agrupado según las regiones geográficas de la ONU; estos grupos no son los continentes usados por eBird para sus listas.",
+  "country_lookup_unavailable_showing_the_bundled_country_ba29d284": "La consulta de países no está disponible; se muestra el directorio de países incluido con la aplicación.",
+  "country_metadata_from_ebird_grouped_using_un_geographic_6ccea96d": "Metadatos de países de eBird, agrupados según las regiones geográficas de la ONU. Estos grupos difieren de los continentes usados por eBird para sus listas.",
+  "limited_location_directory_ebird_api_access_has_not_bee_41ab1bfa": "Directorio de lugares limitado: no se ha configurado el acceso a la API de eBird.",
+  "ebird_metadata_access_is_not_configured_393a3dc6": "No se ha configurado el acceso a los metadatos de eBird.",
+  "administrator_permission_is_required_to_refresh_metadat_d5f72892": "Se requiere permiso de administrador para actualizar los metadatos.",
+  "sign_in_again_to_verify_your_account_18e5667f": "Inicie sesión de nuevo para verificar su cuenta.",
+  "use_the_location_controls_on_this_site_d259f342": "Use los controles de lugares en este sitio.",
+  "select_a_location_from_the_directory_first_1fa01f5a": "Primero seleccione un lugar del directorio.",
+  "invalid_location_lookup_68b674f5": "La consulta de lugares no es válida.",
+  "method_not_allowed_5765cf56": "Método no permitido."
+}

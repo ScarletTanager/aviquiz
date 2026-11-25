@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {parse} from '@babel/parser';
 import {parse as parseHTML} from 'parse5';
 import {messages} from '../dist/i18n.mjs';
+import {checkLocales} from './locale-parity.mjs';
 const root=path.resolve(import.meta.dirname,'..');
 const placeholders=value=>[...new Set([...value.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map(m=>m[1]))].sort();
 let uses=0;
@@ -53,3 +54,5 @@ for(const [ns,bundle]of Object.entries(messages))for(const [key,value]of Object.
 }
 for(const status of ['unreviewed','draft','approved','skipped','blocked'])assert.ok(lookup('common:reviewStatus_'+status),'Missing review status '+status);
 console.log(`Checked ${uses} message references, interpolation parameters, plural pairs, and canonical page text.`);
+
+for(const [locale,count]of Object.entries(await checkLocales(path.join(root,'locales'))))console.log(`Checked ${locale}: ${count} translations, exact key/placeholder parity, and protected markup.`);

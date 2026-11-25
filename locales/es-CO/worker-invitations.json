@@ -1,0 +1,20 @@
+{
+  "account_setup_could_not_be_completed_no_invitation_emai_6c11a50a": "No se pudo completar la configuración de la cuenta. No se solicitó el envío de un correo de invitación. Pida que revisen esta invitación antes de volver a intentarlo.",
+  "the_account_was_created_but_we_could_not_confirm_that_i_f113d435": "Se creó la cuenta, pero no pudimos confirmar el envío del correo de invitación. Consulte con la persona invitada antes de enviar otra invitación.",
+  "the_account_was_created_but_its_invitation_email_could_f65ef569": "Se creó la cuenta, pero no se pudo enviar el correo de invitación. Pida que revisen esta invitación antes de volver a intentarlo.",
+  "the_invitation_email_was_accepted_for_sending_but_aviqu_a22afac3": "Se aceptó el envío del correo de invitación, pero AviQuiz no pudo guardar su estado. Consulte con la persona invitada antes de enviar otra invitación.",
+  "invalid_invitation_identity_1cb8cf49": "La identidad de la invitación no es válida.",
+  "the_daily_invitation_limit_has_been_reached_try_again_l_7fefba38": "Se alcanzó el límite diario de invitaciones. Inténtelo más tarde.",
+  "an_account_already_exists_for_this_email_address_eda7d7b5": "Ya existe una cuenta con este correo electrónico.",
+  "this_address_already_has_an_unfinished_invitation_check_d095ea7c": "Esta dirección ya tiene una invitación pendiente. Revise su estado antes de enviar otro correo.",
+  "an_invitation_has_already_been_sent_to_this_address_no_5f7895b0": "Ya se envió una invitación a esta dirección. No se envió ningún correo adicional.",
+  "enter_one_valid_email_address_5f14c6b1": "Ingrese una sola dirección de correo electrónico válida.",
+  "invalid_invitation_ba186bde": "La invitación no es válida.",
+  "send_one_email_address_fec1ece0": "Envíe una sola dirección de correo electrónico.",
+  "invitations_are_not_enabled_here_yet_2a4cf8e9": "Las invitaciones aún no están habilitadas aquí.",
+  "invitation_permission_is_required_269236af": "Se requiere permiso para invitar usuarios.",
+  "sign_in_again_to_verify_your_account_18e5667f": "Inicie sesión de nuevo para verificar su cuenta.",
+  "account_storage_is_unavailable_4dd57e46": "El almacenamiento de cuentas no está disponible.",
+  "use_the_invitation_form_on_this_site_bfff4fec": "Use el formulario de invitación de este sitio.",
+  "method_not_allowed_5765cf56": "Método no permitido."
+}

@@ -1,0 +1,9 @@
+{
+  "invalid_location_directory_7c42fb58": "El directorio de lugares no es válido.",
+  "too_many_locations_choose_a_smaller_region_7355f2a5": "Hay demasiados lugares. Seleccione una región más pequeña.",
+  "location_directory_unavailable_121b001e": "El directorio de lugares no está disponible.",
+  "location_service_is_resting_try_again_later_d0daac49": "El servicio de lugares está en pausa. Inténtelo más tarde.",
+  "location_lookup_limit_reached_try_again_later_05a3c248": "Se alcanzó el límite de consultas de lugares. Inténtelo más tarde.",
+  "unsupported_lookup_b87c9ea8": "La consulta no es compatible.",
+  "unsupported_region_7c4ff281": "La región no es compatible."
+}

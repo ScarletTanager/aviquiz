@@ -1,0 +1,16 @@
+{
+  "statistics_capacity_exceeded_86cfcd46": "Se excedió la capacidad de estadísticas.",
+  "invalid_synchronization_cursor_223e8efd": "El cursor de sincronización no es válido.",
+  "inconsistent_contribution_76977f9e": "La contribución es inconsistente.",
+  "invalid_statistics_identity_64b9fe3c": "La identidad de estadísticas no es válida.",
+  "invalid_completion_time_d32b46ff": "La hora de finalización no es válida.",
+  "invalid_comparison_result_0ce8e2b4": "El resultado de comparación no es válido.",
+  "invalid_quiz_scope_02d57ef6": "El alcance del cuestionario no es válido.",
+  "invalid_historical_format_b2b0e39d": "El formato del historial no es válido.",
+  "invalid_historical_snapshot_b13ea318": "La copia del historial no es válida.",
+  "invalid_site_893b8f7b": "El sitio no es válido.",
+  "invalid_aggregate_history_a0ed2d77": "El historial agregado no es válido.",
+  "invalid_statistics_totals_1220917d": "Los totales de estadísticas no son válidos.",
+  "invalid_recent_review_state_f1e0d0a1": "El estado de revisión reciente no es válido.",
+  "invalid_species_totals_f43292b5": "Los totales por especie no son válidos."
+}

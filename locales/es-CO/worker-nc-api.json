@@ -1,0 +1,12 @@
+{
+  "nc_seasonal_data_could_not_load_please_retry_later_e168a2c2": "No se pudieron cargar los datos de temporada de Carolina del Norte. Inténtelo más tarde.",
+  "complete_eligible_checklists_grouped_into_independent_o_5c57db94": "Listas de aves completas que cumplen los criterios, agrupadas en salidas independientes; 2017–2025. De forma predeterminada, se excluyen las especies registradas en una sola temporada muestreada cuando se han muestreado al menos dos temporadas. Esto reduce las rarezas ocasionales, pero no garantiza la presencia de una especie. La cobertura de fotos sigue en ampliación. Los cuestionarios por ubicación no modifican las estadísticas guardadas.",
+  "invalid_artifact_length_4f1baab3": "La longitud del archivo de datos no es válida",
+  "invalid_stored_artifact_7ed2b96c": "El archivo de datos almacenado no es válido",
+  "nc_seasonal_data_is_not_loaded_yet_63c2494d": "Los datos de temporada de Carolina del Norte aún no están cargados.",
+  "no_nc_seasonal_data_for_this_place_760bf011": "No hay datos de temporada de Carolina del Norte para este lugar.",
+  "invalid_query_e7a90c1f": "La consulta no es válida.",
+  "method_not_allowed_5765cf56": "Método no permitido.",
+  "artifact_verification_failed_f5db8ef3": "Falló la verificación del archivo de datos.",
+  "body_required_707a0b3a": "Se requiere un cuerpo de solicitud."
+}

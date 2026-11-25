@@ -1,0 +1,17 @@
+{
+  "seasonal_data_could_not_load_please_retry_later_903f6286": "No se pudieron cargar los datos de temporada. Inténtelo más tarde.",
+  "complete_eligible_checklists_grouped_into_independent_o_bd1af591": "Listas de aves completas que cumplen los criterios, agrupadas en salidas independientes; cobertura histórica {{v0}}. De forma predeterminada, se excluyen las especies de una sola temporada cuando se han muestreado varias temporadas. La cobertura histórica puede incluir años parciales y no garantiza la presencia de una especie. Se prefieren fotos de los trimestres seleccionados; se usan otras fechas cuando no hay cobertura coincidente. Los cuestionarios por ubicación no modifican las estadísticas guardadas.",
+  "invalid_species_reference_e9944eed": "La referencia de la especie no es válida",
+  "incomplete_record_66b0f2b7": "El registro está incompleto",
+  "oversized_record_105ecfe8": "El registro excede el tamaño permitido",
+  "missing_package_object_3d598e01": "Falta el objeto del paquete",
+  "seasonal_data_is_not_loaded_yet_676c7f11": "Los datos de temporada aún no están cargados.",
+  "no_seasonal_data_for_this_place_f90fef5f": "No hay datos de temporada para este lugar.",
+  "invalid_query_e7a90c1f": "La consulta no es válida.",
+  "method_not_allowed_5765cf56": "Método no permitido.",
+  "storage_is_read_only_or_unavailable_48555b36": "El almacenamiento es de solo lectura o no está disponible.",
+  "artifact_verification_failed_f5db8ef3": "Falló la verificación del archivo de datos.",
+  "body_required_707a0b3a": "Se requiere un cuerpo de solicitud.",
+  "storage_unavailable_ef97fa10": "El almacenamiento no está disponible.",
+  "unknown_artifact_d95fea41": "El archivo de datos es desconocido."
+}

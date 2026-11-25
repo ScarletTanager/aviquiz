@@ -1,0 +1,23 @@
+{
+  "non_vocal_recordings_do_not_belong_in_a_vocalization_qu_77e49c84": "Las grabaciones sin vocalizaciones no corresponden a un cuestionario de cantos y llamados.",
+  "invalid_recording_provenance_8c9dff39": "La procedencia de la grabación no es válida.",
+  "unknown_audio_species_585518c7": "La especie de la grabación es desconocida.",
+  "invalid_audio_catalog_b2f8c728": "El catálogo de audio no es válido.",
+  "no_closer_recording_is_catalogued_use_this_as_species_l_3cd98266": "No hay una grabación más cercana en el catálogo. Úsela para practicar la identificación de la especie; puede diferir de las vocalizaciones del viaje. {{v0}}",
+  "distant_fallback_geographic_match_unverified_196e656e": "Alternativa distante · coincidencia geográfica sin verificar",
+  "no_closer_recording_is_catalogued_country_proximity_doe_b9bb74ec": "No hay una grabación más cercana en el catálogo. La cercanía entre países no confirma que se trate de la misma población, hábitat o subespecie. {{v0}}",
+  "neighboring_country_fallback_c80ca721": "Alternativa de un país vecino",
+  "this_site_s_location_is_not_yet_resolved_ae63ef68": "; aún no se ha determinado la ubicación de este sitio",
+  "no_closer_recording_is_present_in_this_quiz_s_catalog_a_1f92a66d": "No hay una grabación más cercana en el catálogo de este cuestionario{{v0}}. Una localidad colombiana es una alternativa amplia, no una coincidencia regional o de subespecie verificada.",
+  "the_all_sites_scope_spans_several_regions_this_recordin_88b83704": "La selección de todos los sitios abarca varias regiones; esta grabación corresponde a una sola localidad. {{v0}}",
+  "colombia_fallback_outside_matched_site_area_f6ad2d3e": "Alternativa de Colombia · fuera del área del sitio seleccionado",
+  "colombia_recording_broad_trip_scope_c44b1ea9": "Grabación de Colombia · alcance amplio del viaje",
+  "department_level_match_only_habitat_elevation_slope_and_d2e1d75d": "Solo coincide el departamento; no se ha verificado la coincidencia de hábitat, elevación, vertiente o subespecie. {{v0}}",
+  "same_department_regional_approximation_926a3f37": "Mismo departamento · aproximación regional",
+  "location_name_matches_the_site_area_the_exact_trail_ele_3b45f038": "El nombre de la localidad coincide con el área del sitio; el sendero exacto, la elevación y la subespecie pueden ser diferentes. {{v0}}",
+  "same_named_site_area_c01656fc": "Misma área del sitio por nombre",
+  "same_general_site_area_595aa2f2": "Misma área general del sitio",
+  "the_catalog_identifies_this_site_00d54e20": "El catálogo identifica este sitio. {{v0}}",
+  "recording_from_this_site_2ece18c2": "Grabación de este sitio",
+  "subspecies_is_unconfirmed_for_this_quiz_site_geographic_9966c8c0": "No se ha confirmado la subespecie para este sitio del cuestionario. La cercanía geográfica no demuestra una coincidencia de subespecie."
+}

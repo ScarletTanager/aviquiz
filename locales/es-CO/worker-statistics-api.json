@@ -1,0 +1,21 @@
+{
+  "statistics_storage_is_unavailable_browser_summaries_hav_9e925f39": "El almacenamiento de estadísticas no está disponible. Se conservaron los resúmenes del navegador; inténtelo más tarde.",
+  "statistics_changed_concurrently_your_browser_summary_wa_2138e010": "Las estadísticas se modificaron simultáneamente. Se conservó el resumen del navegador; intente sincronizar de nuevo.",
+  "this_aggregate_backup_may_overlap_existing_account_stat_102592ef": "Esta copia de seguridad agregada puede coincidir parcialmente con las estadísticas de la cuenta. Se conservó la copia del navegador.",
+  "turn_on_historical_statistics_storage_before_importing_cda778fb": "Active el almacenamiento del historial de estadísticas antes de importar.",
+  "a_different_history_snapshot_was_already_imported_brows_c6c58602": "Ya se importó una copia diferente del historial. Se conservaron los datos del navegador para evitar contar dos veces las estadísticas que coinciden.",
+  "this_contribution_conflicts_with_an_already_synchronize_ca6baf56": "Esta contribución entra en conflicto con un resultado ya sincronizado.",
+  "invalid_statistics_contribution_be0e824c": "La contribución de estadísticas no es válida.",
+  "choose_whether_to_save_history_180bdbde": "Seleccione si desea guardar el historial.",
+  "invalid_or_oversized_statistics_data_356a6e17": "Los datos de estadísticas no son válidos o exceden el tamaño permitido.",
+  "the_signed_in_account_changed_reload_statistics_before_2b813331": "La cuenta con sesión iniciada cambió. Recargue las estadísticas antes de guardar.",
+  "sign_in_to_access_historical_statistics_82b64e96": "Inicie sesión para acceder al historial de estadísticas.",
+  "sign_in_again_to_access_account_statistics_4b1b69eb": "Inicie sesión de nuevo para acceder a las estadísticas de su cuenta.",
+  "statistics_storage_is_unavailable_please_retry_later_38039a87": "El almacenamiento de estadísticas no está disponible. Inténtelo más tarde.",
+  "use_the_statistics_controls_on_this_site_37de3685": "Use los controles de estadísticas de este sitio.",
+  "invalid_statistics_query_a55d1e26": "La consulta de estadísticas no es válida.",
+  "method_not_allowed_5765cf56": "Método no permitido.",
+  "not_found_0802559d": "No se encontró.",
+  "statistics_request_exceeds_1_mb_9a412cfe": "La solicitud de estadísticas excede 1 MB.",
+  "send_json_01dc6e8d": "Envíe JSON."
+}

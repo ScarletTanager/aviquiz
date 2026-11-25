@@ -1,0 +1,10 @@
+{
+  "invalid_visibility_871d15aa": "La visibilidad no es válida.",
+  "invalid_route_role_f7e4577f": "El rol del viaje no es válido.",
+  "route_ownership_cannot_be_changed_through_membership_bf15e4e8": "No se puede cambiar la propiedad del viaje mediante la lista de miembros.",
+  "route_title_must_contain_1_200_characters_715253da": "El nombre del viaje debe tener entre 1 y 200 caracteres.",
+  "administrator_assignment_requires_a_separate_bootstrap_c9c9e9f4": "La asignación de un administrador requiere un procedimiento independiente de configuración inicial o recuperación.",
+  "invalid_grant_82a01c26": "La asignación de permisos no es válida.",
+  "a_provider_verified_email_is_required_97f313ce": "Se requiere un correo electrónico verificado por el proveedor.",
+  "access_denied_278f003d": "Acceso denegado."
+}

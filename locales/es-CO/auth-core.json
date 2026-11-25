@@ -1,0 +1,5 @@
+{
+  "missing_app_client_id_922b89a1": "Falta el identificador de cliente de la aplicación.",
+  "authentication_return_urls_must_match_this_site_origin_e41296b2": "Las URL de retorno de autenticación deben corresponder al origen de este sitio y no incluir parámetros de consulta ni fragmentos.",
+  "https_authentication_endpoints_required_8cfc2d96": "Se requieren direcciones de autenticación HTTPS."
+}

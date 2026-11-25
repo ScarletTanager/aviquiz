@@ -1,0 +1,21 @@
+{
+  "browser_history_changed_in_another_tab_refresh_this_pag_5591df42": "El historial del navegador cambió en otra pestaña. Actualice esta página cuando termine su cuestionario.",
+  "full_historical_statistics_are_available_only_to_signed_7f4762ce": "El historial completo de estadísticas solo está disponible para quienes inician sesión. Las estadísticas de visitantes agrupan los cinco cuestionarios más recientes; sin almacenamiento en el navegador, solo duran durante esta visita.",
+  "showing_cumulative_account_statistics_plus_any_unsaved_f1e011a9": "Se muestran las estadísticas acumuladas de la cuenta, junto con la práctica reciente de este dispositivo que aún no se haya guardado. Los últimos resultados sirven como punto de comparación.",
+  "older_browser_statistics_were_imported_into_your_accoun_0f368611": "Las estadísticas anteriores del navegador se importaron a su cuenta. Contienen respuestas de una ventana móvil y los últimos resultados, no sesiones de cuestionarios con fecha.",
+  "import_failed_browser_history_was_kept_7be8828b": "La importación falló. Se conservó el historial del navegador.",
+  "no_older_browser_statistics_were_found_to_import_c2100cd6": "No se encontraron estadísticas anteriores del navegador para importar.",
+  "turn_on_historical_statistics_storage_before_importing_cda778fb": "Active el almacenamiento del historial de estadísticas antes de importar.",
+  "sign_in_first_1ba0ae88": "Primero inicie sesión.",
+  "new_quizzes_will_not_be_saved_to_your_account_existing_a6663d9a": "Los nuevos cuestionarios no se guardarán en su cuenta. Se conservará el historial existente.",
+  "new_completed_quizzes_will_be_saved_to_your_account_ecc6d5c8": "Los nuevos cuestionarios completados se guardarán en su cuenta.",
+  "the_preference_could_not_be_saved_please_retry_ee1e8e4e": "No se pudo guardar la preferencia. Inténtelo de nuevo.",
+  "statistics_have_not_synchronized_keep_this_tab_open_and_e254f926": "Las estadísticas no se han sincronizado. Mantenga esta pestaña abierta e inténtelo de nuevo cuando tenga conexión; los resultados pendientes se conservan dentro del límite del navegador.",
+  "account_statistics_synchronized_the_browser_keeps_at_mo_95ecbeba": "Las estadísticas de la cuenta están sincronizadas. Cuando se permite el almacenamiento, el navegador conserva un máximo de cinco cuestionarios recientes.",
+  "historical_storage_is_off_this_quiz_remains_in_recent_b_ece514b5": "El almacenamiento del historial está desactivado. Este cuestionario solo permanece en el historial reciente del navegador.",
+  "more_than_five_quizzes_are_waiting_to_upload_keep_this_12f386ba": "Hay más de cinco cuestionarios pendientes de cargar. Mantenga esta pestaña abierta y restablezca la conexión; solo cinco se conservarán al recargar la página.",
+  "the_account_changed_during_this_quiz_so_its_result_was_a1261d16": "La cuenta cambió durante este cuestionario, por lo que su resultado no se cargó.",
+  "account_statistics_could_not_load_recent_results_and_un_fec3ed3b": "No se pudieron cargar las estadísticas de la cuenta. Se conservaron los resultados recientes y el historial del navegador que aún no se ha importado.",
+  "browser_storage_is_unavailable_new_results_remain_in_me_b33edd06": "El almacenamiento del navegador no está disponible. Los resultados nuevos permanecen en memoria durante esta visita.",
+  "recent_browser_statistics_could_not_be_read_older_brows_85957b89": "No se pudieron leer las estadísticas recientes del navegador. Se conservó el historial anterior."
+}

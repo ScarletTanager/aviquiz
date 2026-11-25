@@ -1,0 +1,5 @@
+{
+  "database_driver_does_not_match_its_adapter_8ce8585d": "El controlador de la base de datos no corresponde a su adaptador.",
+  "database_unavailable_0f450bc5": "La base de datos no está disponible.",
+  "unsupported_database_driver_c780d78d": "El controlador de la base de datos no es compatible."
+}

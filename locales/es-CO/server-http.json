@@ -1,0 +1,6 @@
+{
+  "the_application_must_bind_to_loopback_behind_its_proxy_6a13b5fb": "La aplicación debe escuchar en la interfaz local detrás de su proxy.",
+  "service_temporarily_unavailable_9a6e032d": "El servicio no está disponible temporalmente.",
+  "production_requires_https_5e0d4bcf": "El entorno de producción requiere HTTPS.",
+  "public_origin_must_be_an_origin_766e8c93": "PUBLIC_ORIGIN debe ser un origen."
+}

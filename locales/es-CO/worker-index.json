@@ -1,0 +1,23 @@
+{
+  "not_found_e3ebaa16": "No se encontró",
+  "method_not_allowed_371b2688": "Método no permitido",
+  "review_could_not_be_saved_17550dbc": "No se pudo guardar la revisión.",
+  "shared_storage_could_not_complete_this_request_please_r_cd502c46": "El almacenamiento compartido no pudo completar esta solicitud. Inténtelo de nuevo.",
+  "invalid_json_70fddef4": "El JSON no es válido.",
+  "this_review_changed_elsewhere_reload_before_saving_02a52d8d": "Esta revisión se modificó en otro lugar. Recárguela antes de guardar.",
+  "breadth_first_review_finish_round_before_approving_anot_ff03ae90": "Revisión por rondas: termine la ronda {{v0}} antes de aprobar otra foto de esta especie.",
+  "this_review_changed_elsewhere_reload_it_before_saving_640ca3f7": "Esta revisión se modificó en otro lugar. Recárguela antes de guardar.",
+  "a_revision_is_required_2f5320a5": "Se requiere un número de revisión.",
+  "photo_publishing_permission_is_required_3324d9e2": "Se requiere permiso para publicar fotos.",
+  "unknown_review_action_914e3dcb": "La acción de revisión es desconocida.",
+  "unknown_review_route_14793128": "La ruta de revisión es desconocida.",
+  "previously_reviewed_six_photo_pilot_b498aa63": "Piloto de seis fotos revisado anteriormente.",
+  "administrator_permission_is_required_8e2ee2de": "Se requiere permiso de administrador.",
+  "review_payload_too_large_32dd6e72": "Los datos de la revisión exceden el tamaño permitido.",
+  "send_json_01dc6e8d": "Envíe JSON.",
+  "use_the_review_workspace_on_this_site_65a7d43b": "Use el espacio de revisión de este sitio.",
+  "photo_editing_permission_is_required_ece0a496": "Se requiere permiso para editar fotos.",
+  "sign_in_with_an_authorized_aviquiz_account_to_access_ph_d005ebcd": "Inicie sesión con una cuenta de AviQuiz autorizada para acceder a las revisiones de fotos.",
+  "sign_in_again_to_verify_your_account_18e5667f": "Inicie sesión de nuevo para verificar su cuenta.",
+  "shared_review_storage_is_unavailable_please_try_again_l_bcb232b1": "El almacenamiento compartido de revisiones no está disponible. Inténtelo más tarde."
+}
