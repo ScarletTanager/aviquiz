@@ -723,3 +723,17 @@ Use `node test-collection.mjs` and `node test-geography.mjs` to verify counts,
 automatic activation, disabled selections, and year-free seasonal windows.
 The legacy Colombia material remains at `/quiz` through the header Practice link;
 the primary homepage links lead to `/explore`.
+
+## Required production release-date update
+
+For every production deployment, update the corresponding release entry's
+`productionDeployedAt` in `data/releases.json` to that production cutover's
+America/New_York calendar date (`YYYY-MM-DD`). Leave `v0.2.0-alpha.1` null until
+its production deployment; a staging deployment does not set this date.
+
+Commit/push this metadata, regenerate the English/Spanish release pages, and
+complete the release-tag/package sequence in [DEPLOYMENT.md](DEPLOYMENT.md).
+After activation, verify the footer tag links to the correct notes and that
+they show the actual production deployment date. Never use a build or staging
+date as a substitute. The production packager rejects a release still marked
+as a preview.

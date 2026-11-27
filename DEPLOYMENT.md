@@ -47,8 +47,15 @@ The normal sequence is:
 4. Package and deploy that candidate to staging when authorized.
 5. Upload/verify its seasonal objects and perform staging checks.
 6. Record the owner's explicit staging approval against the candidate and data hashes.
-7. Promote the approved candidate to `main`, tag it, package, and deploy production.
-8. Record the actual activated release and post-deployment verification.
+7. **Required for every production release:** finalize the matching entry in
+   `data/releases.json`, setting `productionDeployedAt` to the production cutover
+   date (`YYYY-MM-DD`, America/New_York). For `v0.2.0-alpha.1`, leave it null
+   until its production deployment. Commit/push the metadata and regenerate the
+   localized release pages before tagging and packaging; follow the release-notes
+   procedure below to keep the reviewed source and immutable tag consistent.
+8. Promote the approved candidate to `main`, tag it, package, and deploy production.
+9. Verify the live footer version and its release-notes production date, then
+   record the actual activated release and post-deployment verification.
 
 There is no separate staging branch requirement. Do not silently advance a frozen
 candidate to a newer `dev` HEAD. A new application, schema, catalog, or registry change
