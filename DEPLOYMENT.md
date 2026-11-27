@@ -654,3 +654,37 @@ manifest and digest. Deployment scripts must retain them. No extra runtime servi
 sets a host-specific language preference cookie. The Worker embeds both generated
 HTML variants and message bundles. Run `npm run test:language` before promotion
 and have native speakers review the Spanish interface in staging.
+
+## Public release notes and footer version
+
+`data/releases.json` is the canonical footer version and release history. The
+version link targets `/releases#release-<tag>`; the general link targets
+`/releases`. Both languages are generated with the normal message/page build.
+Descriptions live in `locales/{en,es-CO}/releases.json`. A release contains a
+brief introduction and key-item bullets. Sections show pending candidates first,
+then production releases by newest deployment date (version breaks ties).
+
+Keep an upcoming release's `productionDeployedAt` null during development and
+staging review; it displays as a preview, not an already deployed production
+release. The initial recorded production date is November 24, 2026, supported by
+`DO-PRODUCTION.md`. Do not substitute a commit, tag, build or staging date for a
+production deployment date. The planned next identifier is `v0.2.0-alpha.1`;
+creating a notes entry does not create or publish a Git tag.
+
+As part of the approved production cutover, finalize the release metadata with
+the production deployment day (America/New_York calendar date), commit/push that metadata, and create the matching
+immutable version tag before packaging. Coordinate this final metadata change
+with the staging-approval process; it is a source change. The packager refuses a
+missing/mismatched exact tag or a current entry still marked as a preview. Verify
+the actual deployment day and public release section after activation. If the
+cutover is delayed to a different day, correct the candidate metadata before
+publishing that release; never move an already published tag or silently invent
+a successful deployment record. Record deployment failures in the operator log,
+not as successful public release dates.
+
+For each subsequent release, add an entry and localized wording, update
+`currentTag`, and retain older entries and anchors. Run
+`node scripts/build-worker.mjs`, `node test-release-notes.mjs`,
+`node test-i18n.mjs`, and the normal release checks. Published notes are part of
+the immutable application artifact and change through the usual reviewed release
+workflow. No database or external release-notes service is involved.

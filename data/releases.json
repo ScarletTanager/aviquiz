@@ -1,0 +1,27 @@
+{
+  "currentTag": "v0.2.0-alpha.1",
+  "releases": [
+    {
+      "tag": "v0.2.0-alpha.1",
+      "productionDeployedAt": null,
+      "intro": "alpha02Intro",
+      "items": [
+        "alpha02Languages",
+        "alpha02Colombia",
+        "alpha02Photos",
+        "alpha02Statistics",
+        "alpha02Workflow"
+      ]
+    },
+    {
+      "tag": "v0.1.0-alpha.1",
+      "productionDeployedAt": "2026-11-24",
+      "intro": "alpha01Intro",
+      "items": [
+        "alpha01Quizzes",
+        "alpha01Geography",
+        "alpha01Accounts"
+      ]
+    }
+  ]
+}

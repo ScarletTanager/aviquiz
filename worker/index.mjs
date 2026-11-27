@@ -104,8 +104,8 @@ export default {
     const path=new URL(request.url).pathname,language=requestLocale(request);
     if(path.startsWith('/api/'))return localizeApiResponse(await api(request,env),language);
     if(!['GET','HEAD'].includes(request.method))return new Response(localizedServerText(t("worker-index:method_not_allowed_371b2688"),language),{status:405});
-    const name=path==='/explore'||path==='/explore/'?'/explore.html':path==='/invite'||path==='/invite/'?'/invite.html':['/auth/callback','/','/index.html','/quiz','/quiz/','/trips','/trips/','/routes','/routes/','/statistics','/statistics/'].includes(path)?'/index.html':path==='/review'||path==='/review/'?'/review.html':path;
-    const asset=ASSETS[language==='es-CO'&&['/index.html','/explore.html','/invite.html','/review.html'].includes(name)?name.replace('.html','.es-CO.html'):name];if(!asset)return new Response(localizedServerText(t("worker-index:not_found_e3ebaa16"),language),{status:404});
+    const name=path==='/releases'||path==='/releases/'?'/releases.html':path==='/explore'||path==='/explore/'?'/explore.html':path==='/invite'||path==='/invite/'?'/invite.html':['/auth/callback','/','/index.html','/quiz','/quiz/','/trips','/trips/','/routes','/routes/','/statistics','/statistics/'].includes(path)?'/index.html':path==='/review'||path==='/review/'?'/review.html':path;
+    const asset=ASSETS[language==='es-CO'&&['/index.html','/explore.html','/invite.html','/review.html','/releases.html'].includes(name)?name.replace('.html','.es-CO.html'):name];if(!asset)return new Response(localizedServerText(t("worker-index:not_found_e3ebaa16"),language),{status:404});
     return new Response(request.method==='HEAD'?null:asset.body,{headers:{'content-type':asset.type,'cache-control':'no-cache','content-language':language,'vary':'Cookie','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin'}});
   }
 };

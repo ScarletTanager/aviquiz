@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {build} from 'esbuild';
+import {releaseMarkup} from './release-notes.mjs';
 const root=path.resolve(import.meta.dirname,'..'),read=async name=>fs.readFile(path.join(root,name),'utf8');
 const languages=['en','es-CO'],bundles={};
 for(const language of languages){
@@ -23,12 +24,15 @@ for(const name of ['audio-areas','route-extra-data']){
  const text=await read('data/'+name+'.json');JSON.parse(text);
  await fs.writeFile(path.join(root,'dist',name+'.mjs'),'// Generated from data/'+name+'.json. These identities are not translated.\nexport default '+text.trim()+';\n');
 }
+const releaseManifest=JSON.parse(await read('data/releases.json'));
 const escapeAttribute=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 for(const name of (await fs.readdir(path.join(root,'pages'))).filter(n=>n.endsWith('.html'))){
  for(const language of languages){
  let source=(await read('pages/'+name)).replace('<html lang="en">','<html lang="'+language+'">');
  source=source.replace('<option value="'+language+'">','<option value="'+language+'" selected>');
  const resources=bundles[language];
+ const notes=releaseMarkup(releaseManifest,language,resources);
+ source=source.replaceAll('<!--release-footer-->',notes.footer).replaceAll('<!--release-sections-->',notes.sections);
  const lookup=key=>{const split=key.indexOf(':'),value=resources[key.slice(0,split)]?.[key.slice(split+1)];if(typeof value!=='string')throw Error('Missing page message: '+key);return value;};
  source=source.replace(/<!--msg ([a-z0-9_-]+:[a-zA-Z0-9_.-]+)-->/g,(_,key)=>lookup(key));
  source=source.replace(/@@msg:([a-z0-9_-]+:[a-zA-Z0-9_.-]+)@@/g,(_,key)=>escapeAttribute(lookup(key)));

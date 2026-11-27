@@ -13,7 +13,7 @@ assert.equal(cookieLocale('a=1; aviquiz-language=es-CO; b=2'),'es-CO');
 for(const bad of ['es','fr','ES-CO','../es-CO','es-CO%0d%0a'])assert.equal(normalizeLocale(bad),'en');
 assert.equal(requestLocale(new Request('https://quiz.example',{headers:{'accept-language':'es-CO'}})),'en');
 const request=(path,language,options={})=>new Request('https://quiz.example'+path,{...options,headers:{...(language?{cookie:'aviquiz-language='+language}:{}),...options.headers}});
-for(const path of ['/','/quiz','/trips','/statistics','/explore','/invite','/review','/auth/callback']){
+for(const path of ['/','/quiz','/trips','/statistics','/explore','/invite','/review','/releases','/auth/callback']){
  const [en,es]=await Promise.all([application.fetch(request(path),{}),application.fetch(request(path,'es-CO'),{})]);
  assert.equal(en.status,200);assert.equal(es.status,200);
  assert.equal(en.headers.get('content-language'),'en');assert.equal(es.headers.get('content-language'),'es-CO');assert.match(es.headers.get('vary'),/Cookie/);

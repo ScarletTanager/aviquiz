@@ -37,7 +37,7 @@ jobs:
         run: |
           npm run build:i18n
           npm run test:i18n
-          git diff --exit-code -- dist/index.html dist/explore.html dist/invite.html dist/review.html dist/messages-en.mjs dist/messages-es-CO.mjs dist/*.es-CO.html dist/i18next.mjs dist/i18next-LICENSE.txt dist/audio-areas.mjs dist/route-extra-data.mjs dist/route-photo-references-data.mjs
+          git diff --exit-code -- dist/releases.html dist/index.html dist/explore.html dist/invite.html dist/review.html dist/messages-en.mjs dist/messages-es-CO.mjs dist/*.es-CO.html dist/i18next.mjs dist/i18next-LICENSE.txt dist/audio-areas.mjs dist/route-extra-data.mjs dist/route-photo-references-data.mjs
       - name: Check selection, history, geography, and statistics
         run: |
           node test.mjs
@@ -58,6 +58,7 @@ jobs:
           node test-review-permissions.mjs
           node test-http.mjs
           node test-invitations.mjs
+          node test-release-notes.mjs
           node test-collection.mjs
           node test-language.mjs
           node test-geography.mjs

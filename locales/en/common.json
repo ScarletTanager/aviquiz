@@ -41,5 +41,8 @@
   "spanishLanguage": "Español (Colombia)",
   "changeLanguageWarning": "Changing language reloads this page. An unfinished quiz or unsaved edits may be lost. Continue?",
   "languagePreferenceDetails": "Your selected interface language is remembered in a preference cookie, separate from statistics storage.",
-  "day": "Day"
+  "day": "Day",
+  "releaseNotes": "Release notes",
+  "home": "Home",
+  "appName": "AviQuiz"
 }
