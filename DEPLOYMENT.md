@@ -695,3 +695,50 @@ For each subsequent release, add an entry and localized wording, update
 `node test-i18n.mjs`, and the normal release checks. Published notes are part of
 the immutable application artifact and change through the usual reviewed release
 workflow. No database or external release-notes service is involved.
+
+## Staging receipt - November 27, 2026
+
+Staging version **57** is published at
+https://sandy-colombia-bird-quiz.scarlet-tanager.chatgpt.site from frozen GitHub
+commit `e4986df1fd93a3c273393f75ebe205471bf9c163`. Deployment ID:
+`appgdep_6b0a20c712e48191ae9cc458a02e7e3e`. The saved version is
+`appgprj_6ade5e114ee881919dad878f0f62fb49~appgver_07ed89729e348191a6605bc767b57fb7`.
+The archive SHA-256 is
+`ec162b7fc47d902ce306ecf4b6fac314cc38f895209b310bc3a1cd70c9939ae4`.
+The custom staging audience remains unchanged (access-policy revision 1).
+Previous saved version 56 remains the code rollback reference; old objects were
+retained. The additive statistics migration created `user_statistics_settings`
+and `user_statistics_summary`; rolling code back does not remove those tables.
+
+Both common packages were assembled from the same consistent SQLite backup of
+the finished collector. NC has 457/457 species with photo references; Colombia
+has 1,964/1,964. The shared queue has dated photos for all 2,171 unique species.
+Quarter coverage is not complete: 8,630 of 8,684 slots reached the two-photo
+target, with 39 needs-review slots and 15 partial slots remaining. Those gaps
+were preserved, not retried or hidden. Package revisions:
+
+- US-NC: `fc9668667dfa94abd20a0a8f87b3611e9c22f263548c3debd4f226031a7b02d9`.
+- CO: `c473cdc3e4ca6a1da755cbddc18d9d5eb228144ca3525441b8624ef0f9eac1a5`.
+
+All 11 unique common objects (41,619,824 bytes) passed local and upload digest
+checks. Eighteen live API comparisons matched frozen local species/pool counts,
+sampled seasons, and photo/date/credit signatures: NC, Chatham, Jordan Lake,
+Colombia, Meta and a Caldas hotspot across autumn, New Year and leap-day windows.
+Spanish country-level API output also passed. English/Spanish page routes,
+month/day controls, footer/version notes, 126 unchanged approved annotations,
+and guest review/statistics denial were checked. The installed statistics tables
+were observed through the supported Sites database reader. Local application,
+metadata, geography, release-notes, consent/history, authorization, standalone
+HTTP, SQLite/PostgreSQL, and independent daily-data comparison checks passed.
+
+Private photo snapshot, paginated logical backups of the eight non-cache staging
+user/review tables, public-annotation baseline, gap list, package receipts,
+archive, upload receipt and API comparisons are retained under
+`outputs/releases/alpha02-staging-20261127/` at the workspace root, outside Git.
+The logical backup is a paginated read, not a provider transaction/PITR image;
+regenerable location cache rows were excluded.
+
+Production is unchanged. `v0.2.0-alpha.1` is still a preview: no production date
+or Git release tag was assigned. Native-speaker Spanish review, interactive
+signed-in statistics/import testing, and owner staging approval remain required
+before production promotion. Use a copy of browser statistics for import tests.
