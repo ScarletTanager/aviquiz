@@ -3,7 +3,7 @@
   "releases": [
     {
       "tag": "v0.2.0-alpha.2",
-      "productionDeployedAt": null,
+      "productionDeployedAt": "2026-11-28",
       "intro": "alpha02FixIntro",
       "items": [
         "alpha02Navigation",
