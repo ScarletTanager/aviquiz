@@ -1,6 +1,15 @@
 {
-  "currentTag": "v0.2.0-alpha.3",
+  "currentTag": "v0.2.0-alpha.4",
   "releases": [
+    {
+      "tag": "v0.2.0-alpha.4",
+      "releaseDate": "2026-11-28",
+      "intro": "alpha04Intro",
+      "items": [
+        "alpha04Launch",
+        "alpha04Header"
+      ]
+    },
     {
       "tag": "v0.2.0-alpha.3",
       "releaseDate": "2026-11-28",

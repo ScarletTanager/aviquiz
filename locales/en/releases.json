@@ -19,5 +19,8 @@
   "includedIn": "All changes in this candidate are included in {{version}}.",
   "alpha03Intro": "This alpha improves geography quiz support and clarifies the release history. It includes all features and improvements from v0.2.0-alpha.2.",
   "alpha03Geography": "Geography quiz improvements to support expanding coverage, while preserving North Carolina and Colombia seasonal quizzes, family filters, photo credits, and seasonal photo selection.",
-  "alpha03History": "Release notes list the newest versions first, clearly identify updates included from earlier candidates, and use a consistent release date."
+  "alpha03History": "Release notes list the newest versions first, clearly identify updates included from earlier candidates, and use a consistent release date.",
+  "alpha04Intro": "Includes all features and improvements from v0.2.0-alpha.3, with a smoother quiz launch and improved desktop navigation.",
+  "alpha04Launch": "Geography quizzes open directly into a dedicated quiz view, with a clear loading screen and retry controls. The home and Practice setup pages no longer flash before the quiz, and Take a quiz stays selected in the header.",
+  "alpha04Header": "Improved desktop header spacing keeps the language selector on the same line in English and Spanish, including accounts with invitation access."
 }
