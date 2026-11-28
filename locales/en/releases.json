@@ -22,5 +22,8 @@
   "alpha03History": "Release notes list the newest versions first, clearly identify updates included from earlier candidates, and use a consistent release date.",
   "alpha04Intro": "Includes all features and improvements from v0.2.0-alpha.3, with a smoother quiz launch and improved desktop navigation.",
   "alpha04Launch": "Geography quizzes open directly into a dedicated quiz view, with a clear loading screen and retry controls. The home and Practice setup pages no longer flash before the quiz, and Take a quiz stays selected in the header.",
-  "alpha04Header": "Improved desktop header spacing keeps the language selector on the same line in English and Spanish, including accounts with invitation access."
+  "alpha04Header": "Improved desktop header spacing keeps the language selector on the same line in English and Spanish, including accounts with invitation access.",
+  "alpha05Intro": "Includes all features and improvements from v0.2.0-alpha.4, with more reliable geography selection.",
+  "alpha05Selection": "Selecting a country reliably opens its subregions on the first click, including Colombia’s departments in Chrome.",
+  "alpha05Retry": "Improved keyboard selection and the ability to retry a location by selecting it again after a temporary loading failure."
 }

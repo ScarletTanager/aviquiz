@@ -1,6 +1,15 @@
 {
-  "currentTag": "v0.2.0-alpha.4",
+  "currentTag": "v0.2.0-alpha.5",
   "releases": [
+    {
+      "tag": "v0.2.0-alpha.5",
+      "releaseDate": "2026-11-28",
+      "intro": "alpha05Intro",
+      "items": [
+        "alpha05Selection",
+        "alpha05Retry"
+      ]
+    },
     {
       "tag": "v0.2.0-alpha.4",
       "releaseDate": "2026-11-28",
