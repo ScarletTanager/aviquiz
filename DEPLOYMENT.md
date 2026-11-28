@@ -19,7 +19,7 @@ paths or nonsecret release metadata. Never substitute secret values into example
 | Project / host | `.openai/hosting.json`: `appgprj_6ade5e114ee881919dad878f0f62fb49` | Reserved IPv4 `104.248.108.210`; SSH host-key verification required |
 | Runtime | Worker ES module | Node 24, bundled Worker, systemd, Caddy |
 | Application database | Sites-managed D1 binding `DB` | Managed PostgreSQL via existing private VPC endpoint |
-| Seasonal objects | Sites-managed R2 binding `EBD_BUCKET` | Read-only files under the selected release's `ebd/` directory |
+| Seasonal objects | Sites-managed R2 binding `EBD_BUCKET` | Private Spaces `aviquiz-data` through the VPC-local resolver (since alpha.4); older releases retain filesystem objects |
 | Code selection | Frozen, pushed `dev` candidate | Approved candidate promoted to pushed `main` and tagged |
 | Activation | Saved Site version, then deployment | Atomic `current` symlink replacement, then service restart |
 | Audience | Preserve the existing hosting access control | Public guest quizzes; account APIs enforce application identity |
@@ -33,9 +33,9 @@ Staging and production have separate application databases and browser origins.
 Sharing the sign-in pool does not share account rows, statistics, permissions, or
 browser data. Never copy the staging database over production as a routine release.
 
-DigitalOcean Spaces is not required by the current serving path. Do not upload the
-original EBD archives, analytical databases, or private regional partitions during
-an application release. Canonical data retention in Spaces is a separate operation.
+Production serving now requires the verified immutable objects in Spaces. Do not
+upload original EBD archives, analytical databases, or private regional partitions
+during an application release. Archive retention is a separate operation.
 
 ## 2. Release controls
 
@@ -813,3 +813,38 @@ engineering-oriented but still public in this repository: exclude credentials,
 private identities and sensitive infrastructure details. Never imply a development
 change shipped in an earlier tagged binary. GitHub release publication must use
 an existing immutable tag; publishing notes is not an application deployment.
+
+
+## Production receipt - alpha.4, November 28, 2026
+
+Owner-approved staging version 60 was promoted unchanged to main:
+`e19efb375e4d71909e8e033f2a33b27a0348cfc3`, tag **v0.2.0-alpha.4**. Its November 28
+packaging date was retained. PR #7 is merged. Active directory:
+`/srv/aviquiz/releases/aviquiz-28f0911786bd6851`. Archive SHA-256:
+`c2974d25b3d9f34375995a468db1e1259fe0cf8645e6513bfe19f2ef2229296d`.
+
+Production now uses `EBD_STORAGE=spaces` and a Spaces-only package backed by the
+verified receipt for all 525 common and four legacy objects. The private-only
+adapter resolves through `10.116.15.254`; TLS verification is retained. The secret
+stays in `/etc/aviquiz/spaces-secret`, root-owned and readable only by the dedicated
+service group. Do not copy it into source or a release. Existing authentication
+certificate configuration/drop-ins were preserved. No AWS account call was needed.
+
+The PostgreSQL backup is
+`/root/aviquiz-backups/pre-alpha04-2026-11-28T13-07-01.571Z.dump` (74,106 bytes),
+verified readable with pg_restore's listing. Migration validation applied no new
+migrations. Before switching traffic, an isolated loopback service under the runtime
+user passed 18 exact photo/date/credit comparisons through private Spaces plus
+bilingual launch/release checks. The isolated service was then stopped. Production
+health, 18 seasonal comparisons, credits, protected guest API denials and bilingual
+browser checks passed after the atomic path switch/restart. Observed main-service
+memory peak during verification was approximately 313 MiB.
+
+Rollback retains `/srv/aviquiz/releases/aviquiz-1fdeeb1269406285` and the protected
+environment backup `/root/aviquiz-backups/env-pre-alpha04-20261128T130702Z`.
+Restore BOTH the old environment and old symlink before restarting if rolling back
+to alpha.2: it uses the filesystem adapter. Do not remove Spaces objects, user data,
+or additive schema during code rollback. No database restore was performed.
+Private detailed receipts are in `outputs/releases/alpha04-production-20261128/`
+at the workspace root. Staging remains version 60 with its existing access controls.
+The owner's geography-menu observations will be investigated separately.

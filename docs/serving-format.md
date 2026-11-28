@@ -154,4 +154,4 @@ The receipt is retained at
 `/root/aviquiz-spaces-tools-3c392a0/spaces-upload-receipt.json`; the key is outside
 the source/artifact tree in a root-only file. No archive-bucket writes, object
 removal, runtime environment changes, or application activation were performed.
-Production still serves alpha.2 through its original filesystem adapter.
+At the time of this preload, production still served alpha.2 through its filesystem adapter. Alpha.4 subsequently activated private Spaces; see DEPLOYMENT.md for the production receipt.

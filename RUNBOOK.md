@@ -753,3 +753,32 @@ loads independently of optional audio/annotation initialization. Errors stay in
 the launch view with retry and return-to-builder controls. Navigation away cancels
 stale completions. Reproduce slow/failed launch requests with browser throttling;
 check `node test-quiz-launch.mjs` and `node test-app-audio.mjs` before deployment.
+
+## Geography row selected but no child list appears
+
+On Chromium, a native listbox with no initial selection can visibly select its
+first enabled option on a click without emitting `change`. The original handler
+therefore sent no metadata request. Reproduced on November 28 with South America
+then Colombia: the country appeared selected, but the network log contained no
+Colombia directory request. The backend separately returned all 33 departments.
+
+Selection handling now also accepts native clicks and Enter/Space activation.
+It deduplicates the same current selection, permits returning to an ancestor after
+choosing a descendant, and allows clicking the same selection again after failure.
+Unsupported rows remain disabled and stale responses still cannot replace a newer
+navigation branch. Reproduce this class of bug with actual option clicks, not only
+Playwright `select_option()`, which synthesizes `change` and concealed the defect.
+
+`node test-geography.mjs` covers click-only activation, duplicate events, keyboard,
+retry, ancestor navigation and stale requests in CI. The optional native Chromium
+regression uses entirely local response fixtures (no server, credentials, production
+requests, screenshots or recording). Run with the collector's existing Playwright
+environment, for example from this checkout:
+
+```sh
+PLAYWRIGHT_BROWSERS_PATH=../../outputs/photo_metadata/browser-binaries \
+  ../../outputs/photo_metadata/browser-venv/bin/python scripts/test-geography-native.py
+```
+
+It checks first-click selection, keyboard activation and same-row retry in English
+and Spanish. This test intentionally uses real mouse clicks on native options.

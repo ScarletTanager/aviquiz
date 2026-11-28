@@ -86,7 +86,13 @@ function renderColumns(){
   const count=make('p','');count.className='field-help location-count';count.setAttribute('aria-live','polite');
   if(search)search.addEventListener('input',()=>{column.query=search.value;column.scrollTop=0;fill();});
   select.addEventListener('scroll',()=>{column.scrollTop=select.scrollTop;});
-  select.addEventListener('change',()=>{const node=column.children.find(n=>n.id===select.value);if(node?.supported===true)return choose(node,index);});
+  // Chromium can select the first enabled row on focus/click without firing
+  // change when a listbox initially has selectedIndex=-1. Keep native pointer
+  // and keyboard activation in sync, but load each committed selection once.
+  const activate=()=>{const node=column.children.find(n=>n.id===select.value);if(node?.supported===true&&(column.selectedId!==node.id||selected?.id!==node.id||column.failed))return choose(node,index);};
+  select.addEventListener('change',activate);
+  select.addEventListener('click',activate);
+  select.addEventListener('keyup',event=>{if(event.key==='Enter'||event.key===' ')return activate();});
   fill();section.append(select,count);fragment.append(section);
  });
  $('geo-children').replaceChildren(fragment);
@@ -115,7 +121,7 @@ async function directory(node,refresh=false,isCurrent=()=>true){
 async function load(node,depth,{refresh=false,navigate=true}={}){
  const token=++request;selected=node;$('geo-loading').textContent=t("geography-ui:loading_locations_bdf89d95");$('geo-sample').checked=false;updatePreview();
  const prior=columns;
- if(!refresh){columns=columns.slice(0,depth+1);if(depth>=0)columns[depth].selectedId=node.id;renderColumns();breadcrumbs();}
+ if(!refresh){columns=columns.slice(0,depth+1);if(depth>=0){columns[depth].selectedId=node.id;columns[depth].failed=false;}renderColumns();breadcrumbs();}
  try{
   const values=await directory(node,refresh,()=>token===request);if(token!==request)return;
   const map=new Map(nodes.map(n=>[n.id,n])),items=new Map();
@@ -130,7 +136,7 @@ async function load(node,depth,{refresh=false,navigate=true}={}){
   $('geo-updated').textContent=dates.length?t("geography-ui:metadata_last_updated_49423935")+new Date(dates[0]).toLocaleString(locale)+t("geography-ui:cached_until_an_administrator_refreshes_it_fa35befb"):t("geography-ui:bundled_navigation_or_pilot_metadata_a82e8086");
   if(navigate){const state=new URLSearchParams({geo:node.id,from:$('geo-start').value,to:$('geo-end').value,trail:trail.map(n=>n.id).join(',')});history.pushState(null,'','/explore?'+state);}
   $('geo-loading').textContent=children.length||node.kind==='world'?'':t("geography-ui:no_further_subregions_or_sites_are_listed_for_this_plac_6b756f3b");updatePreview();
- }catch(error){if(token===request){if(refresh){columns=prior;renderColumns();} $('geo-loading').textContent=error.message;}}
+ }catch(error){if(token===request){if(refresh){columns=prior;renderColumns();}else if(depth>=0&&columns[depth])columns[depth].failed=true; $('geo-loading').textContent=error.message;}}
 }
 function choose(node,depth,options={}){if(node.supported!==true){$('geo-error').textContent=t('geography-ui:unsupportedLocation');return;}return load(node,depth,options);}
 function openWorld(options={}){return load(nodes.find(n=>n.id==='world'),-1,options);}

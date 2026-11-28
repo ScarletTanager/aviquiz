@@ -82,13 +82,14 @@ if(import.meta.main){
  const coverage=packageCoverage(seasonalPackages,browserNodes);
  const describe=n=>({...n,supported:coverage.navigable.has(n.id),quizSupported:coverage.places.has(n.id)});
  const {fileEbdBucket}=await import('./server/ebd-files.mjs');const commonBucket=common.bucket;
- const apiRequest=[];let ncFixture=null;let commonMode=false;let holdParent=null;const releaseHeld=[];
+ const apiRequest=[];let ncFixture=null;let commonMode=false;let holdParent=null;let failParent=null;const releaseHeld=[];
  const fetcher=async url=>{
   if(url==='/api/geography/catalog')return {ok:true,json:async()=>({families:[]})};if(url.startsWith('/api/geography/quiz')&&commonMode)return sharedApi(new Request('https://quiz.example'+url),common.env);if(url.startsWith('/api/geography/quiz'))return ncFixture?{status:200,ok:true,json:async()=>JSON.parse(JSON.stringify(ncFixture))}:{status:404,ok:false};
   if(url==='/geography-seed.json')return {ok:true,json:async()=>seed};if(url==='/route-pilot.json')return {ok:true,json:async()=>catalog};if(url==='/data.json')return {ok:true,json:async()=>data};
   if(url==='/api/account')return {ok:true,json:async()=>({kind:'guest'})};
   const u=new URL(url,'https://quiz.example'),id=u.searchParams.get('parent'),type=u.searchParams.get('type'),parent=browserNodes.find(n=>n.id===id);apiRequest.push(id+':'+type);
   if(id===holdParent)await new Promise(resolve=>releaseHeld.push(resolve));
+  if(id===failParent){failParent=null;return {ok:false,status:503};}
   const ancestors=[];let n=parent;while(n){ancestors.unshift(n);n=browserNodes.find(x=>x.id===n.parent);}
   return {ok:true,json:async()=>({parent:describe(parent),ancestors:ancestors.map(describe),children:browserNodes.filter(n=>n.parent===id&&(type==='hotspots'?['hotspot','site'].includes(n.kind):!['hotspot','site'].includes(n.kind))).map(describe),notice:'Pilot directory',fetchedAt:null})};
  };
@@ -103,7 +104,11 @@ if(import.meta.main){
  async function choose(name){const select=lists().find(e=>leaves(e).some(o=>o.textContent===name));assert.ok(select,name);select.value=leaves(select).find(o=>o.textContent===name).value;await select.listeners.change();await new Promise(resolve=>setImmediate(resolve));}
  assert.equal(lists().length,1);assert.equal(lists()[0].size,seed.nodes.filter(n=>n.parent==='world').length);
  await choose('South America');assert.equal(lists().length,2);assert.equal(lists()[1].size,20);
- await choose('Colombia');assert.equal(lists().length,3);assert.ok(!apiRequest.includes('CO:hotspots'));await choose('Caldas');assert.ok(apiRequest.includes('CO-CAL:hotspots'));assert.equal(lists().length,4);
+ // Reproduce Chromium's first-click behavior: value changes without change.
+ const country=lists()[1];country.value='CO';assert.ok(country.listeners.click);await country.listeners.click();await new Promise(resolve=>setImmediate(resolve));
+ const coLoads=()=>apiRequest.filter(q=>q==='CO:regions').length;
+ assert.equal(coLoads(),1);await lists()[1].listeners.change();await lists()[1].listeners.click();assert.equal(coLoads(),1,'change plus click must not duplicate the committed request');
+ assert.equal(lists().length,3);assert.ok(!apiRequest.includes('CO:hotspots'));await choose('Caldas');assert.ok(apiRequest.includes('CO-CAL:hotspots'));assert.equal(lists().length,4);
  assert.equal(lists()[0].value,'continent:South America');assert.equal(lists()[1].value,'CO');assert.equal(lists()[2].value,'CO-CAL');
  assert.ok(lists().slice(1).every(e=>e.size===20));
  // Caldas has no further administrative level, but still reveals its sites.
@@ -158,6 +163,12 @@ if(import.meta.main){
  await choose('South America');
  const ecuador=leaves(lists()[1]).find(e=>e.value==='EC');assert.equal(ecuador.disabled,true);
  const callsBefore=apiRequest.length;await choose('Ecuador');assert.equal(apiRequest.length,callsBefore);assert.equal(lists().length,2);
+ // A failed choice remains retryable by clicking the same visible selection.
+ failParent='CO';const failedCountry=lists()[1];failedCountry.value='CO';await failedCountry.listeners.click();assert.equal(lists().length,2);assert.ok(elements['geo-loading'].textContent);
+ await lists()[1].listeners.click();assert.equal(lists().length,3);
+ await choose('North America');await choose('South America');
+ const keyboardCountry=lists()[1];keyboardCountry.value='CO';await keyboardCountry.listeners.keyup({key:'Enter'});assert.equal(lists().length,3);
+ const afterKeyboard=coLoads();await lists()[1].listeners.keyup({key:' '});assert.equal(coLoads(),afterKeyboard);
  // Restore a deep linked leaf, rebuilding all its ancestor lists.
  location.search='?geo='+firstSite.id+'&from=2027-02-01&to=2027-02-28&trail='+encodeURIComponent('world,continent:South America,CO,CO-CAL,'+firstSite.id);
  await windowEvents.popstate();assert.equal(lists().length,4);assert.equal(lists()[3].value,firstSite.id);assert.equal(lists()[0].value,'continent:South America');
