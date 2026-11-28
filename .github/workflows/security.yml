@@ -60,6 +60,7 @@ jobs:
           node test-invitations.mjs
           node test-navigation.mjs
           node test-release-notes.mjs
+          node test-release-tag.mjs
           node test-collection.mjs
           node test-language.mjs
           node test-geography.mjs

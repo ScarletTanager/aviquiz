@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {verifyReleaseTag} from './scripts/check-release-tag.mjs';
+const sha='a'.repeat(40),manifest={currentTag:'v1.2.3-alpha.1',releases:[{tag:'v1.2.3-alpha.1',releaseDate:'2026-11-27',intro:'intro',items:['item']}]};
+const git=args=>args[0]==='cat-file'?'tag':args[0]==='for-each-ref'?'2026-11-28T01:00:00+00:00':sha;
+assert.deepEqual(verifyReleaseTag('.',manifest,{git}),{tag:'v1.2.3-alpha.1',releaseDate:'2026-11-27'});
+assert.throws(()=>verifyReleaseTag('.',{...manifest,releases:[{...manifest.releases[0],releaseDate:'2026-11-28'}]},{git}),/initial tag date/);
+assert.throws(()=>verifyReleaseTag('.',manifest,{git:args=>args[0]==='cat-file'?'commit':git(args)}),/annotated/);
+assert.throws(()=>verifyReleaseTag('.',manifest,{git:args=>args[0]==='rev-parse'&&args[1]==='HEAD'?'b'.repeat(40):git(args)}),/packaged source/);
+assert.throws(()=>verifyReleaseTag('.',{...manifest,releases:[{...manifest.releases[0],releaseDate:null}]},{git}),/Finalize/);
+console.log('Passed release tag/source identity, annotated tags, frozen New York packaging dates across midnight UTC, missing dates and mismatch refusal.');

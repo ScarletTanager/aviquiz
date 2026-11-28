@@ -724,16 +724,16 @@ automatic activation, disabled selections, and year-free seasonal windows.
 The legacy Colombia material remains at `/quiz` through the header Practice link;
 the primary homepage links lead to `/explore`.
 
-## Required production release-date update
+## Required release-date finalization
 
-For every production deployment, update the corresponding release entry's
-`productionDeployedAt` in `data/releases.json` to that production cutover's
-America/New_York calendar date (`YYYY-MM-DD`). Leave `v0.2.0-alpha.1` null until
-its production deployment; a staging deployment does not set this date.
+Before first packaging/tagging, set the release entry's `releaseDate` in
+`data/releases.json` to the America/New_York calendar date (`YYYY-MM-DD`).
+Commit the metadata and regenerated English/Spanish pages, then create/push the
+immutable tag and package that exact source for staging. Keep dates null only for
+unpackaged development candidates. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
-Commit/push this metadata, regenerate the English/Spanish release pages, and
-complete the release-tag/package sequence in [DEPLOYMENT.md](DEPLOYMENT.md).
-After activation, verify the footer tag links to the correct notes and that
-they show the actual production deployment date. Never use a build or staging
-date as a substitute. The production packager rejects a release still marked
-as a preview.
+Promote the same tagged source to production without changing the release date,
+even when deployment occurs on a later day. Deployment timestamps belong in
+operational receipts. Verify the footer, date and newest-version-first notes after
+both staging and production activation. Never move an existing tag to correct
+history; publish a later version when source changes.

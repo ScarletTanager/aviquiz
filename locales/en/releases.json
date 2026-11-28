@@ -1,20 +1,20 @@
 {
   "title": "Release notes · AviQuiz",
   "heading": "Release notes",
-  "overview": "What is new in AviQuiz, newest first. Production dates are recorded when a release is deployed; preview releases are not yet live in production.",
-  "productionDate": "Deployed to production:",
-  "unreleased": "Not yet deployed to production",
-  "preview": "Preview",
+  "overview": "What is new in AviQuiz, newest version first. Release dates record when a release is packaged and tagged, and remain the same in staging and production.",
+  "unreleased": "Not yet packaged and tagged",
+  "preview": "Development",
   "alpha02Intro": "This alpha expands seasonal practice across Colombia, adds Spanish, and brings optional account-based statistics to AviQuiz.",
   "alpha02Languages": "English and Colombian Spanish interfaces, with a language selector and localized labels, help, dialogs, and application messages.",
-  "alpha02Colombia": "Colombia-wide seasonal species data, with country, department, and processed-site quizzes. Species need available photo references to enter a photo quiz; photo coverage is still expanding.",
+  "alpha02Colombia": "Colombia-wide seasonal species coverage, with quizzes for the country, departments, and supported sites. Photo quizzes include species with available photos; coverage continues to expand.",
   "alpha02Photos": "Photo selection prefers the quarters in your seasonal window: January–March, April–June, July–September, and October–December. Windows spanning quarters can use either; other photo dates are used when matching photos are unavailable.",
   "alpha02Statistics": "Optional signed-in statistics across devices, cumulative identification history and latest-result comparisons, browser-statistics consent, and import of older browser statistics. Guest quizzes remain available without an account.",
   "alpha01Intro": "The first public alpha brings visual and audio bird-identification practice to aviquiz.org.",
   "alpha01Quizzes": "Photo and audio quizzes with site and family filters, mistake review, and separate visual/audio progress.",
   "alpha01Geography": "North Carolina seasonal geography quizzes, alongside the original Colombia itinerary and practice material.",
   "alpha01Accounts": "Invitation-based accounts and guest quizzes open to everyone.",
-  "alpha02Workflow": "A reusable command-line workflow for processing additional geographies, producing common seasonal data packages, and queuing photo metadata while reusing coverage already collected for other geographies.",
-  "alpha02FixIntro": "This alpha update fixes inconsistent page navigation and carries forward the Colombia, Spanish, seasonal-photo, and account-statistics improvements planned for version 0.2.0.",
-  "alpha02Navigation": "Consistent header navigation across the quiz launcher, practice, statistics, trips, invitations, release notes, and photo-review pages. Statistics and the other main destinations are now available from every page; invitation access still follows account permissions."
+  "alpha02FixIntro": "Includes all features and improvements from v0.2.0-alpha.1, plus consistent navigation across pages.",
+  "alpha02Navigation": "Consistent header links to the quiz builder, practice, trips, and statistics across the site.",
+  "releaseDate": "Release date:",
+  "includedIn": "All changes in this candidate are included in {{version}}."
 }

@@ -1,20 +1,20 @@
 {
   "title": "Notas de versión · AviQuiz",
   "heading": "Notas de versión",
-  "overview": "Las novedades de AviQuiz, de la más reciente a la más antigua. Las fechas de producción se registran cuando se publica una versión; las versiones de prueba aún no están disponibles en producción.",
-  "productionDate": "Publicada en producción:",
-  "unreleased": "Aún no publicada en producción",
-  "preview": "Versión de prueba",
+  "overview": "Las novedades de AviQuiz, de la versión más reciente a la más antigua. La fecha de versión corresponde al empaquetado y etiquetado, y es la misma en pruebas y en producción.",
+  "unreleased": "Aún no empaquetada ni etiquetada",
+  "preview": "En desarrollo",
   "alpha02Intro": "Esta versión alfa amplía la práctica por temporada en Colombia, agrega español e incorpora estadísticas opcionales asociadas a su cuenta de AviQuiz.",
   "alpha02Languages": "Interfaz en inglés y español de Colombia, con selector de idioma y traducción de rótulos, ayudas, diálogos y mensajes de la aplicación.",
-  "alpha02Colombia": "Datos de especies por temporada de toda Colombia, con cuestionarios por país, departamento y sitio procesado. Para entrar en un cuestionario por fotos, las especies necesitan referencias fotográficas disponibles; la cobertura de fotos sigue ampliándose.",
+  "alpha02Colombia": "Cobertura de especies por temporada en toda Colombia, con cuestionarios por país, departamento y sitio disponible. Los cuestionarios por fotos incluyen especies con fotos disponibles; la cobertura sigue ampliándose.",
   "alpha02Photos": "La selección de fotos prefiere los trimestres de su período de temporada: enero–marzo, abril–junio, julio–septiembre y octubre–diciembre. Si el período abarca varios trimestres, puede usar cualquiera de ellos; se usan otras fechas cuando no hay fotos coincidentes disponibles.",
   "alpha02Statistics": "Estadísticas opcionales de la cuenta entre dispositivos, historial acumulado de identificación y comparaciones con los últimos resultados, consentimiento para las estadísticas del navegador e importación de estadísticas anteriores. Los cuestionarios para visitantes siguen disponibles sin una cuenta.",
   "alpha01Intro": "La primera versión alfa pública lleva la práctica de identificación de aves por imágenes y sonidos a aviquiz.org.",
   "alpha01Quizzes": "Cuestionarios por fotos y audio con filtros de sitio y familia, repaso de errores y progreso visual y de audio independiente.",
   "alpha01Geography": "Cuestionarios por ubicación y temporada de Carolina del Norte, junto con el itinerario y el material de práctica originales de Colombia.",
   "alpha01Accounts": "Cuentas por invitación y cuestionarios para visitantes abiertos a todo el mundo.",
-  "alpha02Workflow": "Un flujo reutilizable de línea de comandos para procesar nuevas ubicaciones, producir paquetes comunes de datos por temporada y poner metadatos fotográficos en cola, reutilizando la cobertura ya recopilada para otras ubicaciones.",
-  "alpha02FixIntro": "Esta actualización alfa corrige la navegación inconsistente entre páginas y conserva las mejoras de Colombia, español, fotos por temporada y estadísticas de la cuenta previstas para la versión 0.2.0.",
-  "alpha02Navigation": "Navegación de encabezado uniforme en el selector de cuestionarios, la práctica, las estadísticas, los viajes, las invitaciones, las notas de versión y la revisión de fotos. Estadísticas y los demás destinos principales están disponibles desde todas las páginas; el acceso a las invitaciones sigue dependiendo de los permisos de la cuenta."
+  "alpha02FixIntro": "Incluye todas las funciones y mejoras de v0.2.0-alpha.1, además de una navegación uniforme entre páginas.",
+  "alpha02Navigation": "Enlaces uniformes en el encabezado para crear cuestionarios, practicar, consultar viajes y ver estadísticas en todo el sitio.",
+  "releaseDate": "Fecha de versión:",
+  "includedIn": "Todos los cambios de esta versión candidata están incluidos en {{version}}."
 }

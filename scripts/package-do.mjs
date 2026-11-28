@@ -1,4 +1,5 @@
 import {spawnSync} from 'node:child_process';
+import {verifyReleaseTag} from './check-release-tag.mjs';
 import {verifyReleaseSource} from './release-source.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -9,10 +10,11 @@ import {servingObjects} from './serving-release.mjs';
 import releaseNotes from '../data/releases.json' with {type:'json'};
 const root=path.resolve(import.meta.dirname,'..');
 const source=verifyReleaseSource(root);
+verifyReleaseTag(root,releaseNotes);
 const tag=spawnSync('git',['describe','--tags','--exact-match',source.commit],{cwd:root,encoding:'utf8'});
 const version=tag.status===0&&/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(tag.stdout.trim())?tag.stdout.trim():undefined;
 if(!version||version!==releaseNotes.currentTag)throw Error('Production packaging requires the exact Git tag shown in the footer release manifest.');
-if(!releaseNotes.releases.find(r=>r.tag===version)?.productionDeployedAt)throw Error('Finalize the production release date in data/releases.json before production packaging.');
+if(!releaseNotes.releases.find(r=>r.tag===version)?.releaseDate)throw Error('Finalize the packaging/tagging release date in data/releases.json before production packaging.');
 const build=spawnSync(process.execPath,['scripts/build-worker.mjs'],{cwd:root,encoding:'utf8'});
 if(build.status!==0)throw Error('Worker build failed; production artifact was not packaged.');
 const digest=createHash('sha256');

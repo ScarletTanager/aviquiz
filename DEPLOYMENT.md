@@ -1,6 +1,6 @@
 # Packaging and deploying AviQuiz
 
-Updated November 25, 2026. This is the procedure for updating the existing staging
+Updated November 28, 2026. This is the procedure for updating the existing staging
 and production installations. It also defines the inputs, outputs, and failure
 handling needed to implement a deployment script for either target. Commands are
 examples for an authorized operator; writing this document does not authorize or
@@ -41,21 +41,21 @@ an application release. Canonical data retention in Spaces is a separate operati
 
 The normal sequence is:
 
-1. Develop, commit, and push to `dev`.
-2. Finish data/photo assembly, commit the generated public registry, and push it.
-3. Test the resulting frozen candidate locally and check applicable GitHub results.
-4. Package and deploy that candidate to staging when authorized.
-5. Upload/verify its seasonal objects and perform staging checks.
-6. Record the owner's explicit staging approval against the candidate and data hashes.
-7. **Required for every production release:** finalize the matching entry in
-   `data/releases.json`, setting `productionDeployedAt` to the production cutover
-   date (`YYYY-MM-DD`, America/New_York). For `v0.2.0-alpha.1`, leave it null
-   until its production deployment. Commit/push the metadata and regenerate the
-   localized release pages before tagging and packaging; follow the release-notes
-   procedure below to keep the reviewed source and immutable tag consistent.
-8. Promote the approved candidate to `main`, tag it, package, and deploy production.
-9. Verify the live footer version and its release-notes production date, then
-   record the actual activated release and post-deployment verification.
+1. Develop on `dev` and finish the intended data/photo package set.
+2. Before initial packaging/tagging, set `releaseDate` in `data/releases.json`
+   to that day's America/New_York calendar date (YYYY-MM-DD). Regenerate localized
+   pages, commit and push the finalized candidate. This is not a deployment date.
+3. Test the frozen candidate locally and check applicable GitHub results.
+4. Create/push the annotated immutable release tag on that exact commit, verify
+   its date with `node scripts/check-release-tag.mjs`, then package/deploy staging
+   when authorized. Keep its hosting access controls.
+5. Upload/verify all referenced objects and perform staging checks.
+6. Record the owner's explicit staging approval against the code/data hashes.
+7. Fast-forward `main` to the same tagged candidate and push it. Do not change
+   release notes, their date or the tag during production promotion.
+8. Package and deploy production from that approved revision.
+9. Verify the footer, release date, notes and runtime; record the actual deployment
+   timestamp separately in the deployment receipt.
 
 There is no separate staging branch requirement. Do not silently advance a frozen
 candidate to a newer `dev` HEAD. A new application, schema, catalog, or registry change
@@ -371,8 +371,8 @@ git switch main
 git pull --ff-only origin main
 git merge --ff-only "$AVIQUIZ_APPROVED_SHA"
 git push origin main
-git tag -a "$AVIQUIZ_RELEASE_TAG" -m "AviQuiz approved release"
-git push origin "$AVIQUIZ_RELEASE_TAG"
+# The immutable tag was already created before staging packaging.
+node scripts/check-release-tag.mjs
 ```
 
 Do not force this if histories diverged. Resolve the promotion, compare its tree to
@@ -381,10 +381,9 @@ documentation differs, record the explicit tree/content comparison; do not asser
 that different commits are identical without evidence. Check applicable GitHub
 security/CodeQL results on the promoted SHA and review findings before production.
 
-The production packager itself requires a clean tree, branch `main`, and exact
-HEAD equality with remote `main`. It records a matching semver tag when present,
-but does **not** require one. The deployment wrapper must enforce the release-tag
-requirement and verify the tag resolves to the approved production SHA.
+The production packager requires a clean tree, branch `main`, exact HEAD equality
+with remote `main`, and the annotated release tag/date verified by
+`scripts/check-release-tag.mjs`. The tag must resolve to the approved staging SHA.
 
 ## 11. Package production
 
@@ -668,26 +667,31 @@ and have native speakers review the Spanish interface in staging.
 version link targets `/releases#release-<tag>`; the general link targets
 `/releases`. Both languages are generated with the normal message/page build.
 Descriptions live in `locales/{en,es-CO}/releases.json`. A release contains a
-brief introduction and key-item bullets. Sections show pending candidates first,
-then production releases by newest deployment date (version breaks ties).
+brief introduction and key-item bullets. Sections are ordered by descending
+semantic version, regardless of date, staging status or deployment order. A newer
+release includes earlier capabilities unless its notes explicitly say otherwise.
+`includedIn` can link a historical candidate to the later release carrying all its
+changes. It must name a newer existing version. Alpha.2 explicitly includes alpha.1.
 
-Keep an upcoming release's `productionDeployedAt` null during development and
-staging review; it displays as a preview, not an already deployed production
-release. The initial recorded production date is November 24, 2026, supported by
-`DO-PRODUCTION.md`. Do not substitute a commit, tag, build or staging date for a
-production deployment date. The current next production candidate is `v0.2.0-alpha.2`;
-creating a notes entry does not create or publish a Git tag.
+`releaseDate` is the initial packaging/tagging date (America/New_York), finalized
+before the immutable tag and first staging package. A null date means an unpackaged
+and untagged development candidate; it says nothing about production availability.
+The same tagged source and date travel through staging and production. Promotion,
+redeployment and target-specific packaging do not redate the release. Operational
+receipts retain the actual deployment date/timestamp separately.
 
-As part of the approved production cutover, finalize the release metadata with
-the production deployment day (America/New_York calendar date), commit/push that metadata, and create the matching
-immutable version tag before packaging. Coordinate this final metadata change
-with the staging-approval process; it is a source change. The packager refuses a
-missing/mismatched exact tag or a current entry still marked as a preview. Verify
-the actual deployment day and public release section after activation. If the
-cutover is delayed to a different day, correct the candidate metadata before
-publishing that release; never move an already published tag or silently invent
-a successful deployment record. Record deployment failures in the operator log,
-not as successful public release dates.
+Before initial packaging: update the date, regenerate pages, commit/push, create
+and push the annotated tag, and run `node scripts/check-release-tag.mjs`. The
+checker verifies the tag points to HEAD, matches the manifest and has the same
+New York calendar date. The production packager runs the same verification. Never
+move or recreate an existing tag; source corrections require a later release.
+
+Historical migration: v0.1.0-alpha.1 was packaged/tagged November 24, and
+v0.2.0-alpha.2 November 28. Alpha.1's November 27 date comes from its documented
+staging package; it was never given a Git tag and is retained as a historical
+candidate included in alpha.2. Do not invent a production deployment or a retroactive
+Git tag for it. The former `productionDeployedAt` field has been replaced by
+`releaseDate`; old deployment receipts below describe the previous policy.
 
 For each subsequent release, add an entry and localized wording, update
 `currentTag`, and retain older entries and anchors. Run
@@ -796,3 +800,16 @@ production promotion. The first staging transition needs a compatible preload
 bootstrap or a documented controlled data-loading interval because its old import
 endpoint cannot accept hashes absent from the active registry. Preserve staging
 access controls throughout; an HTTP login page is not an import acknowledgement.
+
+
+## Public and technical release notes
+
+Website message bundles contain only user-visible changes and relevant limitations.
+Exclude CLI commands, processing/collector internals, schemas, package formats,
+deployment procedures and internal permission machinery from the public notes.
+Keep technical notes in `docs/releases/<tag>.md`, committed with the release, and
+publish that document as the matching GitHub release's notes. GitHub notes are
+engineering-oriented but still public in this repository: exclude credentials,
+private identities and sensitive infrastructure details. Never imply a development
+change shipped in an earlier tagged binary. GitHub release publication must use
+an existing immutable tag; publishing notes is not an application deployment.
