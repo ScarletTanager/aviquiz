@@ -4,7 +4,7 @@ import application from './dist/server/index.js';
 function elements(node){return [node,...(node.childNodes||[]).flatMap(elements)];}
 const attr=(n,key)=>n.attrs?.find(a=>a.name===key)?.value;
 const expected=['/explore','/quiz','/trips','/statistics','/invite'];
-for(const language of ['en','es-CO'])for(const path of ['/','/explore','/quiz','/trips','/statistics','/invite','/review','/releases']){
+for(const language of ['en','es-CO'])for(const path of ['/','/explore','/play','/quiz','/trips','/statistics','/invite','/review','/releases']){
  const response=await application.fetch(new Request('https://quiz.example'+path,{headers:{cookie:'aviquiz-language='+language}}),{});assert.equal(response.status,200);
  const html=await response.text(),nodes=elements(parse(html)),header=nodes.find(n=>n.tagName==='header');assert.ok(header,path);
  const headerNodes=elements(header),nav=headerNodes.find(n=>n.tagName==='nav'&&attr(n,'class')==='site-nav');assert.ok(nav,path+' main navigation');

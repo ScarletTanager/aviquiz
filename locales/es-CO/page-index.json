@@ -234,5 +234,9 @@
   "knownGeographies": "estados y subregiones nacionales",
   "knownSites": "sitios conocidos",
   "collectionDescription": "Explore listas de especies por temporada de las ubicaciones que tenemos disponibles.",
-  "collectionCounting": "Cada especie se cuenta una sola vez entre los paquetes de datos instalados, incluidas las que aún no tienen fotos. Las ubicaciones cuentan estados de Estados Unidos y subregiones de primer nivel de otros países; los sitios cuentan lugares con datos de especies procesados."
+  "collectionCounting": "Cada especie se cuenta una sola vez entre los paquetes de datos instalados, incluidas las que aún no tienen fotos. Las ubicaciones cuentan estados de Estados Unidos y subregiones de primer nivel de otros países; los sitios cuentan lugares con datos de especies procesados.",
+  "quizLoadingTitle": "Preparando su cuestionario",
+  "quizLoadingStatus": "Cargando las especies y fotos de la ubicación y temporada seleccionadas…",
+  "quizLoadingRetry": "Intentar de nuevo",
+  "quizLoadingBack": "Volver al selector de cuestionarios"
 }

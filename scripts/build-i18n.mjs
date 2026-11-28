@@ -43,6 +43,11 @@ for(const name of (await fs.readdir(path.join(root,'pages'))).filter(n=>n.endsWi
  if(/<!--msg |@@msg:/.test(source))throw Error('Unresolved page message');
  const output=language==='en'?name:name.replace('.html','.'+language+'.html');
  await fs.writeFile(path.join(root,'dist',output),source);
+ if(name==='index.html'){
+  const play=source.replace('<section id="landing"','<section id="landing" hidden').replace('<section id="quiz-loading" hidden','<section id="quiz-loading"').replace('id="nav-explore" href="/explore"','id="nav-explore" href="/explore" aria-current="page"').replace(/<title>[\s\S]*?<\/title>/,'<title>'+escapeAttribute(resources['page-index'].quizLoadingTitle)+' · AviQuiz</title>');
+  await fs.writeFile(path.join(root,'dist',language==='en'?'play.html':'play.'+language+'.html'),play);
+ }
+
  }
 }
 console.log('Built English and Colombian Spanish message bundles and pages.');

@@ -737,3 +737,19 @@ even when deployment occurs on a later day. Deployment timestamps belong in
 operational receipts. Verify the footer, date and newest-version-first notes after
 both staging and production activation. Never move an existing tag to correct
 history; publish a later version when source changes.
+
+
+## Geography quiz launch
+
+`/explore` launches geography quizzes at `/play?...`; `/quiz` remains the original
+Practice setup. The same quiz engine handles both, while geography sessions keep
+Take a quiz active in the header and preserve their scope/date/family parameters
+through questions/results and reloads. Older `/quiz?geo=...` links remain valid and
+are canonicalized to `/play` by the client.
+
+The server supplies a dedicated, translated loading view at first paint. It never
+shows the home or legacy setup screen during geography initialization. Quiz data
+loads independently of optional audio/annotation initialization. Errors stay in
+the launch view with retry and return-to-builder controls. Navigation away cancels
+stale completions. Reproduce slow/failed launch requests with browser throttling;
+check `node test-quiz-launch.mjs` and `node test-app-audio.mjs` before deployment.

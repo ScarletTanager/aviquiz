@@ -179,12 +179,13 @@ function updatePool(){
 function showView(id,{updateUrl=true}={}){
   if(id!=='session'&&$('photo-zoom').open)$('photo-zoom').close();
   stopAudio();
-  for(const v of ['landing','setup','routes','statistics','session','results','species-page'])$(v).hidden=v!==id;
-  const section=id==='landing'?'home':id==='routes'?'routes':['statistics','species-page'].includes(id)?'statistics':'practice';
-  const path=section==='home'?'/':section==='routes'?'/trips':section==='statistics'?'/statistics':'/quiz';
+  for(const v of ['quiz-loading','landing','setup','routes','statistics','session','results','species-page'])$(v).hidden=v!==id;
+  const geography=['quiz-loading','session','results'].includes(id)&&(id==='quiz-loading'||activeSettings?.route?.geography);
+  const section=geography?'explore':id==='landing'?'home':id==='routes'?'routes':['statistics','species-page'].includes(id)?'statistics':'practice';
+  const path=section==='explore'?'/play'+location.search:section==='home'?'/':section==='routes'?'/trips':section==='statistics'?'/statistics':'/quiz';
   if(updateUrl&&location.pathname+location.search+location.hash!==path)history.pushState(null,'',path);
-  for(const name of ['home','practice','routes','statistics']){const link=$('nav-'+name);if(name===section)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}
-  document.title=id==='landing'?t("app:aviquiz_bird_identification_practice_e8608fa7"):t("app:aviquiz_44cb4fac", {v0:(section==='statistics'?t("app:statistics_a656107e"):section==='routes'?t("app:trips_86bbcd7d"):t("app:practice_d3857b12"))});
+  for(const name of ['home','explore','practice','routes','statistics']){const link=$('nav-'+name);if(name===section)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');}
+  document.title=id==='landing'?t("app:aviquiz_bird_identification_practice_e8608fa7"):t("app:aviquiz_44cb4fac", {v0:(section==='explore'?t('page-index:take_a_quiz_4398f879'):section==='statistics'?t("app:statistics_a656107e"):section==='routes'?t("app:trips_86bbcd7d"):t("app:practice_d3857b12"))});
   if(id==='statistics'){readProgress('photo');readProgress('audio');renderStatistics();}
   window.scrollTo({top:0,behavior:'instant'});
 }
@@ -203,8 +204,16 @@ function returnToRoute(route){
   if(route.geography){location.assign(route.returnUrl);return;}
   history.pushState(null,'','/trips'+route.hash);navigateLocation();$('routes-heading').focus({preventScroll:true});
 }
+function geographyLaunch(){return ['/play','/play/'].includes(location.pathname)||location.pathname.startsWith('/quiz')&&new URLSearchParams(location.search).has('geo');}
+function showGeographyLoading(){
+  $('quiz-launch-status').textContent=t('page-index:quizLoadingStatus');$('quiz-launch-error').textContent='';$('quiz-launch-retry').hidden=true;
+  $('quiz-launch-back').href='/explore'+location.search;
+  showView('quiz-loading',{updateUrl:false});
+}
+function geographyLaunchFailed(error){$('quiz-launch-status').textContent='';$('quiz-launch-error').textContent=error.message;$('quiz-launch-retry').hidden=false;}
+$('quiz-launch-retry').addEventListener('click',()=>{if(data)navigateLocation();else location.reload();});
 async function openGeographyQuiz(token){
-  showView('setup',{updateUrl:false});
+  showGeographyLoading();
   try{
     const {geographySelection,geographyPool}=await import('./geography-core.mjs');
     const query=new URLSearchParams(location.search),selection=geographySelection(query);
@@ -215,7 +224,7 @@ async function openGeographyQuiz(token){
       if(!nc.pool.length)throw Error(t("app:no_species_with_verified_photos_match_this_location_sea_91302e95"));
       const scope={name:nc.placeName||selection.id};
       const route={geography:true,title:(scope?.name||selection.id)+' · '+calendarWindowLabel(selection.start,selection.end),pool:nc.pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:selection.id,from:selection.start,to:selection.end,trail:query.get('trail')||'',allSpecies:String(selection.allSpecies),questions:String(selection.count),family:selection.family,single:String(selection.single)})};
-      begin({route,count:selection.count,allSpecies:selection.allSpecies,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});return;
+      await begin({route,count:selection.count,allSpecies:selection.allSpecies,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});return;
     }
     const responses=await Promise.all(['/geography-seed.json','/route-pilot.json'].map(p=>fetch(p)));if(responses.some(r=>!r.ok))throw Error(t("app:geography_pilot_data_is_unavailable_464284b9"));
     const [seed,catalog]=await Promise.all(responses.map(r=>r.json()));if(token!==navigationToken)return;
@@ -224,13 +233,16 @@ async function openGeographyQuiz(token){
     const pool=candidates.pool.filter(b=>selection.family==='all'||familyName(b.family)===selection.family);
     if(!pool.length)throw Error(t("app:no_pilot_species_with_photos_match_this_location_date_r_d61e0bbc"));
     const route={geography:true,title:scope.name+' · '+calendarWindowLabel(selection.start,selection.end),pool,count:selection.count,returnUrl:'/explore?'+new URLSearchParams({geo:scope.id,from:selection.start,to:selection.end,allSpecies:String(selection.allSpecies),questions:String(selection.count),family:selection.family,single:String(selection.single)})};
-    begin({route,count:selection.count,allSpecies:selection.allSpecies,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});
-  }catch(error){if(token===navigationToken)$('settings-error').textContent=error.message;}
+    await begin({route,count:selection.count,allSpecies:selection.allSpecies,medium:'photo',mode:'regular',site:'all',family:selection.family,filter:'none'});
+  }catch(error){if(token===navigationToken)geographyLaunchFailed(error);}
 }
 function navigateLocation(){
   navigationToken++;sessionToken++;
   if(['/trips','/trips/','/routes','/routes/'].includes(location.pathname)){openRoutePage();return;}
-  if(data&&location.pathname.startsWith('/quiz')&&new URLSearchParams(location.search).has('geo')){openGeographyQuiz(navigationToken);return;}
+  if(geographyLaunch()){
+    if(!location.pathname.startsWith('/play'))history.replaceState(null,'','/play'+location.search+location.hash);
+    if(data)openGeographyQuiz(navigationToken);else showGeographyLoading();return;
+  }
   if(location.hash.startsWith('#species/')){if(data)navigateSpeciesHash();return;}
   const page=location.pathname.startsWith('/quiz')?'setup':location.pathname.startsWith('/statistics')?'statistics':'landing';
   showView(page,{updateUrl:false});
@@ -513,11 +525,12 @@ try{
   const covered=data.birds.filter(b=>b.photos.length).length;$('coverage').textContent=t("app:macaulay_photo_records_of_species_image_availability_de_423e2f4d", {v0:(covered),v1:(data.birds.length),v2:(covered<data.birds.length?t("app:species_without_a_photo_record_are_excluded_from_questi_8964c0a3"):'')});
   const hero=data.birds.find(b=>b.name==='Multicolored Tanager'&&b.photos.length)||data.birds.find(b=>b.photos.length);
   if(hero){$('hero-photo').onerror=()=>{$('hero-photo').hidden=true;$('hero-label').textContent=t("app:macaulay_photograph_unavailable_946efa16");$('hero-credit').textContent=t("app:the_image_server_could_not_deliver_this_photo_please_tr_8849b24a");};$('hero-photo').src=hero.photos[0].url;$('hero-photo').alt=hero.name;$('hero-label').textContent=hero.name;$('hero-credit').textContent=t("app:macaulay_library_ml_c5606ff1", {v0:(hero.photos[0].photographer),v1:(hero.photos[0].id)});}
+  if(geographyLaunch())navigateLocation();
   try{const response=await fetch('/audio.json',{cache:'no-store'});if(!response.ok)throw Error();const received=await response.json();validateAudioCatalog(received,data.birds);audioCatalog=received;$('audio-coverage').textContent=t("app:audio_catalog_of_species_verified_recording_records_cov_645954f5", {v0:(Object.keys(audioCatalog.recordings).length),v1:(data.birds.length),v2:(Object.values(audioCatalog.recordings).reduce((n,a)=>n+a.length,0))});}catch{audioCatalog={version:1,recordings:{}};$('medium').querySelector('option[value=audio]').disabled=true;$('audio-coverage').textContent=t("app:audio_catalog_could_not_load_visual_quizzes_remain_avai_ae1127f0");}
   await loadSharedTips();
   readProgress('photo');readProgress('audio');updatePool();renderStatistics();
-  navigateLocation();
-}catch(error){$('pool').textContent=t("app:could_not_load_the_checklist_please_reload_the_page_7f367d1a");$('settings-error').textContent=error.message;}
+  if(!geographyLaunch())navigateLocation();
+}catch(error){if(geographyLaunch())geographyLaunchFailed(error);$('pool').textContent=t("app:could_not_load_the_checklist_please_reload_the_page_7f367d1a");$('settings-error').textContent=error.message;}
 
 accountStatistics=statisticsControls({changed:store=>{
   if($('session').hidden){histories.photo=store.histories.photo;histories.audio=store.histories.audio;}

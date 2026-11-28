@@ -460,7 +460,7 @@ globalThis.fetch=async url=>url.startsWith('/api/geography/quiz')?{ok:true,statu
 history.pushState(null,'','/quiz?geo=US-NC-037&from=2026-09-20&to=2026-10-10&questions=1&trail=world,continent:North%20America,US,US-NC,US-NC-037');
 for(const fn of windowEvents.popstate||[])await fn();
 for(let n=0;n<20&&$('session').hidden;n++)await settle();
-assert.equal($('session').hidden,false);assert.match($('session-label').textContent,/Chatham/);
+assert.equal($('session').hidden,false);assert.match($('session-label').textContent,/Chatham/);assert.equal(location.pathname,'/play');assert.ok(location.search.includes('geo=US-NC-037'));assert.equal($('nav-explore').attrs['aria-current'],'page');assert.equal($('nav-practice').attrs['aria-current'],undefined);
 $('question-image').onload();await $('reveal').fire('click');await $('next').fire('click');
 assert.equal(store.get(PROGRESS_KEY),beforeGeoHistory);
 await $('new-quiz').fire('click');assert.match(globalThis.__geoReturn,/trail=/);
@@ -483,3 +483,17 @@ assert.equal(new Set(repeated.slice(0,2)).size,2);assert.equal(new Set(repeated.
 console.log('Passed geography all-species family sizing and oversize quizzes with reshuffled species rounds.');
 globalThis.fetch=originalGeographyFetch;
 console.log('Passed geography-to-photo-session handoff, preserved legacy statistics, and return to location launcher.');
+
+// A delayed or failed launch must stay in its dedicated view, never legacy setup.
+let releaseLaunch;
+globalThis.fetch=url=>url.startsWith('/api/geography/quiz')?new Promise(resolve=>{releaseLaunch=resolve;}):originalGeographyFetch(url);
+history.pushState(null,'','/play?geo=CO&from=2026-09-01&to=2026-09-30&questions=1');
+for(const fn of windowEvents.popstate||[])fn();await settle();
+assert.equal($('quiz-loading').hidden,false);assert.equal($('setup').hidden,true);assert.equal($('landing').hidden,true);
+releaseLaunch({status:503,ok:false,json:async()=>({error:'Test unavailable'})});await settle();
+assert.equal($('quiz-loading').hidden,false);assert.equal($('quiz-launch-error').textContent,'Test unavailable');assert.equal($('quiz-launch-retry').hidden,false);assert.equal($('setup').hidden,true);
+await $('quiz-launch-retry').fire('click');assert.equal($('quiz-launch-retry').hidden,true);assert.equal($('quiz-launch-error').textContent,'');
+await $('nav-home').fire('click');releaseLaunch({status:200,ok:true,json:async()=>({placeName:'Colombia',pool:ncBirds.slice(0,1)})});await settle();
+assert.equal($('landing').hidden,false);assert.equal($('session').hidden,true);assert.equal(location.pathname,'/');
+globalThis.fetch=originalGeographyFetch;
+console.log('Passed delayed geography loading, visible failure/retry, navigation cancellation, preserved quiz URL and correct active navigation.');

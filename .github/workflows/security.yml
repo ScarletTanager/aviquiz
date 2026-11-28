@@ -59,6 +59,7 @@ jobs:
           node test-http.mjs
           node test-invitations.mjs
           node test-navigation.mjs
+          node test-quiz-launch.mjs
           node test-release-notes.mjs
           node test-release-tag.mjs
           node test-collection.mjs

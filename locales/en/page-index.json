@@ -234,5 +234,9 @@
   "knownGeographies": "states and national subregions",
   "knownSites": "known sites",
   "collectionDescription": "Explore seasonal species lists from the geographies we currently support.",
-  "collectionCounting": "Species are counted once across installed data packages, including species awaiting photos. Geographies count US states and first-level subregions elsewhere; sites count locations with processed species data."
+  "collectionCounting": "Species are counted once across installed data packages, including species awaiting photos. Geographies count US states and first-level subregions elsewhere; sites count locations with processed species data.",
+  "quizLoadingTitle": "Preparing your quiz",
+  "quizLoadingStatus": "Loading the species and photos for your selected location and season…",
+  "quizLoadingRetry": "Try again",
+  "quizLoadingBack": "Back to quiz builder"
 }

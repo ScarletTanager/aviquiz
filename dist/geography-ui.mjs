@@ -143,7 +143,7 @@ $('geo-start-quiz').addEventListener('click',()=>{
  if($('geo-start-quiz').disabled)return;
  const count=Number($('geo-count').value);if(!Number.isInteger(count)||count<1||count>10000){$('geo-error').textContent=t("geography-ui:choose_1_10_000_questions_3d12c404");return;}
  const query=new URLSearchParams({geo:selected.id,from:$('geo-start').value,to:$('geo-end').value,questions:String(count),allSpecies:String($('geo-all-species').checked),family:$('geo-family').value,single:String($('geo-single').checked),trail:new URLSearchParams(location.search).get('trail')||''});
- location.assign('/quiz?'+query);
+ location.assign('/play?'+query);
 });
 async function restoreLocation(){
  const query=new URLSearchParams(location.search),trail=(query.get('trail')||'').split(',').filter(Boolean),id=query.get('geo')||'world';

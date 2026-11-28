@@ -113,7 +113,7 @@ if(import.meta.main){
  await choose('Caldas');
  assert.equal(elements['geo-start-quiz'].disabled,true);
  elements['geo-sample'].checked=true;await elements['geo-sample'].listeners.change();assert.equal(elements['geo-start-quiz'].disabled,false);
- elements['geo-start-quiz'].listeners.click();assert.match(assigned,/geo=CO-CAL/);assert.match(assigned,/from=2000-02-01/);
+ elements['geo-start-quiz'].listeners.click();assert.ok(assigned.startsWith('/play?'));assert.match(assigned,/geo=CO-CAL/);assert.match(assigned,/from=2000-02-01/);
  elements['geo-all-species'].checked=true;elements['geo-all-species'].listeners.change();
  assert.equal(elements['geo-count'].readOnly,true);
  const launcherPool=geographyPool({scope,nodes:seed.nodes,catalog,birds:data.birds,start:'2027-02-01',end:'2027-02-28',single:false}).pool;
