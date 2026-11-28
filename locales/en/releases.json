@@ -16,5 +16,8 @@
   "alpha02FixIntro": "Includes all features and improvements from v0.2.0-alpha.1, plus consistent navigation across pages.",
   "alpha02Navigation": "Consistent header links to the quiz builder, practice, trips, and statistics across the site.",
   "releaseDate": "Release date:",
-  "includedIn": "All changes in this candidate are included in {{version}}."
+  "includedIn": "All changes in this candidate are included in {{version}}.",
+  "alpha03Intro": "This alpha improves geography quiz support and clarifies the release history. It includes all features and improvements from v0.2.0-alpha.2.",
+  "alpha03Geography": "Geography quiz improvements to support expanding coverage, while preserving North Carolina and Colombia seasonal quizzes, family filters, photo credits, and seasonal photo selection.",
+  "alpha03History": "Release notes list the newest versions first, clearly identify updates included from earlier candidates, and use a consistent release date."
 }

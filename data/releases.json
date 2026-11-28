@@ -1,6 +1,15 @@
 {
-  "currentTag": "v0.2.0-alpha.2",
+  "currentTag": "v0.2.0-alpha.3",
   "releases": [
+    {
+      "tag": "v0.2.0-alpha.3",
+      "releaseDate": "2026-11-28",
+      "intro": "alpha03Intro",
+      "items": [
+        "alpha03Geography",
+        "alpha03History"
+      ]
+    },
     {
       "tag": "v0.2.0-alpha.2",
       "intro": "alpha02FixIntro",

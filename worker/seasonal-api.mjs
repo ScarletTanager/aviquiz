@@ -21,7 +21,7 @@ export async function seasonalApi(request,env){
  }
  if(request.method!=='GET')return json({error:t("worker-seasonal-api:method_not_allowed_5765cf56")},405);
  if(url.pathname==='/api/geography/catalog'){
-  return json({coverage:registry.coverage,families:registry.families,geographies:packages.map(p=>({id:p.package.geography,years:p.index.years,revision:p.package.revision}))});
+  return json({servingSchema:registry.schema,servingRevision:registry.revision,coverage:registry.coverage,families:registry.families,geographies:packages.map(p=>({id:p.package.geography,years:p.index.years,revision:p.package.revision}))});
  }
  if([...url.searchParams.keys()].some(k=>!['place','from','to','single','family'].includes(k)))return json({error:t("worker-seasonal-api:invalid_query_e7a90c1f")},400);
  const place=url.searchParams.get('place');

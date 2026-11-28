@@ -16,5 +16,8 @@
   "alpha02FixIntro": "Incluye todas las funciones y mejoras de v0.2.0-alpha.1, además de una navegación uniforme entre páginas.",
   "alpha02Navigation": "Enlaces uniformes en el encabezado para crear cuestionarios, practicar, consultar viajes y ver estadísticas en todo el sitio.",
   "releaseDate": "Fecha de versión:",
-  "includedIn": "Todos los cambios de esta versión candidata están incluidos en {{version}}."
+  "includedIn": "Todos los cambios de esta versión candidata están incluidos en {{version}}.",
+  "alpha03Intro": "Esta versión alfa mejora los cuestionarios por ubicación y aclara el historial de versiones. Incluye todas las funciones y mejoras de v0.2.0-alpha.2.",
+  "alpha03Geography": "Mejoras en los cuestionarios por ubicación para ampliar la cobertura, conservando los cuestionarios por temporada de Carolina del Norte y Colombia, los filtros de familia, los créditos fotográficos y la selección de fotos por temporada.",
+  "alpha03History": "Las notas muestran primero las versiones más recientes, indican con claridad los cambios incluidos de versiones candidatas anteriores y usan una fecha de versión uniforme."
 }
