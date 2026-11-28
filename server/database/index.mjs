@@ -37,7 +37,11 @@ export async function createDatabaseEnvironment(config,options) {
   const {locationCache}=await import('../location-cache.mjs');
   const locations=createEbirdLocations({apiKey,store:locationCache(db)});
   let ebd;
-  try{ebd=await fileEbdBucket(config.EBD_DATA_DIR||fileURLToPath(new URL('../../ebd/',import.meta.url)),{optional:!config.EBD_DATA_DIR});}
+  try{
+    if(config.EBD_STORAGE==='spaces'){const {spacesEbdBucket}=await import('../ebd-spaces.mjs');ebd=await spacesEbdBucket(config);}
+    else if(!config.EBD_STORAGE||config.EBD_STORAGE==='files')ebd=await fileEbdBucket(config.EBD_DATA_DIR||fileURLToPath(new URL('../../ebd/',import.meta.url)),{optional:!config.EBD_DATA_DIR});
+    else throw Error('Unknown EBD storage driver');
+  }
   catch{await db.close();throw Error('EBD serving data configuration is invalid.');}
   return {...config,EBD_BUCKET:ebd,LOCATION_DIRECTORY:locations,DEPLOYMENT_TARGET:'standalone',DB:db,INVITATION_PROVIDER:invitations};
 }

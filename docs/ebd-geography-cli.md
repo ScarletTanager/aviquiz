@@ -134,3 +134,88 @@ dates span New Year; February 29 remains available. Internal reference years
 serialize this calendar window for the existing shared reader and are not shown
 in the date controls or quiz titles. The legacy itinerary/trip editor still has
 real visit dates and remains independent.
+
+## 7. External serving objects and Spaces preload
+
+Processing packages remain `aviquiz-seasonal-package-v1`. Preparation now produces
+`aviquiz-serving-release-v1`: a thin committed manifest and external, immutable
+navigation/species/photo objects as well as the existing fact chunks. Both NC and
+Colombia follow this path, as will every new geography. See
+[the format specification](serving-format.md) for schemas, byte/hash rules, limits,
+sharing, storage adapters and version compatibility.
+
+After `prepare-seasonal.mjs`, verify all objects without network access:
+
+```sh
+node scripts/verify-seasonal.mjs worker/seasonal-packages.json \
+  ../../outputs/ebd_common/objects
+node test-serving-release.mjs
+node test-ebd-spaces.mjs
+node test-seasonal.mjs
+```
+
+Pass `--registry PATH` to preparation to write a candidate manifest elsewhere;
+this does not activate it. Always supply the complete desired set of packages.
+For example, prepare NC, Colombia and ten additional assembled countries together;
+shared identical species records are stored once. Upstream processing jobs can
+continue filling the same species-aware photo queue before one collection pass.
+Queue/collector inputs remain the processing catalogs, not the compressed serving
+shards. Do not pass `worker/seasonal-packages.json` to the photo collector as a
+species catalog. Assembly then preparation incorporates new photo metadata.
+
+An authorized operator can preload the immutable release into Spaces using these
+nonsecret settings; the secret stays in its protected file:
+
+```sh
+EBD_STORAGE=spaces \
+SPACES_ENDPOINT=https://nyc3.digitaloceanspaces.com \
+SPACES_BUCKET=aviquiz-data \
+SPACES_ACCESS_KEY_ID='<Spaces access key ID>' \
+SPACES_SECRET_KEY_FILE='/protected/path/spaces-secret' \
+SPACES_REQUIRE_PRIVATE=true \
+node scripts/upload-seasonal.mjs \
+  --registry /path/to/seasonal-packages.json \
+  --objects /path/to/objects \
+  --receipt /path/to/new-upload-receipt.json
+```
+
+Run this from the Droplet for VPC-private transfer. It checks the manifest revision
+and all local bytes before writing, uploads missing objects with private access,
+then reads back and verifies every selected object. Existing hashes are verified,
+not overwritten; upload interruption can be resumed with the same manifest and a
+new receipt path. The CLI never updates an active pointer, deploys code, deletes
+objects, or uploads original/derived EBD archives. An upload receipt's complete
+verified set is required before promoting its manifest. Do not alter a validated
+manifest by hand: regenerate it from processing packages.
+
+For local development keep `EBD_STORAGE=files` and point `EBD_DATA_DIR` at the object
+directory. Production can select `spaces` while staging keeps `EBD_BUCKET` bound to
+R2; the byte format and reader are identical. The production packager retains a
+verified filesystem mirror for rollback/local deployment, including all metadata
+objects, not just chunks. Staging imports must likewise enumerate **all** objects
+using `servingObjects()` rather than only `packages[].index.chunks`. See
+[DEPLOYMENT.md](../DEPLOYMENT.md) for the initial R2 preload limitation and approval
+boundary. No storage configuration change deploys the new app automatically.
+
+For a migration, compare the new reader with a retained pre-migration API receipt:
+
+```sh
+node scripts/test-serving-parity.mjs /path/to/frozen-expected-api.json
+AVIQUIZ_PYTHON=python3.13 node scripts/test-seasonal-daily.mjs
+```
+
+CI tests generate tiny synthetic packages when private object files are unavailable;
+local checks with the real files continue exercising NC and Colombia. Python CLI
+integration also tests export -> serving preparation -> object verification when
+`node` is installed (or `AVIQUIZ_NODE` names its executable). It verifies that the
+shared photo queue preserves already collected coverage across geographies.
+
+When retaining the older `/api/nc/*` endpoint, supply
+`--legacy-dir ../../outputs/ebd_serving/nc-20261121` to the upload command too. It
+verifies/uploads the four pinned legacy NC objects as well; it does not regenerate
+or substitute them for the common-format NC package. A Spaces-only production
+archive requires a receipt covering both sets. Set
+`EBD_PACKAGE_STORAGE=spaces EBD_UPLOAD_RECEIPT=/path/to/receipt.json` when running
+`package-do.mjs` to omit the filesystem object mirror. The default `files` mode
+continues to include all objects. Runtime `EBD_STORAGE` must match the chosen mode;
+a Spaces-only archive cannot serve through the filesystem adapter.

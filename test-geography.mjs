@@ -75,14 +75,16 @@ if(import.meta.main){
  elements['geo-family'].value='all';elements['geo-count'].value='20';
  let assigned='';const location={search:'?from=2027-02-01&to=2027-02-28',assign(url){assigned=url;}};
  const browserNodes=[...seed.nodes,{id:'EC-P',name:'Pichincha',kind:'subnational1',parent:'EC'},{id:'L9999999999',name:'Ecuador test hotspot',kind:'hotspot',parent:'EC-P'}];
- const {seasonalApi:sharedApi,seasonalPackages}=await import('./worker/seasonal-api.mjs');
+ const {seasonalApi:sharedApi}=await import('./worker/seasonal-api.mjs');
+ const {testServingEnvironment}=await import('./scripts/serving-test-fixtures.mjs');
+ const common=await testServingEnvironment(),seasonalPackages=common.packages;
  const {packageCoverage}=await import('./dist/coverage-core.mjs');
  const coverage=packageCoverage(seasonalPackages,browserNodes);
  const describe=n=>({...n,supported:coverage.navigable.has(n.id),quizSupported:coverage.places.has(n.id)});
- const {fileEbdBucket}=await import('./server/ebd-files.mjs');const commonBucket=await fileEbdBucket('../../outputs/ebd_common/objects');
+ const {fileEbdBucket}=await import('./server/ebd-files.mjs');const commonBucket=common.bucket;
  const apiRequest=[];let ncFixture=null;let commonMode=false;let holdParent=null;const releaseHeld=[];
  const fetcher=async url=>{
-  if(url==='/api/geography/catalog')return {ok:true,json:async()=>({families:[]})};if(url.startsWith('/api/geography/quiz')&&commonMode)return sharedApi(new Request('https://quiz.example'+url),{EBD_BUCKET:commonBucket});if(url.startsWith('/api/geography/quiz'))return ncFixture?{status:200,ok:true,json:async()=>JSON.parse(JSON.stringify(ncFixture))}:{status:404,ok:false};
+  if(url==='/api/geography/catalog')return {ok:true,json:async()=>({families:[]})};if(url.startsWith('/api/geography/quiz')&&commonMode)return sharedApi(new Request('https://quiz.example'+url),common.env);if(url.startsWith('/api/geography/quiz'))return ncFixture?{status:200,ok:true,json:async()=>JSON.parse(JSON.stringify(ncFixture))}:{status:404,ok:false};
   if(url==='/geography-seed.json')return {ok:true,json:async()=>seed};if(url==='/route-pilot.json')return {ok:true,json:async()=>catalog};if(url==='/data.json')return {ok:true,json:async()=>data};
   if(url==='/api/account')return {ok:true,json:async()=>({kind:'guest'})};
   const u=new URL(url,'https://quiz.example'),id=u.searchParams.get('parent'),type=u.searchParams.get('type'),parent=browserNodes.find(n=>n.id===id);apiRequest.push(id+':'+type);

@@ -2,6 +2,8 @@
 """Small end-to-end fixture for geography extracts and collector handoff."""
 import importlib.util
 import json
+import os
+import shutil
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -48,6 +50,18 @@ class GeographyTests(tests.AggregateTests):
         package=json.loads((Path(result['package'])/'package.json').read_text())
         self.assertEqual(package['schema'],'aviquiz-seasonal-package-v1')
         self.assertTrue((Path(result['package'])/'species.json').is_file())
+        node=os.environ.get('AVIQUIZ_NODE') or shutil.which('node')
+        if node:
+            registry=self.root/'serving-release.json';objects=self.root/'objects'
+            prepared=subprocess.run([node,str(HERE/'prepare-seasonal.mjs'),'--package',result['package'],'--objects',str(objects),'--registry',str(registry)],env={**os.environ,'AVIQUIZ_PYTHON':sys.executable},capture_output=True,text=True)
+            self.assertEqual(prepared.returncode,0,prepared.stderr)
+            manifest=json.loads(registry.read_text())
+            self.assertEqual(manifest['schema'],'aviquiz-serving-release-v1')
+            self.assertNotIn('catalog',manifest['packages'][0])
+            verified=subprocess.run([node,str(HERE/'verify-seasonal.mjs'),str(registry),str(objects)],capture_output=True,text=True)
+            self.assertEqual(verified.returncode,0,verified.stderr)
+            self.assertTrue(json.loads(verified.stdout)['valid'])
+
 
     def test_cli_run_and_status(self):
         inputs=self.inputs()

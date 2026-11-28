@@ -742,3 +742,57 @@ Production is unchanged. `v0.2.0-alpha.1` is still a preview: no production date
 or Git release tag was assigned. Native-speaker Spanish review, interactive
 signed-in statistics/import testing, and owner staging approval remain required
 before production promotion. Use a copy of browser statistics for import tests.
+
+## Production receipt - November 28, 2026
+
+Owner-approved staging version 58 (`1a27491cfc399d180373512feec6187a43dac7a0`)
+was promoted as **v0.2.0-alpha.2**. The only candidate content changes before
+promotion finalized `productionDeployedAt` to November 28 and regenerated its
+localized pages. Main and the immutable tag point to
+`41f8c2203fed72b9f481d0fa5df0cfe6200b3a10`.
+
+Active production directory: `/srv/aviquiz/releases/aviquiz-1fdeeb1269406285`.
+Archive SHA-256: `91fc344819b19f425001a085b5e3c7df9581ba4a5c8a861b225ff793d2e23808`.
+Previous release `/srv/aviquiz/releases/aviquiz-1d80e9838caf2fa6` remains available
+for code rollback. Both serving package revisions match staging version 58.
+A verified readable native PostgreSQL backup was retained at
+`/root/aviquiz-backups/pre-alpha02-2026-11-28T11-01-32.555Z.dump` (55,891 bytes);
+this was a backup-readability check, not a restore exercise. Migration
+`0004_user_statistics.sql` and its runtime grants succeeded before activation.
+The running service configuration and certificate authentication were preserved.
+
+Public HTTPS health, release/date, all main page navigation targets, photo credits,
+and 18 NC/Colombia seasonal quiz count comparisons passed after activation. The
+collection contains 2,171 unique species, 34 first-level geographies and 8,872 sites.
+Signed-in browser-statistics import still requires the user's own interactive test.
+Luis Miguel's supplied Cognito subject was matched to the active production account
+and expected email; only `users.invite` was granted, with an application audit row.
+No AWS account call or invitation email was required by this operation.
+
+GitHub CodeQL, Gitleaks, dependency audit and PostgreSQL 17/18 integration passed.
+The regression job failed at `test-geography.mjs` because the private common-object
+directory is absent on GitHub runners; that complete test passed locally against
+the frozen data. The follow-up development work supplies self-contained fixtures
+for CI and keeps full local data comparisons. This failure was not recorded as a
+successful CI workflow. Staging remains version 58, with its existing access controls.
+
+## Follow-up development: external catalogs
+
+The development serving format is specified in [docs/serving-format.md](docs/serving-format.md).
+Its registry no longer embeds `catalog`, full `nodes`, or a full place index.
+Before packaging either target, run `scripts/verify-seasonal.mjs` against the
+selected manifest and object directory. Enumerate objects with `servingObjects()`
+from `scripts/serving-release.mjs`: this includes navigation shards, species shards,
+per-package bird indexes and fact chunks. The older chunk-only instructions in
+sections 4/8 describe alpha.2's embedded format and are insufficient for the new
+format. Never mix an old manifest or upload list with the external-catalog reader.
+
+Use `scripts/upload-seasonal.mjs` for private Spaces preload and digest verification
+before activation; credentials are read only from the protected runtime file.
+The manifest is still committed/code-pinned. Retain objects for previous releases;
+rollback switches code and its matching manifest together. No external-catalog
+code, storage-driver change or new R2 objects have been deployed by the alpha.2
+production promotion. The first staging transition needs a compatible preload
+bootstrap or a documented controlled data-loading interval because its old import
+endpoint cannot accept hashes absent from the active registry. Preserve staging
+access controls throughout; an HTTP login page is not an import acknowledgement.

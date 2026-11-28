@@ -1,6 +1,7 @@
 import {t,resourcesFor} from '../dist/i18n.mjs';
 import {cookieLocale} from '../dist/locale-preference.mjs';
 import http from 'node:http';
+import fs from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 import application from '../dist/server/index.js';
 import {authConfig as defaults} from '../dist/auth-config.mjs';
@@ -64,13 +65,17 @@ export function createHttpServer(env,{app=application}={}){
 export async function startServer(config){
   const host=config.HOST||'127.0.0.1',port=Number(config.PORT||3000);
   if(host!=='127.0.0.1')throw Error(t("server-http:the_application_must_bind_to_loopback_behind_its_proxy_6a13b5fb"));
+  try{
+    const release=JSON.parse(await fs.readFile(new URL('../release.json',import.meta.url),'utf8'));
+    if(release.servingStorage&&release.servingStorage!==(config.EBD_STORAGE||'files'))throw Error('Release and runtime serving storage disagree');
+  }catch(error){if(error.code!=='ENOENT')throw error;}
   const env=await createDatabaseEnvironment(config);
   const server=createHttpServer(env);
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,host,resolve);});
   let stopping;
   const stop=()=>stopping??=(async()=>{
     const timer=setTimeout(()=>server.closeAllConnections(),20000);timer.unref();
-    await new Promise(resolve=>server.close(resolve));clearTimeout(timer);await env.DB.close();
+    await new Promise(resolve=>server.close(resolve));clearTimeout(timer);env.EBD_BUCKET?.close?.();await env.DB.close();
   })();
   return {server,stop};
 }

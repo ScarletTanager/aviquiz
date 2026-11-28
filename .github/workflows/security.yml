@@ -63,6 +63,9 @@ jobs:
           node test-collection.mjs
           node test-language.mjs
           node test-geography.mjs
+          node test-serving-release.mjs
+          node test-ebd-spaces.mjs
+          node test-seasonal.mjs
           node test-release-source.mjs
 
   ebd-preparation:

@@ -4,6 +4,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {compileServingRelease} from './serving-release.mjs';
+import seed from '../dist/geography-seed.json' with {type:'json'};
+import nc from '../dist/nc-locations.json' with {type:'json'};
 const args=process.argv.slice(2),packages=[];let objects,registry=path.resolve(import.meta.dirname,'../worker/seasonal-packages.json');
 for(let i=0;i<args.length;i++){
  const flag=args[i],value=args[++i];if(!value)throw Error('Option value required');
@@ -27,5 +30,6 @@ for(const folder of packages){
  result.packages.push({package:pkg,index,catalog,nodes});
 }
 result.packages.sort((a,b)=>a.package.geography.localeCompare(b.package.geography));
-await fs.mkdir(path.dirname(registry),{recursive:true});const temporary=registry+'.'+process.pid+'.tmp';await fs.writeFile(temporary,JSON.stringify(result)+'\n');await fs.rename(temporary,registry);
+const compiled=await compileServingRelease(result.packages,{objects,navigation:[...seed.nodes,...nc.nodes]});
+await fs.mkdir(path.dirname(registry),{recursive:true});const temporary=registry+'.'+process.pid+'.tmp';await fs.writeFile(temporary,JSON.stringify(compiled)+'\n');await fs.rename(temporary,registry);
 console.log(JSON.stringify({registry,objects,geographies:result.packages.map(p=>p.package.geography)}));
