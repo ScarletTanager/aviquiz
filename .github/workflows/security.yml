@@ -58,6 +58,7 @@ jobs:
           node test-review-permissions.mjs
           node test-http.mjs
           node test-invitations.mjs
+          node test-navigation.mjs
           node test-release-notes.mjs
           node test-collection.mjs
           node test-language.mjs

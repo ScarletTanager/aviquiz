@@ -30,6 +30,10 @@ for(const name of (await fs.readdir(path.join(root,'pages'))).filter(n=>n.endsWi
  for(const language of languages){
  let source=(await read('pages/'+name)).replace('<html lang="en">','<html lang="'+language+'">');
  source=source.replace('<option value="'+language+'">','<option value="'+language+'" selected>');
+ const activePage={'explore.html':'/explore','invite.html':'/invite'}[name];
+ let navigation=await read('pages/partials/main-navigation.html');
+ if(activePage)navigation=navigation.replace('href="'+activePage+'"','href="'+activePage+'" aria-current="page"');
+ source=source.replace('<!--main-navigation-->',navigation.trim());
  const resources=bundles[language];
  const notes=releaseMarkup(releaseManifest,language,resources);
  source=source.replaceAll('<!--release-footer-->',notes.footer).replaceAll('<!--release-sections-->',notes.sections);

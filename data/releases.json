@@ -1,6 +1,19 @@
 {
-  "currentTag": "v0.2.0-alpha.1",
+  "currentTag": "v0.2.0-alpha.2",
   "releases": [
+    {
+      "tag": "v0.2.0-alpha.2",
+      "productionDeployedAt": null,
+      "intro": "alpha02FixIntro",
+      "items": [
+        "alpha02Navigation",
+        "alpha02Languages",
+        "alpha02Colombia",
+        "alpha02Photos",
+        "alpha02Statistics",
+        "alpha02Workflow"
+      ]
+    },
     {
       "tag": "v0.2.0-alpha.1",
       "productionDeployedAt": null,

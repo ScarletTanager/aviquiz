@@ -36,7 +36,8 @@ for(const dir of ['dist','worker','server'])for(const file of await fs.readdir(p
  }
  visit(ast);
 }
-for(const file of (await fs.readdir(path.join(root,'pages'))).filter(n=>n.endsWith('.html'))){
+const pageFiles=[...(await fs.readdir(path.join(root,'pages'))).filter(n=>n.endsWith('.html')), ...(await fs.readdir(path.join(root,'pages/partials'))).filter(n=>n.endsWith('.html')).map(n=>'partials/'+n)];
+for(const file of pageFiles){
  const source=await fs.readFile(path.join(root,'pages',file),'utf8');
  for(const match of source.matchAll(/(?:<!--msg |@@msg:)([\w-]+:[\w.-]+?)(?:-->|@@)/g)){assert.equal(typeof lookup(match[1]),'string',file+': missing '+match[1]);uses++;}
  function visit(node){

@@ -14,5 +14,7 @@
   "alpha01Quizzes": "Photo and audio quizzes with site and family filters, mistake review, and separate visual/audio progress.",
   "alpha01Geography": "North Carolina seasonal geography quizzes, alongside the original Colombia itinerary and practice material.",
   "alpha01Accounts": "Invitation-based accounts and guest quizzes open to everyone.",
-  "alpha02Workflow": "A reusable command-line workflow for processing additional geographies, producing common seasonal data packages, and queuing photo metadata while reusing coverage already collected for other geographies."
+  "alpha02Workflow": "A reusable command-line workflow for processing additional geographies, producing common seasonal data packages, and queuing photo metadata while reusing coverage already collected for other geographies.",
+  "alpha02FixIntro": "This alpha update fixes inconsistent page navigation and carries forward the Colombia, Spanish, seasonal-photo, and account-statistics improvements planned for version 0.2.0.",
+  "alpha02Navigation": "Consistent header navigation across the quiz launcher, practice, statistics, trips, invitations, release notes, and photo-review pages. Statistics and the other main destinations are now available from every page; invitation access still follows account permissions."
 }

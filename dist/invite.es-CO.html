@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es-CO"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Invitar a una persona a observar aves · AviQuiz</title><link rel="stylesheet" href="/style.css"></head>
 <body>
-<header class="site-header"><a class="wordmark" href="/">AviQuiz</a><nav class="site-nav" aria-label="Navegación principal"><a href="/quiz">Práctica</a><a href="/trips">Viajes</a><a href="/statistics">Estadísticas</a><button id="account-action" class="text-button" type="button" hidden>Iniciar sesión</button></nav><label class="language-control" for="interface-language"><span>Idioma</span><select id="interface-language" name="interface-language"><option value="en">English</option><option value="es-CO" selected>Español (Colombia)</option></select></label></header>
+<header class="site-header"><a class="wordmark" href="/">AviQuiz</a><nav class="site-nav" aria-label="Navegación principal"><a id="nav-explore" href="/explore">Hacer un cuestionario</a><a id="nav-practice" href="/quiz">Práctica</a><a id="nav-routes" href="/trips">Viajes</a><a id="nav-statistics" href="/statistics">Estadísticas</a><a id="invite-link" href="/invite" aria-current="page" hidden>Invitar a una persona</a><button id="account-action" type="button" class="text-button" hidden>Iniciar sesión</button></nav><label class="language-control" for="interface-language"><span>Idioma</span><select id="interface-language" name="interface-language"><option value="en">English</option><option value="es-CO" selected>Español (Colombia)</option></select></label></header>
 <p id="account-status" class="field-help" role="status"></p>
 <main style="max-width:42rem;margin:3rem auto;padding:0 1.5rem">
 <p class="eyebrow">OBSERVAR AVES ES MEJOR EN COMPAÑÍA</p><h1>Invitar a una persona</h1>
@@ -15,7 +15,7 @@
 <p class="field-help">Una dirección a la vez. Hasta 5 invitaciones por persona y 20 en todo AviQuiz en cualquier período de 24 horas. Revise cuidadosamente la dirección antes de enviar.</p>
 </form>
 <p id="invite-result" role="status" aria-live="polite"></p><p id="invite-reference" class="field-help" hidden></p><a href="/">Volver al inicio</a>
-</main><footer class="release-footer"><nav class="release-links" aria-label="Notas de versión"><a href="/releases">Notas de versión</a><a href="/releases#release-v0.2.0-alpha.1">v0.2.0-alpha.1</a><span class="release-preview">Versión de prueba</span></nav></footer><script type="module" src="/auth.mjs"></script><script type="module" src="/invite.mjs"></script>
+</main><footer class="release-footer"><nav class="release-links" aria-label="Notas de versión"><a href="/releases">Notas de versión</a><a href="/releases#release-v0.2.0-alpha.2">v0.2.0-alpha.2</a><span class="release-preview">Versión de prueba</span></nav></footer><script type="module" src="/auth.mjs"></script><script type="module" src="/invite.mjs"></script>
 
 <dialog id="statistics-consent" class="statistics-dialog" aria-labelledby="statistics-consent-title">
 <h2 id="statistics-consent-title">¿Desea guardar estadísticas recientes de práctica en este navegador?</h2>

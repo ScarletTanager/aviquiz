@@ -675,7 +675,7 @@ Keep an upcoming release's `productionDeployedAt` null during development and
 staging review; it displays as a preview, not an already deployed production
 release. The initial recorded production date is November 24, 2026, supported by
 `DO-PRODUCTION.md`. Do not substitute a commit, tag, build or staging date for a
-production deployment date. The planned next identifier is `v0.2.0-alpha.1`;
+production deployment date. The current next production candidate is `v0.2.0-alpha.2`;
 creating a notes entry does not create or publish a Git tag.
 
 As part of the approved production cutover, finalize the release metadata with

@@ -14,5 +14,7 @@
   "alpha01Quizzes": "Cuestionarios por fotos y audio con filtros de sitio y familia, repaso de errores y progreso visual y de audio independiente.",
   "alpha01Geography": "Cuestionarios por ubicación y temporada de Carolina del Norte, junto con el itinerario y el material de práctica originales de Colombia.",
   "alpha01Accounts": "Cuentas por invitación y cuestionarios para visitantes abiertos a todo el mundo.",
-  "alpha02Workflow": "Un flujo reutilizable de línea de comandos para procesar nuevas ubicaciones, producir paquetes comunes de datos por temporada y poner metadatos fotográficos en cola, reutilizando la cobertura ya recopilada para otras ubicaciones."
+  "alpha02Workflow": "Un flujo reutilizable de línea de comandos para procesar nuevas ubicaciones, producir paquetes comunes de datos por temporada y poner metadatos fotográficos en cola, reutilizando la cobertura ya recopilada para otras ubicaciones.",
+  "alpha02FixIntro": "Esta actualización alfa corrige la navegación inconsistente entre páginas y conserva las mejoras de Colombia, español, fotos por temporada y estadísticas de la cuenta previstas para la versión 0.2.0.",
+  "alpha02Navigation": "Navegación de encabezado uniforme en el selector de cuestionarios, la práctica, las estadísticas, los viajes, las invitaciones, las notas de versión y la revisión de fotos. Estadísticas y los demás destinos principales están disponibles desde todas las páginas; el acceso a las invitaciones sigue dependiendo de los permisos de la cuenta."
 }
