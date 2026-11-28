@@ -110,7 +110,7 @@ The deploy user can use those exact service-management commands. Root can inspec
 connection strings, request Authorization headers or token-bearing callback URLs.
 Root enables Caddy only after successful loopback app checks and correct DNS.
 
-## Active release and migration
+## November 20 deployment record
 
 Active release: `aviquiz-809e8823048a163f`, promoted November 20 after staging
 approval, from GitHub main commit `1a9780b92e42393da3af0989852445693a226f9e`.
@@ -281,3 +281,16 @@ change the immutable alpha artifact or move its published tag.
 Rollback target remains `releases/aviquiz-809e8823048a163f`. Atomically restore that
 `current` symlink and restart aviquiz.service, then recheck health. No schema rollback
 is involved. Never restore an old database snapshot merely to roll back this code.
+
+
+## Current production release - November 28, 2026
+
+AviQuiz **v0.2.0-alpha.4** is active from GitHub main/tag commit
+`e19efb375e4d71909e8e033f2a33b27a0348cfc3`, identical to owner-approved staging
+version 60. Runtime path: `/srv/aviquiz/releases/aviquiz-28f0911786bd6851`.
+The application now reads immutable seasonal facts and catalogs from private Spaces
+(`aviquiz-data`, NYC3), using the VPC-local DNS resolver and rejecting public-address
+fallback. PostgreSQL remains the account/statistics database. Protected service
+configuration and certificate authentication are retained. No schema migration was
+pending. See DEPLOYMENT.md's alpha.4 receipt for verification and rollback paths;
+rollback to alpha.2 requires restoring its protected environment as well as code.
