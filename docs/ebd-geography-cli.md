@@ -219,3 +219,9 @@ archive requires a receipt covering both sets. Set
 `package-do.mjs` to omit the filesystem object mirror. The default `files` mode
 continues to include all objects. Runtime `EBD_STORAGE` must match the chosen mode;
 a Spaces-only archive cannot serve through the filesystem adapter.
+
+The frozen API parity check also accepts `EBD_STORAGE=spaces` and the same
+`SPACES_*` settings. Run it on the Droplet to exercise the real private range-read
+adapter against a pre-migration receipt, then close the client. This validates quiz
+behavior over Spaces without changing the active application or involving its
+relational database.

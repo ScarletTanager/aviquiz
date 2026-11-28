@@ -142,3 +142,16 @@ packaging mode retains the mirror. The runtime independently requires
 `EBD_STORAGE=spaces`; a deployment must verify agreement between the release's
 `servingStorage` and its protected environment before activation. This avoids
 accumulating a complete Americas data copy in every application release directory.
+
+### Private Spaces preload receipt - November 28, 2026
+
+The committed development uploader (`3c392a0`) ran on the production Droplet as an
+isolated administrative job, with private-only DNS enforced. It uploaded and read
+back all 525 common objects and four retained legacy NC objects in `aviquiz-data`.
+Every byte count and SHA-256 matched. The serving revision is
+`a0cfe40c46fc0ae4a808e2c09c277700bb5d11da77039bfecba45c81fea558cd`.
+The receipt is retained at
+`/root/aviquiz-spaces-tools-3c392a0/spaces-upload-receipt.json`; the key is outside
+the source/artifact tree in a root-only file. No archive-bucket writes, object
+removal, runtime environment changes, or application activation were performed.
+Production still serves alpha.2 through its original filesystem adapter.
